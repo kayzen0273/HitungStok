@@ -419,6 +419,44 @@ function generate(doCopy){
 }
 
 const STORAGE_KEY = 'stok-opname-state';
+const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
+
+async function storageGet(key){
+  if(hasClaudeStorage){
+    return await window.storage.get(key, false);
+  }
+  try{
+    const val = localStorage.getItem(key);
+    return val !== null ? { value: val } : null;
+  } catch(e){
+    return null;
+  }
+}
+
+async function storageSet(key, value){
+  if(hasClaudeStorage){
+    return await window.storage.set(key, value, false);
+  }
+  try{
+    localStorage.setItem(key, value);
+    return { value };
+  } catch(e){
+    return null;
+  }
+}
+
+async function storageDelete(key){
+  if(hasClaudeStorage){
+    return await window.storage.delete(key, false);
+  }
+  try{
+    localStorage.removeItem(key);
+    return { deleted: true };
+  } catch(e){
+    return null;
+  }
+}
+
 let saveTimer = null;
 
 function setSaveStatus(text){
@@ -441,7 +479,7 @@ function saveState(){
       idCounter
     };
     try{
-      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+      const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
       if(result){
         const now = new Date();
         const jam = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
@@ -459,7 +497,7 @@ function saveState(){
 async function loadState(){
   setSaveStatus('Memuat…');
   try{
-    const result = await window.storage.get(STORAGE_KEY, false);
+    const result = await storageGet(STORAGE_KEY);
     if(result && result.value){
       const state = JSON.parse(result.value);
       if(state.rows && state.rows.length){
@@ -490,7 +528,7 @@ async function loadState(){
 async function resetAll(){
   if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?')) return;
   try{
-    await window.storage.delete(STORAGE_KEY, false);
+    await storageDelete(STORAGE_KEY);
   } catch(err){
     console.error('Gagal reset:', err);
   }
