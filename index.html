@@ -192,7 +192,7 @@
           <option>pagi</option><option selected>siang</option><option>sore</option><option>malam</option>
         </select>
       </div>
-      <div class="field"><label>Tanggal</label><input id="metaTgl" placeholder="dd/mm/yy" oninput="saveState()"></div>
+      <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
       <div class="field"><label>Petugas</label><input id="metaPetugas" placeholder="Nama petugas" oninput="saveState()"></div>
     </div>
   </div>
@@ -348,10 +348,19 @@ function escapeHtml(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function formatTanggal(isoDate){
+  if(!isoDate) return '-';
+  const parts = isoDate.split('-');
+  if(parts.length !== 3) return isoDate;
+  const [yyyy, mm, dd] = parts;
+  return `${dd}/${mm}/${yyyy.slice(2)}`;
+}
+
 function generate(doCopy){
   const toko = document.getElementById('metaToko').value.trim() || 'toko';
   const waktu = document.getElementById('metaWaktu').value;
-  const tgl = document.getElementById('metaTgl').value.trim() || '-';
+  const tglRaw = document.getElementById('metaTgl').value;
+  const tgl = formatTanggal(tglRaw);
   const petugas = document.getElementById('metaPetugas').value.trim() || '-';
 
   const named = rows.filter(r => r.nama.trim() !== '' && r.apk !== '');
@@ -509,20 +518,31 @@ async function loadState(){
       if(state.meta){
         document.getElementById('metaToko').value = state.meta.toko ?? 'rafa 1';
         document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
-        document.getElementById('metaTgl').value = state.meta.tgl ?? '';
+        document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
         document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
+      } else {
+        document.getElementById('metaTgl').value = todayISO();
       }
       setSaveStatus('Data tersimpan dimuat');
     } else {
       for(let i=0;i<5;i++) rows.push(newRow());
+      document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
     for(let i=0;i<5;i++) rows.push(newRow());
+    document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
   render();
+}
+
+function todayISO(){
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 async function resetAll(){
@@ -537,7 +557,7 @@ async function resetAll(){
   for(let i=0;i<5;i++) rows.push(newRow());
   document.getElementById('metaToko').value = 'rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
-  document.getElementById('metaTgl').value = '';
+  document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
