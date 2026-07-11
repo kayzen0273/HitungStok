@@ -193,7 +193,17 @@
         </select>
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
-      <div class="field"><label>Petugas</label><input id="metaPetugas" placeholder="Nama petugas" oninput="saveState()"></div>
+      <div class="field"><label>Petugas</label>
+        <input list="petugasOptions" id="metaPetugas" placeholder="Pilih atau ketik nama" oninput="saveState()">
+        <datalist id="petugasOptions">
+          <option value="Sely">
+          <option value="Zen">
+          <option value="Putri">
+          <option value="Mely">
+          <option value="Dinda">
+          <option value="Hayati">
+        </datalist>
+      </div>
     </div>
   </div>
 
