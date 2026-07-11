@@ -197,6 +197,17 @@
     font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0;
   }
   .modal-add:hover{background:var(--teal-deep);}
+
+  .hide-toko-row{display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .hide-toko-row .htr-label{font-size:12px; color:var(--ink-soft); font-weight:600;}
+  .chip-toggle{
+    display:inline-flex; align-items:center; gap:6px; background:var(--card); color:var(--ink-soft);
+    border:1.5px solid var(--line); padding:6px 12px; border-radius:20px; font-size:12.5px;
+    font-weight:700; font-family:inherit; cursor:pointer;
+  }
+  .chip-toggle:hover{border-color:#a9c9c0;}
+  .chip-toggle .eye{width:13px;height:13px; flex-shrink:0;}
+  .chip-toggle.active{background:var(--minus-bg); color:var(--minus); border-color:#e4b8ab;}
 </style>
 </head>
 <body>
@@ -283,6 +294,17 @@
 
   <div class="card">
     <h2>Format WhatsApp</h2>
+    <div class="hide-toko-row">
+      <span class="htr-label">Sembunyikan nama toko di teks:</span>
+      <button type="button" class="chip-toggle" id="hideT1Btn" onclick="toggleHideToko('t1')">
+        <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Rafa 1
+      </button>
+      <button type="button" class="chip-toggle" id="hideT2Btn" onclick="toggleHideToko('t2')">
+        <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Rafa 2
+      </button>
+    </div>
     <div class="generate-bar">
       <button class="btn-main" onclick="generate(true)">
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="#fff" stroke-width="1.8"/><path d="M5 3v14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -302,10 +324,25 @@ const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
 
 // Daftar nama petugas yang muncul di modal pilihan.
 // Ganti / tambah / hapus nama di sini sesuai petugas toko.
-const PETUGAS_LIST = ['Zen', 'Sely', 'Mely', 'Putri', 'Dinda', 'Hayati'];
+const PETUGAS_LIST = ['Nama 1', 'Nama 2', 'Nama 3', 'Nama 4', 'Nama 5'];
 
 let rows = [];
 let idCounter = 0;
+let hideToko = { t1:false, t2:false };
+
+function toggleHideToko(key){
+  hideToko[key] = !hideToko[key];
+  updateHideTokoUI();
+  saveState();
+  // kalau preview sudah ada isinya, langsung refresh biar sesuai (tanpa auto-copy)
+  const preview = document.getElementById('preview');
+  if(preview && !preview.classList.contains('empty')) generate(false);
+}
+
+function updateHideTokoUI(){
+  document.getElementById('hideT1Btn').classList.toggle('active', hideToko.t1);
+  document.getElementById('hideT2Btn').classList.toggle('active', hideToko.t2);
+}
 
 function newRow(){
   return { id: idCounter++, nama:'', t1:'', t2:'', apk:'' };
@@ -414,6 +451,13 @@ function formatTanggal(isoDate){
   return `${dd}/${mm}/${yyyy.slice(2)}`;
 }
 
+function breakdownText(t1, t2){
+  const parts = [];
+  if(!hideToko.t1) parts.push(`Rafa1:${t1}`);
+  if(!hideToko.t2) parts.push(`Rafa2:${t2}`);
+  return parts.length ? ` (${parts.join(' ')})` : '';
+}
+
 function generate(doCopy){
   const toko = document.getElementById('metaToko').value.trim() || 'toko';
   const waktu = document.getElementById('metaWaktu').value;
@@ -443,21 +487,21 @@ function generate(doCopy){
   if(minusList.length){
     out += `\n *YANG -* \n`;
     minusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
   if(plusList.length){
     out += `\n *YANG +* \n`;
     plusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
   if(klopList.length){
     out += `\n *YANG KLOP ✅*\n`;
     klopList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
@@ -543,7 +587,8 @@ function saveState(){
         petugas: document.getElementById('metaPetugas').value
       },
       rows,
-      idCounter
+      idCounter,
+      hideToko
     };
     try{
       const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
@@ -581,6 +626,9 @@ async function loadState(){
       } else {
         document.getElementById('metaTgl').value = todayISO();
       }
+      if(state.hideToko){
+        hideToko = { t1: !!state.hideToko.t1, t2: !!state.hideToko.t2 };
+      }
       setSaveStatus('Data tersimpan dimuat');
     } else {
       for(let i=0;i<5;i++) rows.push(newRow());
@@ -595,6 +643,7 @@ async function loadState(){
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
+  updateHideTokoUI();
   render();
 }
 
@@ -614,11 +663,13 @@ async function resetAll(){
   }
   rows = [];
   idCounter = 0;
+  hideToko = { t1:false, t2:false };
   for(let i=0;i<5;i++) rows.push(newRow());
   document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
+  updateHideTokoUI();
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
   render();
