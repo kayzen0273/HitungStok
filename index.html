@@ -164,6 +164,39 @@
   .preview b{color:#fff;}
 
   .footnote{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
+
+  #metaPetugas{cursor:pointer; background:var(--card);}
+  #metaPetugas::placeholder{color:#9aada6;}
+
+  .field-dropdown{position:relative;}
+  .field-dropdown-panel{
+    display:none; position:absolute; top:calc(100% + 6px); left:0; width:100%;
+    background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+    box-shadow:0 10px 26px rgba(15,30,27,0.16); z-index:50; padding:10px;
+    max-height:260px; overflow-y:auto; animation:dropIn .12s ease-out;
+  }
+  .field-dropdown-panel.show{display:block;}
+  @keyframes dropIn{ from{transform:translateY(-4px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .modal-list{display:flex; flex-direction:column; gap:6px; margin-bottom:8px;}
+  .modal-option{
+    text-align:left; background:#fafaf6; border:1.5px solid var(--line); border-radius:9px;
+    padding:9px 11px; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink);
+    cursor:pointer; display:flex; align-items:center; gap:9px; width:100%;
+  }
+  .modal-option:hover, .modal-option:active{background:var(--mint); border-color:#a9c9c0;}
+  .modal-option .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); flex-shrink:0;}
+  .modal-empty{font-size:12px; color:var(--ink-soft); padding:4px 2px 8px;}
+  .modal-manual{display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--line);}
+  .modal-manual input{
+    flex:1; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); min-width:0;
+  }
+  .modal-manual input:focus{outline:none; border-color:var(--teal);}
+  .modal-add{
+    background:var(--teal); color:#fff; border:none; padding:0 13px; border-radius:9px;
+    font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0;
+  }
+  .modal-add:hover{background:var(--teal-deep);}
 </style>
 </head>
 <body>
@@ -186,23 +219,31 @@
   <div class="card">
     <h2>Info Update</h2>
     <div class="meta-grid">
-      <div class="field"><label>Nama Toko</label><input id="metaToko" value="rafa 1" oninput="saveState()"></div>
+      <div class="field field-dropdown"><label>Nama Toko</label>
+        <input id="metaToko" placeholder="Pilih toko" readonly onclick="openTokoModal(event)">
+        <div class="field-dropdown-panel" id="tokoModal">
+          <div class="modal-list" id="tokoList"></div>
+          <div class="modal-manual">
+            <input id="tokoManualInput" placeholder="Atau ketik nama toko" onkeydown="if(event.key==='Enter') submitManualToko()">
+            <button class="modal-add" onclick="submitManualToko()">Pakai</button>
+          </div>
+        </div>
+      </div>
       <div class="field"><label>Waktu</label>
         <select id="metaWaktu" onchange="saveState()">
           <option>pagi</option><option selected>siang</option><option>sore</option><option>malam</option>
         </select>
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
-      <div class="field"><label>Petugas</label>
-        <input list="petugasOptions" id="metaPetugas" placeholder="Pilih atau ketik nama" oninput="saveState()">
-        <datalist id="petugasOptions">
-          <option value="Sely">
-          <option value="Zen">
-          <option value="Putri">
-          <option value="Mely">
-          <option value="Dinda">
-          <option value="Hayati">
-        </datalist>
+      <div class="field field-dropdown"><label>Petugas</label>
+        <input id="metaPetugas" placeholder="Pilih petugas" readonly onclick="openPetugasModal(event)">
+        <div class="field-dropdown-panel" id="petugasModal">
+          <div class="modal-list" id="petugasList"></div>
+          <div class="modal-manual">
+            <input id="petugasManualInput" placeholder="Atau ketik nama baru" onkeydown="if(event.key==='Enter') submitManualPetugas()">
+            <button class="modal-add" onclick="submitManualPetugas()">Pakai</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -256,6 +297,13 @@
 </div>
 
 <script>
+// Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
+const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
+
+// Daftar nama petugas yang muncul di modal pilihan.
+// Ganti / tambah / hapus nama di sini sesuai petugas toko.
+const PETUGAS_LIST = ['Zen', 'Sely', 'Mely', 'Putri', 'Dinda', 'Hayati'];
+
 let rows = [];
 let idCounter = 0;
 
@@ -526,7 +574,7 @@ async function loadState(){
         for(let i=0;i<5;i++) rows.push(newRow());
       }
       if(state.meta){
-        document.getElementById('metaToko').value = state.meta.toko ?? 'rafa 1';
+        document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
         document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
         document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
         document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
@@ -536,12 +584,14 @@ async function loadState(){
       setSaveStatus('Data tersimpan dimuat');
     } else {
       for(let i=0;i<5;i++) rows.push(newRow());
+      document.getElementById('metaToko').value = 'Rafa 1';
       document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
     for(let i=0;i<5;i++) rows.push(newRow());
+    document.getElementById('metaToko').value = 'Rafa 1';
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
@@ -565,7 +615,7 @@ async function resetAll(){
   rows = [];
   idCounter = 0;
   for(let i=0;i<5;i++) rows.push(newRow());
-  document.getElementById('metaToko').value = 'rafa 1';
+  document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
@@ -574,6 +624,80 @@ async function resetAll(){
   render();
   setSaveStatus('\u00A0');
 }
+
+function openTokoModal(e){
+  if(e) e.stopPropagation();
+  closePetugasModal();
+  const listEl = document.getElementById('tokoList');
+  if(TOKO_LIST.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada toko di daftar. Ketik nama secara manual di bawah.</div>';
+  } else {
+    listEl.innerHTML = TOKO_LIST.map(name => `
+      <button type="button" class="modal-option" onclick="selectToko('${name.replace(/'/g, "\\'")}')">
+        <span class="dot"></span>${escapeHtml(name)}
+      </button>
+    `).join('');
+  }
+  document.getElementById('tokoManualInput').value = '';
+  document.getElementById('tokoModal').classList.add('show');
+}
+
+function closeTokoModal(){
+  document.getElementById('tokoModal').classList.remove('show');
+}
+
+function selectToko(name){
+  document.getElementById('metaToko').value = name;
+  saveState();
+  closeTokoModal();
+}
+
+function submitManualToko(){
+  const val = document.getElementById('tokoManualInput').value.trim();
+  if(!val) return;
+  selectToko(val);
+}
+
+function openPetugasModal(e){
+  if(e) e.stopPropagation();
+  closeTokoModal();
+  const listEl = document.getElementById('petugasList');
+  if(PETUGAS_LIST.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
+  } else {
+    listEl.innerHTML = PETUGAS_LIST.map(name => `
+      <button type="button" class="modal-option" onclick="selectPetugas('${name.replace(/'/g, "\\'")}')">
+        <span class="dot"></span>${escapeHtml(name)}
+      </button>
+    `).join('');
+  }
+  document.getElementById('petugasManualInput').value = '';
+  document.getElementById('petugasModal').classList.add('show');
+}
+
+function closePetugasModal(){
+  document.getElementById('petugasModal').classList.remove('show');
+}
+
+function selectPetugas(name){
+  document.getElementById('metaPetugas').value = name;
+  saveState();
+  closePetugasModal();
+}
+
+function submitManualPetugas(){
+  const val = document.getElementById('petugasManualInput').value.trim();
+  if(!val) return;
+  selectPetugas(val);
+}
+
+document.addEventListener('click', function(e){
+  document.querySelectorAll('.field-dropdown').forEach(field => {
+    if(!field.contains(e.target)){
+      field.querySelector('.field-dropdown-panel')?.classList.remove('show');
+    }
+  });
+});
 
 loadState();
 
