@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stok Opname — Pencatatan Barang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#173b36;
+    --ink-soft:#4b6b65;
+    --paper:#f6f4ee;
+    --card:#ffffff;
+    --teal:#0d5c52;
+    --teal-deep:#0a453e;
+    --mint:#e4f2ec;
+    --line:#dde3dd;
+    --minus:#c0503a;
+    --minus-bg:#fbebe6;
+    --plus:#2f6fae;
+    --plus-bg:#e9f1fa;
+    --klop:#3c8a5c;
+    --klop-bg:#e9f6ee;
+    --amber:#b8863b;
+  }
+  *{box-sizing:border-box;}
+  html{overflow-x:hidden;}
+  body{
+    overflow-x:hidden;
+    max-width:100vw;
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(13,92,82,0.07) 1px, transparent 0);
+    background-size:22px 22px;
+    font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+    color:var(--ink);
+    padding:28px 16px 80px;
+  }
+  .wrap{max-width:920px; margin:0 auto;}
+  @media(max-width:480px){
+    body{padding:18px 12px 60px;}
+  }
+
+  .masthead{
+    display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap;
+  }
+  @media(max-width:480px){
+    .masthead{gap:10px;}
+    .masthead > div:last-child{width:100%; text-align:left; order:3; margin-top:2px;}
+    .masthead > div:last-child > *{display:inline-block; margin-right:12px;}
+  }
+  .pill{
+    width:42px; height:42px; border-radius:11px; background:var(--teal);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow:0 4px 10px rgba(13,92,82,0.25);
+  }
+  .pill svg{width:22px;height:22px;}
+  .masthead h1{font-size:19px; font-weight:800; margin:0; letter-spacing:-0.01em;}
+  .masthead p{margin:1px 0 0; font-size:12.5px; color:var(--ink-soft); font-weight:500;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:20px; margin-bottom:16px; box-shadow:0 1px 2px rgba(23,59,54,0.04);
+  }
+  @media(max-width:480px){
+    .card{padding:14px;}
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--teal);
+    font-weight:700; margin:0 0 14px;
+  }
+
+  .meta-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  @media(max-width:720px){ .meta-grid{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:420px){ .meta-grid{grid-template-columns:1fr;} }
+  .field label{display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input, .field select{
+    width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13.5px; line-height:1.4; color:var(--ink); background:var(--card);
+  }
+  .field input:focus, .field select:focus{outline:none; border-color:var(--teal);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -2px; padding:0 2px;}
+  .table-scroll table{min-width:600px;}
+  thead th{
+    text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--ink-soft); font-weight:700; padding:0 8px 8px; border-bottom:1.5px solid var(--line);
+  }
+  th.num, td.num{text-align:center;}
+  td.status-cell{padding-top:8px; padding-bottom:8px;}
+  tbody td{padding:6px 8px; border-bottom:1px solid #eef1ec; vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .idx{color:#a7b6b0; font-weight:600; font-size:12px; width:22px;}
+  td input{
+    width:100%; padding:7px 8px; border:1.5px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:13.5px; line-height:1.4; background:var(--card); color:var(--ink);
+  }
+  td input.nama{font-weight:600; width:auto; min-width:130px; max-width:100%;}
+  th.nama-col, td.nama-col{width:1%; white-space:nowrap;}
+  td input:focus{outline:none; border-color:var(--teal);}
+  input.num-in{text-align:center; font-family:'JetBrains Mono', monospace;}
+  .fisik-val{
+    font-family:'JetBrains Mono', monospace; font-weight:700; text-align:center;
+    font-size:13.5px; line-height:1.4; color:var(--ink);
+    padding:7px 8px; border:1.5px solid transparent; border-radius:8px;
+  }
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center; gap:4px;
+    min-width:64px; padding:4px 8px; border-radius:20px; font-size:11.5px; font-weight:700;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .badge.minus{background:var(--minus-bg); color:var(--minus);}
+  .badge.plus{background:var(--plus-bg); color:var(--plus);}
+  .badge.klop{background:var(--klop-bg); color:var(--klop);}
+  .del-btn{
+    background:none; border:none; cursor:pointer; color:#c2c9c4; padding:4px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .del-btn:hover{color:var(--minus); background:var(--minus-bg);}
+  .del-btn svg{width:15px;height:15px;}
+
+  .row-actions{display:flex; gap:10px; margin-top:14px;}
+  button{cursor:pointer; font-family:inherit;}
+  .btn-add{
+    display:flex; align-items:center; gap:6px; background:var(--mint); color:var(--teal-deep);
+    border:1.5px dashed #a9c9c0; padding:9px 14px; border-radius:10px; font-size:13px; font-weight:700;
+  }
+  .btn-add:hover{background:#d7ece2;}
+  .btn-add svg{width:15px;height:15px;}
+
+  .summary-strip{display:flex; gap:10px; margin:16px 0 6px; flex-wrap:wrap;}
+  .stat{
+    flex:1; min-width:110px; background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px;
+  }
+  .stat .n{font-family:'JetBrains Mono', monospace; font-size:20px; font-weight:700;}
+  .stat .l{font-size:10.5px; color:var(--ink-soft); font-weight:600; text-transform:uppercase; letter-spacing:.05em;}
+  .stat.minus .n{color:var(--minus);}
+  .stat.plus .n{color:var(--plus);}
+  .stat.klop .n{color:var(--klop);}
+
+  .generate-bar{
+    display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap;
+  }
+  .btn-main{
+    background:var(--teal); color:#fff; border:none; padding:12px 20px; border-radius:11px;
+    font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;
+    box-shadow:0 4px 12px rgba(13,92,82,0.28);
+  }
+  .btn-main:hover{background:var(--teal-deep);}
+  .btn-main svg{width:16px;height:16px;}
+  .copied-msg{font-size:12.5px; color:var(--klop); font-weight:700; opacity:0; transition:opacity .2s;}
+  .copied-msg.show{opacity:1;}
+
+  .preview{
+    margin-top:16px; background:var(--teal-deep); border-radius:14px; padding:16px 18px;
+    color:#eaf3f0; font-family:'JetBrains Mono', monospace; font-size:12.5px; line-height:1.65;
+    white-space:pre-wrap; max-height:420px; overflow-y:auto;
+  }
+  .preview.empty{color:#8fb1a9; font-style:italic;}
+  .preview b{color:#fff;}
+
+  .footnote{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="pill">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg>
+    </div>
+    <div style="flex:1;">
+      <h1>Stok Opname — Pencatatan Barang</h1>
+      <p>Rafa 1 + Rafa 2 dicocokkan dengan stok aplikasi (web/apk)</p>
+    </div>
+    <div style="text-align:right;">
+      <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
+      <button onclick="resetAll()" style="background:none;border:none;color:var(--ink-soft);font-size:11px;font-weight:600;text-decoration:underline;padding:2px 0;cursor:pointer;">Reset data</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Info Update</h2>
+    <div class="meta-grid">
+      <div class="field"><label>Nama Toko</label><input id="metaToko" value="rafa 1" oninput="saveState()"></div>
+      <div class="field"><label>Waktu</label>
+        <select id="metaWaktu" onchange="saveState()">
+          <option>pagi</option><option selected>siang</option><option>sore</option><option>malam</option>
+        </select>
+      </div>
+      <div class="field"><label>Tanggal</label><input id="metaTgl" placeholder="dd/mm/yy" oninput="saveState()"></div>
+      <div class="field"><label>Petugas</label><input id="metaPetugas" placeholder="Nama petugas" oninput="saveState()"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Daftar Barang</h2>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22px;"></th>
+          <th class="nama-col">Nama Barang</th>
+          <th class="num" style="width:80px;">Rafa 1</th>
+          <th class="num" style="width:80px;">Rafa 2</th>
+          <th class="num" style="width:70px;">Fisik</th>
+          <th class="num" style="width:80px;">Web/Apk</th>
+          <th class="num" style="width:90px;">Status</th>
+          <th style="width:30px;"></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    </div>
+    <div class="row-actions">
+      <button class="btn-add" onclick="addRow()">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Tambah barang
+      </button>
+    </div>
+  </div>
+
+  <div class="summary-strip">
+    <div class="stat minus"><div class="n" id="statMinus">0</div><div class="l">Yang minus</div></div>
+    <div class="stat plus"><div class="n" id="statPlus">0</div><div class="l">Yang plus</div></div>
+    <div class="stat klop"><div class="n" id="statKlop">0</div><div class="l">Yang klop</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Format WhatsApp</h2>
+    <div class="generate-bar">
+      <button class="btn-main" onclick="generate(true)">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="#fff" stroke-width="1.8"/><path d="M5 3v14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Salin ke WhatsApp
+      </button>
+      <span class="copied-msg" id="copiedMsg">Tersalin ✓ siap ditempel di WhatsApp</span>
+    </div>
+    <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
+    <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
+  </div>
+
+</div>
+
+<script>
+let rows = [];
+let idCounter = 0;
+
+function newRow(){
+  return { id: idCounter++, nama:'', t1:'', t2:'', apk:'' };
+}
+
+function addRow(){
+  rows.push(newRow());
+  render();
+  saveState();
+}
+
+function delRow(id){
+  const r = rows.find(r => r.id === id);
+  const label = (r && r.nama.trim()) ? `"${r.nama.trim()}"` : 'baris ini';
+  if(!confirm(`Hapus ${label}?`)) return;
+  rows = rows.filter(r => r.id !== id);
+  render();
+  saveState();
+}
+
+function updateField(id, field, value){
+  const r = rows.find(r => r.id === id);
+  if(r) r[field] = value;
+  if(r && (field === 't1' || field === 't2' || field === 'apk')){
+    const fisikEl = document.getElementById(`fisik-${id}`);
+    if(fisikEl) fisikEl.textContent = fisikOf(r);
+    const statusEl = document.getElementById(`status-${id}`);
+    if(statusEl) statusEl.innerHTML = badgeHtml(statusOf(r));
+  }
+  renderSummaryOnly();
+  saveState();
+}
+
+function badgeHtml(st){
+  if(!st) return '<span style="color:#c2c9c4;font-size:12px;">—</span>';
+  if(st.type === 'klop') return '<span class="badge klop">KLOP ✓</span>';
+  if(st.type === 'minus') return `<span class="badge minus">${st.selisih}</span>`;
+  return `<span class="badge plus">+${st.selisih}</span>`;
+}
+
+function fisikOf(r){
+  const t1 = parseInt(r.t1) || 0;
+  const t2 = parseInt(r.t2) || 0;
+  return t1 + t2;
+}
+
+function statusOf(r){
+  if(r.apk === '' || r.apk === null) return null;
+  const apk = parseInt(r.apk) || 0;
+  const fisik = fisikOf(r);
+  const selisih = fisik - apk;
+  if(selisih === 0) return {type:'klop', selisih};
+  if(selisih < 0) return {type:'minus', selisih};
+  return {type:'plus', selisih};
+}
+
+function render(){
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const st = statusOf(r);
+    const badge = badgeHtml(st);
+    tr.innerHTML = `
+      <td class="idx">${i+1}</td>
+      <td class="nama-col"><input class="nama" placeholder="Nama barang" size="${Math.max(14, r.nama.length + 2)}" value="${escapeHtml(r.nama)}" oninput="updateField(${r.id},'nama',this.value); this.size=Math.max(14,this.value.length+2)"></td>
+      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t1}" oninput="updateField(${r.id},'t1',this.value)"></td>
+      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t2}" oninput="updateField(${r.id},'t2',this.value)"></td>
+      <td class="num"><div class="fisik-val" id="fisik-${r.id}">${fisikOf(r)}</div></td>
+      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.apk}" oninput="updateField(${r.id},'apk',this.value)"></td>
+      <td class="num status-cell" id="status-${r.id}">${badge}</td>
+      <td><button class="del-btn" onclick="delRow(${r.id})">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  renderSummaryOnly();
+}
+
+function renderSummaryOnly(){
+  // update fisik + badge cells without full re-render, but simplest: recompute stats
+  let minus=0, plus=0, klop=0;
+  rows.forEach(r=>{
+    const st = statusOf(r);
+    if(st){
+      if(st.type==='minus') minus++;
+      else if(st.type==='plus') plus++;
+      else klop++;
+    }
+  });
+  document.getElementById('statMinus').textContent = minus;
+  document.getElementById('statPlus').textContent = plus;
+  document.getElementById('statKlop').textContent = klop;
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function generate(doCopy){
+  const toko = document.getElementById('metaToko').value.trim() || 'toko';
+  const waktu = document.getElementById('metaWaktu').value;
+  const tgl = document.getElementById('metaTgl').value.trim() || '-';
+  const petugas = document.getElementById('metaPetugas').value.trim() || '-';
+
+  const named = rows.filter(r => r.nama.trim() !== '' && r.apk !== '');
+  const minusList = [];
+  const plusList = [];
+  const klopList = [];
+
+  named.forEach(r => {
+    const st = statusOf(r);
+    if(!st) return;
+    const fisik = fisikOf(r);
+    const apk = parseInt(r.apk) || 0;
+    const t1 = parseInt(r.t1) || 0;
+    const t2 = parseInt(r.t2) || 0;
+    if(st.type === 'minus') minusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
+    else if(st.type === 'plus') plusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
+    else klopList.push({nama:r.nama.trim(), t1, t2});
+  });
+
+  let out = `update buku penjualan stok - dan + di ${toko} ${waktu} tgl ${tgl} ( ${petugas} ) : \n`;
+
+  if(minusList.length){
+    out += `\n *YANG -* \n`;
+    minusList.forEach((it, i) => {
+      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+    });
+  }
+
+  if(plusList.length){
+    out += `\n *YANG +* \n`;
+    plusList.forEach((it, i) => {
+      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+    });
+  }
+
+  if(klopList.length){
+    out += `\n *YANG KLOP ✅*\n`;
+    klopList.forEach((it, i) => {
+      out += `${i+1}. ${it.nama} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+    });
+  }
+
+  const preview = document.getElementById('preview');
+  if(named.length === 0){
+    preview.classList.add('empty');
+    preview.textContent = 'Belum ada barang dengan data Web/Apk terisi. Lengkapi tabel di atas dulu.';
+    return;
+  }
+  preview.classList.remove('empty');
+  preview.textContent = out.trim();
+
+  if(doCopy){
+    navigator.clipboard.writeText(out.trim()).then(() => {
+      const msg = document.getElementById('copiedMsg');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 2500);
+    }).catch(() => {
+      // fallback: select text for manual copy
+      const range = document.createRange();
+      range.selectNode(preview);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    });
+  }
+}
+
+const STORAGE_KEY = 'stok-opname-state';
+let saveTimer = null;
+
+function setSaveStatus(text){
+  const el = document.getElementById('saveStatus');
+  if(el) el.textContent = text;
+}
+
+function saveState(){
+  clearTimeout(saveTimer);
+  setSaveStatus('Menyimpan…');
+  saveTimer = setTimeout(async () => {
+    const state = {
+      meta: {
+        toko: document.getElementById('metaToko').value,
+        waktu: document.getElementById('metaWaktu').value,
+        tgl: document.getElementById('metaTgl').value,
+        petugas: document.getElementById('metaPetugas').value
+      },
+      rows,
+      idCounter
+    };
+    try{
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+      if(result){
+        const now = new Date();
+        const jam = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        setSaveStatus(`Tersimpan ${jam}`);
+      } else {
+        setSaveStatus('Gagal menyimpan');
+      }
+    } catch(err){
+      console.error('Gagal menyimpan:', err);
+      setSaveStatus('Gagal menyimpan');
+    }
+  }, 400);
+}
+
+async function loadState(){
+  setSaveStatus('Memuat…');
+  try{
+    const result = await window.storage.get(STORAGE_KEY, false);
+    if(result && result.value){
+      const state = JSON.parse(result.value);
+      if(state.rows && state.rows.length){
+        rows = state.rows;
+        idCounter = state.idCounter || (Math.max(...rows.map(r => r.id)) + 1);
+      } else {
+        for(let i=0;i<5;i++) rows.push(newRow());
+      }
+      if(state.meta){
+        document.getElementById('metaToko').value = state.meta.toko ?? 'rafa 1';
+        document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
+        document.getElementById('metaTgl').value = state.meta.tgl ?? '';
+        document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
+      }
+      setSaveStatus('Data tersimpan dimuat');
+    } else {
+      for(let i=0;i<5;i++) rows.push(newRow());
+      setSaveStatus('\u00A0');
+    }
+  } catch(err){
+    // belum ada data tersimpan sebelumnya
+    for(let i=0;i<5;i++) rows.push(newRow());
+    setSaveStatus('\u00A0');
+  }
+  render();
+}
+
+async function resetAll(){
+  if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?')) return;
+  try{
+    await window.storage.delete(STORAGE_KEY, false);
+  } catch(err){
+    console.error('Gagal reset:', err);
+  }
+  rows = [];
+  idCounter = 0;
+  for(let i=0;i<5;i++) rows.push(newRow());
+  document.getElementById('metaToko').value = 'rafa 1';
+  document.getElementById('metaWaktu').value = 'siang';
+  document.getElementById('metaTgl').value = '';
+  document.getElementById('metaPetugas').value = '';
+  document.getElementById('preview').className = 'preview empty';
+  document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
+  render();
+  setSaveStatus('\u00A0');
+}
+
+loadState();
+
+</script>
+</body>
+</html>
