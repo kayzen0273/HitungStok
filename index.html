@@ -975,20 +975,32 @@ async function loadHistoryEntry(id){
   if(!entry) return;
   if(!confirm('Muat data riwayat ini ke form untuk diedit? Isian yang sedang aktif akan disimpan sementara dan bisa dikembalikan lagi nanti.')) return;
 
-  // simpan isian yang sedang aktif supaya bisa dikembalikan lagi
-  const snapshot = {
-    meta: {
-      toko: document.getElementById('metaToko').value,
-      waktu: document.getElementById('metaWaktu').value,
-      tgl: document.getElementById('metaTgl').value,
-      petugas: document.getElementById('metaPetugas').value
-    },
-    rows: JSON.parse(JSON.stringify(rows)),
-    idCounter,
-    hideToko: {...hideToko},
-    editingFromId
-  };
-  await storageSet(PRE_HISTORY_KEY, JSON.stringify(snapshot));
+  // simpan isian yang sedang aktif supaya bisa dikembalikan lagi —
+  // jangan timpa snapshot lama kalau sudah ada snapshot yang belum dikembalikan,
+  // supaya "kembali ke isian sebelumnya" selalu mengacu ke isian aktif yang asli
+  let existingSnapshot = null;
+  try{
+    const existing = await storageGet(PRE_HISTORY_KEY);
+    if(existing && existing.value) existingSnapshot = existing.value;
+  } catch(e){
+    // belum ada snapshot tersimpan
+  }
+
+  if(!existingSnapshot){
+    const snapshot = {
+      meta: {
+        toko: document.getElementById('metaToko').value,
+        waktu: document.getElementById('metaWaktu').value,
+        tgl: document.getElementById('metaTgl').value,
+        petugas: document.getElementById('metaPetugas').value
+      },
+      rows: JSON.parse(JSON.stringify(rows)),
+      idCounter,
+      hideToko: {...hideToko},
+      editingFromId
+    };
+    await storageSet(PRE_HISTORY_KEY, JSON.stringify(snapshot));
+  }
 
   rows = JSON.parse(JSON.stringify(entry.rows || []));
   idCounter = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
