@@ -208,6 +208,49 @@
   .chip-toggle:hover{border-color:#a9c9c0;}
   .chip-toggle .eye{width:13px;height:13px; flex-shrink:0;}
   .chip-toggle.active{background:var(--minus-bg); color:var(--minus); border-color:#e4b8ab;}
+
+  .link-btn{background:none; border:none; font-size:11px; font-weight:700; text-decoration:underline; padding:2px 0; cursor:pointer;}
+  .riwayat-btn{color:var(--teal); margin-right:12px;}
+  .reset-btn{color:var(--ink-soft);}
+
+  .history-overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,30,27,0.45); z-index:200;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .history-overlay.show{display:flex;}
+  .history-modal{
+    background:var(--card); border-radius:16px; width:100%; max-width:560px; max-height:82vh;
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(15,30,27,0.3);
+  }
+  .history-modal-head{
+    display:flex; align-items:center; justify-content:space-between; padding:16px 18px;
+    border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .history-modal-head h3{margin:0; font-size:15px; font-weight:800;}
+  .history-close{
+    background:var(--mint); border:none; color:var(--teal-deep); width:28px; height:28px;
+    border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; line-height:1;
+  }
+  .history-close:hover{background:#d7ece2;}
+  .history-modal-body{overflow-y:auto; padding:14px 18px 18px;}
+  .history-empty{font-size:12.5px; color:var(--ink-soft); text-align:center; padding:34px 10px; line-height:1.6;}
+  .history-item{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .history-item-title{font-weight:700; font-size:13.5px;}
+  .history-item-sub{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .history-item-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .history-btn{
+    font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; border:1.5px solid var(--line);
+    background:var(--card); cursor:pointer; color:var(--ink);
+  }
+  .history-btn.load{color:var(--teal-deep); border-color:#a9c9c0; background:var(--mint);}
+  .history-btn.load:hover{background:#d7ece2;}
+  .history-btn.del{color:var(--minus); border-color:#e4b8ab; background:var(--minus-bg);}
+  .history-btn.del:hover{background:#f6dbd2;}
+  .history-item-text{
+    margin-top:10px; background:var(--teal-deep); color:#eaf3f0; font-family:'JetBrains Mono', monospace;
+    font-size:11.5px; line-height:1.6; white-space:pre-wrap; padding:10px 12px; border-radius:10px;
+    max-height:220px; overflow-y:auto;
+  }
 </style>
 </head>
 <body>
@@ -223,7 +266,8 @@
     </div>
     <div style="text-align:right;">
       <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
-      <button onclick="resetAll()" style="background:none;border:none;color:var(--ink-soft);font-size:11px;font-weight:600;text-decoration:underline;padding:2px 0;cursor:pointer;">Reset data</button>
+      <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
+      <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
 
@@ -320,7 +364,16 @@
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
   </div>
+</div>
 
+<div class="history-overlay" id="historyOverlay" onclick="if(event.target===this) closeHistoryModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Riwayat Laporan</h3>
+      <button class="history-close" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="history-modal-body" id="historyListBody"></div>
+  </div>
 </div>
 
 <script>
@@ -520,6 +573,14 @@ function generate(doCopy){
   preview.textContent = out.trim();
 
   if(doCopy){
+    saveHistoryEntry({
+      id: Date.now(),
+      savedAt: new Date().toISOString(),
+      toko, waktu, tgl: tglRaw, petugas,
+      rows: JSON.parse(JSON.stringify(rows)),
+      hideToko: {...hideToko},
+      text: out.trim()
+    });
     navigator.clipboard.writeText(out.trim()).then(() => {
       const msg = document.getElementById('copiedMsg');
       msg.classList.add('show');
@@ -566,6 +627,7 @@ function copyNamaBarang(){
 }
 
 const STORAGE_KEY = 'stok-opname-state';
+const HISTORY_KEY = 'stok-opname-history';
 const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
 
 async function storageGet(key){
@@ -785,6 +847,103 @@ document.addEventListener('click', function(e){
     }
   });
 });
+
+async function getHistoryList(){
+  try{
+    const result = await storageGet(HISTORY_KEY);
+    if(result && result.value) return JSON.parse(result.value);
+  } catch(e){
+    // belum ada riwayat tersimpan
+  }
+  return [];
+}
+
+async function setHistoryList(list){
+  try{
+    await storageSet(HISTORY_KEY, JSON.stringify(list));
+  } catch(err){
+    console.error('Gagal menyimpan riwayat:', err);
+  }
+}
+
+async function saveHistoryEntry(entry){
+  const list = await getHistoryList();
+  list.unshift(entry);
+  if(list.length > 50) list.length = 50;
+  await setHistoryList(list);
+}
+
+async function openHistoryModal(){
+  document.getElementById('historyOverlay').classList.add('show');
+  const body = document.getElementById('historyListBody');
+  body.innerHTML = '<div class="history-empty">Memuat riwayat…</div>';
+  const list = await getHistoryList();
+  renderHistoryList(list);
+}
+
+function closeHistoryModal(){
+  document.getElementById('historyOverlay').classList.remove('show');
+}
+
+function renderHistoryList(list){
+  const body = document.getElementById('historyListBody');
+  if(!list.length){
+    body.innerHTML = '<div class="history-empty">Belum ada riwayat.<br>Setiap kali kamu menekan "Salin ke WhatsApp", laporannya otomatis tersimpan di sini dan bisa dimuat ulang untuk diedit kapan saja.</div>';
+    return;
+  }
+  body.innerHTML = list.map(entry => {
+    const savedDate = new Date(entry.savedAt);
+    const savedFormatted = isNaN(savedDate.getTime()) ? '-' : savedDate.toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const tglFormatted = formatTanggal(entry.tgl);
+    return `
+      <div class="history-item">
+        <div class="history-item-title">${escapeHtml(entry.toko || '-')} · ${escapeHtml(entry.waktu || '-')} · ${tglFormatted}</div>
+        <div class="history-item-sub">Petugas: ${escapeHtml(entry.petugas || '-')} • Disimpan ${savedFormatted}</div>
+        <div class="history-item-actions">
+          <button class="history-btn load" onclick="loadHistoryEntry(${entry.id})">Muat &amp; edit</button>
+          <button class="history-btn" onclick="toggleHistoryText(${entry.id})">Lihat teks</button>
+          <button class="history-btn del" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
+        </div>
+        <div class="history-item-text" id="histText-${entry.id}" style="display:none;">${escapeHtml(entry.text || '')}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleHistoryText(id){
+  const el = document.getElementById(`histText-${id}`);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadHistoryEntry(id){
+  const list = await getHistoryList();
+  const entry = list.find(h => h.id === id);
+  if(!entry) return;
+  if(!confirm('Muat data riwayat ini ke form? Isian yang sedang aktif di form akan diganti dengan data riwayat ini (riwayat itu sendiri tidak akan hilang).')) return;
+
+  rows = JSON.parse(JSON.stringify(entry.rows || []));
+  idCounter = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
+  document.getElementById('metaToko').value = entry.toko || '';
+  document.getElementById('metaWaktu').value = entry.waktu || 'siang';
+  document.getElementById('metaTgl').value = entry.tgl || todayISO();
+  document.getElementById('metaPetugas').value = entry.petugas || '';
+  hideToko = entry.hideToko ? {...entry.hideToko} : { t1:false, t2:false };
+  updateHideTokoUI();
+  render();
+  saveState();
+  closeHistoryModal();
+  generate(false);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+async function deleteHistoryEntry(id){
+  if(!confirm('Hapus riwayat ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  let list = await getHistoryList();
+  list = list.filter(h => h.id !== id);
+  await setHistoryList(list);
+  renderHistoryList(list);
+}
 
 loadState();
 
