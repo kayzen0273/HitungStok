@@ -236,6 +236,11 @@
   .history-empty{font-size:12.5px; color:var(--ink-soft); text-align:center; padding:34px 10px; line-height:1.6;}
   .history-item{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
   .history-item-title{font-weight:700; font-size:13.5px;}
+  .toko-tap{cursor:default; user-select:none;}
+  .edited-badge{
+    display:inline-block; font-size:10px; font-weight:700; color:var(--amber);
+    background:#fbf1e0; padding:2px 7px; border-radius:20px; vertical-align:middle;
+  }
   .history-item-sub{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
   .history-item-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
   .history-btn{
@@ -402,6 +407,7 @@ const PETUGAS_LIST = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
 let rows = [];
 let idCounter = 0;
 let hideToko = { t1:false, t2:false };
+let editingFromId = null;
 
 function toggleHideToko(key){
   hideToko[key] = !hideToko[key];
@@ -594,7 +600,8 @@ function generate(doCopy){
       toko, waktu, tgl: tglRaw, petugas,
       rows: JSON.parse(JSON.stringify(rows)),
       hideToko: {...hideToko},
-      text: out.trim()
+      text: out.trim(),
+      editedFrom: editingFromId || null
     });
     navigator.clipboard.writeText(out.trim()).then(() => {
       const msg = document.getElementById('copiedMsg');
@@ -702,7 +709,8 @@ function saveState(){
       },
       rows,
       idCounter,
-      hideToko
+      hideToko,
+      editingFromId
     };
     try{
       const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
@@ -743,6 +751,7 @@ async function loadState(){
       if(state.hideToko){
         hideToko = { t1: !!state.hideToko.t1, t2: !!state.hideToko.t2 };
       }
+      editingFromId = state.editingFromId || null;
       setSaveStatus('Data tersimpan dimuat');
     } else {
       for(let i=0;i<5;i++) rows.push(newRow());
@@ -779,12 +788,15 @@ async function resetAll(){
   if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?')) return;
   try{
     await storageDelete(STORAGE_KEY);
+    await storageDelete(PRE_HISTORY_KEY);
   } catch(err){
     console.error('Gagal reset:', err);
   }
   rows = [];
   idCounter = 0;
   hideToko = { t1:false, t2:false };
+  editingFromId = null;
+  hideRestoreBanner();
   for(let i=0;i<5;i++) rows.push(newRow());
   document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
@@ -920,17 +932,35 @@ function renderHistoryList(list){
     const tglFormatted = formatTanggal(entry.tgl);
     return `
       <div class="history-item">
-        <div class="history-item-title">${escapeHtml(entry.toko || '-')} · ${escapeHtml(entry.waktu || '-')} · ${tglFormatted}</div>
+        <div class="history-item-title"><span class="toko-tap" onclick="handleTokoTap(${entry.id})">${escapeHtml(entry.toko || '-')}</span> · ${escapeHtml(entry.waktu || '-')} · ${tglFormatted}${entry.editedFrom ? ' <span class="edited-badge">✎ Diedit</span>' : ''}</div>
         <div class="history-item-sub">Petugas: ${escapeHtml(entry.petugas || '-')} • Disimpan ${savedFormatted}</div>
         <div class="history-item-actions">
           <button class="history-btn load" onclick="loadHistoryEntry(${entry.id})">Muat &amp; edit</button>
           <button class="history-btn" onclick="toggleHistoryText(${entry.id})">Lihat teks</button>
-          <button class="history-btn del" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
+          <button class="history-btn del" id="delBtn-${entry.id}" style="display:none;" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
         </div>
         <div class="history-item-text" id="histText-${entry.id}" style="display:none;">${escapeHtml(entry.text || '')}</div>
       </div>
     `;
   }).join('');
+}
+
+const tokoTapState = {};
+
+function handleTokoTap(id){
+  const now = Date.now();
+  const state = tokoTapState[id] || { count:0, lastTap:0 };
+  if(now - state.lastTap > 1500){
+    state.count = 0;
+  }
+  state.count++;
+  state.lastTap = now;
+  tokoTapState[id] = state;
+  if(state.count >= 5){
+    const btn = document.getElementById(`delBtn-${id}`);
+    if(btn) btn.style.display = 'inline-block';
+    state.count = 0;
+  }
 }
 
 function toggleHistoryText(id){
@@ -955,7 +985,8 @@ async function loadHistoryEntry(id){
     },
     rows: JSON.parse(JSON.stringify(rows)),
     idCounter,
-    hideToko: {...hideToko}
+    hideToko: {...hideToko},
+    editingFromId
   };
   await storageSet(PRE_HISTORY_KEY, JSON.stringify(snapshot));
 
@@ -966,6 +997,7 @@ async function loadHistoryEntry(id){
   document.getElementById('metaTgl').value = entry.tgl || todayISO();
   document.getElementById('metaPetugas').value = entry.petugas || '';
   hideToko = entry.hideToko ? {...entry.hideToko} : { t1:false, t2:false };
+  editingFromId = entry.editedFrom || entry.id;
   updateHideTokoUI();
   render();
   saveState();
@@ -999,6 +1031,7 @@ async function restorePreviousActive(){
     document.getElementById('metaPetugas').value = snap.meta.petugas || '';
   }
   hideToko = snap.hideToko || { t1:false, t2:false };
+  editingFromId = snap.editingFromId || null;
   updateHideTokoUI();
   render();
   await storageDelete(PRE_HISTORY_KEY);
@@ -1010,6 +1043,12 @@ async function restorePreviousActive(){
 }
 
 async function deleteHistoryEntry(id){
+  const pass = prompt('Masukkan kata sandi untuk menghapus riwayat ini:');
+  if(pass === null) return;
+  if(pass !== '1234'){
+    alert('Kata sandi salah. Riwayat tidak dihapus.');
+    return;
+  }
   if(!confirm('Hapus riwayat ini? Tindakan ini tidak bisa dibatalkan.')) return;
   let list = await getHistoryList();
   list = list.filter(h => h.id !== id);
