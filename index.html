@@ -251,6 +251,14 @@
     font-size:11.5px; line-height:1.6; white-space:pre-wrap; padding:10px 12px; border-radius:10px;
     max-height:220px; overflow-y:auto;
   }
+
+  .restore-banner{
+    display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:var(--mint); border:1.5px solid #a9c9c0; border-radius:12px; padding:10px 14px;
+    margin-bottom:16px; font-size:12.5px; color:var(--teal-deep); font-weight:700;
+  }
+  .restore-banner.show{display:flex;}
+  .restore-banner-actions{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -268,6 +276,13 @@
       <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
+    </div>
+  </div>
+
+  <div class="restore-banner" id="restoreBanner">
+    <span>Kamu sedang mengedit data dari riwayat.</span>
+    <div class="restore-banner-actions">
+      <button class="history-btn load" onclick="restorePreviousActive()">Kembali ke isian sebelumnya</button>
     </div>
   </div>
 
@@ -628,6 +643,7 @@ function copyNamaBarang(){
 
 const STORAGE_KEY = 'stok-opname-state';
 const HISTORY_KEY = 'stok-opname-history';
+const PRE_HISTORY_KEY = 'stok-opname-pre-history';
 const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
 
 async function storageGet(key){
@@ -743,6 +759,13 @@ async function loadState(){
   }
   updateHideTokoUI();
   render();
+
+  try{
+    const preResult = await storageGet(PRE_HISTORY_KEY);
+    if(preResult && preResult.value) showRestoreBanner();
+  } catch(e){
+    // tidak ada snapshot tersimpan, abaikan
+  }
 }
 
 function todayISO(){
@@ -920,7 +943,21 @@ async function loadHistoryEntry(id){
   const list = await getHistoryList();
   const entry = list.find(h => h.id === id);
   if(!entry) return;
-  if(!confirm('Muat data riwayat ini ke form? Isian yang sedang aktif di form akan diganti dengan data riwayat ini (riwayat itu sendiri tidak akan hilang).')) return;
+  if(!confirm('Muat data riwayat ini ke form untuk diedit? Isian yang sedang aktif akan disimpan sementara dan bisa dikembalikan lagi nanti.')) return;
+
+  // simpan isian yang sedang aktif supaya bisa dikembalikan lagi
+  const snapshot = {
+    meta: {
+      toko: document.getElementById('metaToko').value,
+      waktu: document.getElementById('metaWaktu').value,
+      tgl: document.getElementById('metaTgl').value,
+      petugas: document.getElementById('metaPetugas').value
+    },
+    rows: JSON.parse(JSON.stringify(rows)),
+    idCounter,
+    hideToko: {...hideToko}
+  };
+  await storageSet(PRE_HISTORY_KEY, JSON.stringify(snapshot));
 
   rows = JSON.parse(JSON.stringify(entry.rows || []));
   idCounter = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
@@ -932,8 +969,43 @@ async function loadHistoryEntry(id){
   updateHideTokoUI();
   render();
   saveState();
+  showRestoreBanner();
   closeHistoryModal();
   generate(false);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function showRestoreBanner(){
+  document.getElementById('restoreBanner').classList.add('show');
+}
+
+function hideRestoreBanner(){
+  document.getElementById('restoreBanner').classList.remove('show');
+}
+
+async function restorePreviousActive(){
+  const result = await storageGet(PRE_HISTORY_KEY);
+  if(!result || !result.value){
+    hideRestoreBanner();
+    return;
+  }
+  const snap = JSON.parse(result.value);
+  rows = snap.rows || [];
+  idCounter = snap.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+  if(snap.meta){
+    document.getElementById('metaToko').value = snap.meta.toko || '';
+    document.getElementById('metaWaktu').value = snap.meta.waktu || 'siang';
+    document.getElementById('metaTgl').value = snap.meta.tgl || todayISO();
+    document.getElementById('metaPetugas').value = snap.meta.petugas || '';
+  }
+  hideToko = snap.hideToko || { t1:false, t2:false };
+  updateHideTokoUI();
+  render();
+  await storageDelete(PRE_HISTORY_KEY);
+  hideRestoreBanner();
+  saveState();
+  const preview = document.getElementById('preview');
+  if(preview && !preview.classList.contains('empty')) generate(false);
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
