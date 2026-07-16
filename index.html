@@ -310,7 +310,12 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="#fff" stroke-width="1.8"/><path d="M5 3v14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
         Salin ke WhatsApp
       </button>
+      <button class="btn-add" onclick="copyNamaBarang()" id="btnCopyNama" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Salin nama barang saja
+      </button>
       <span class="copied-msg" id="copiedMsg">Tersalin ✓ siap ditempel di WhatsApp</span>
+      <span class="copied-msg" id="copiedMsgNama">Tersalin ✓ nama barang siap ditempel</span>
     </div>
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
@@ -527,6 +532,37 @@ function generate(doCopy){
       window.getSelection().addRange(range);
     });
   }
+}
+
+function copyNamaBarang(){
+  const namaList = rows
+    .map(r => r.nama.trim())
+    .filter(nama => nama !== '');
+
+  if(namaList.length === 0){
+    alert('Belum ada nama barang yang diisi.');
+    return;
+  }
+
+  const teks = namaList.map((nama, i) => `${i+1}. ${nama}`).join('\n');
+
+  navigator.clipboard.writeText(teks).then(() => {
+    const msg = document.getElementById('copiedMsgNama');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = teks;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    const msg = document.getElementById('copiedMsgNama');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  });
 }
 
 const STORAGE_KEY = 'stok-opname-state';
