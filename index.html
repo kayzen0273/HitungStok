@@ -264,6 +264,102 @@
   }
   .restore-banner.show{display:flex;}
   .restore-banner-actions{display:flex; gap:8px; flex-wrap:wrap;}
+
+  /* ---------- Tab nav ---------- */
+  .main-tabs{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;}
+  .main-tab-btn{
+    flex:1; min-width:130px; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--card); color:var(--ink-soft); border:1.5px solid var(--line);
+    padding:11px 12px; border-radius:11px; font-size:12.5px; font-weight:700; font-family:inherit;
+    cursor:pointer; transition:background .12s, color .12s, border-color .12s;
+  }
+  .main-tab-btn svg{width:15px; height:15px; flex-shrink:0;}
+  .main-tab-btn:hover{border-color:#a9c9c0;}
+  .main-tab-btn.active{background:var(--teal); color:#fff; border-color:var(--teal); box-shadow:0 4px 10px rgba(13,92,82,0.22);}
+  .tab-panel[hidden]{display:none;}
+  @media(max-width:600px){
+    .main-tab-btn{min-width:calc(50% - 3px); flex:none;}
+  }
+
+  /* ---------- Tempel teks ---------- */
+  textarea#pasteBox{
+    width:100%; min-height:200px; resize:vertical; padding:11px 12px; border:1.5px solid var(--line);
+    border-radius:10px; font-family:'JetBrains Mono', monospace; font-size:12.5px; line-height:1.6;
+    color:var(--ink); background:var(--card);
+  }
+  textarea#pasteBox:focus{outline:none; border-color:var(--teal);}
+  .paste-hint{font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.55;}
+  .shared-note{
+    font-size:11.5px; color:var(--teal-deep); background:var(--mint); border:1px solid #a9c9c0;
+    padding:9px 12px; border-radius:10px; margin-bottom:14px; line-height:1.55;
+  }
+  .btn-ghost{
+    background:var(--card); color:var(--ink-soft); border:1.5px solid var(--line);
+    padding:11px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn-ghost:hover{border-color:#a9c9c0;}
+
+  .pv-card{border:1.5px solid var(--line); border-radius:14px; margin-bottom:14px; overflow:hidden; background:var(--card);}
+  .pv-head-fields{display:grid; grid-template-columns:1fr 1fr 1fr 1.3fr auto; gap:8px; padding:12px 14px; background:var(--mint); border-bottom:1px dashed #bcd6cc;}
+  .pv-head-fields select, .pv-head-fields input{
+    font-size:12.5px; padding:7px 8px; border:1.5px solid var(--line); border-radius:8px;
+    font-family:inherit; background:var(--card); color:var(--ink);
+  }
+  .pv-remove{background:none; border:none; color:var(--minus); cursor:pointer; font-size:12px; font-weight:700; align-self:end; padding-bottom:8px;}
+  .pv-body{padding:12px 14px;}
+  .pv-body h4{font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin:10px 0 6px;}
+  .pv-body ol{margin:0; padding-left:18px; font-size:13px; line-height:1.7;}
+  .pv-warning{
+    color:var(--amber); font-size:11.5px; background:#fbf1e0; padding:7px 10px; border-radius:8px;
+    margin:0 0 8px; font-weight:600;
+  }
+  @media(max-width:600px){ .pv-head-fields{grid-template-columns:1fr 1fr;} }
+
+  /* ---------- Riwayat entri (parsed) ---------- */
+  .filters{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:end;}
+  .filters .f-item{min-width:120px; flex:1;}
+  .filters .f-item label{display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .filters .f-item input, .filters .f-item select{
+    width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13px; color:var(--ink); background:var(--card);
+  }
+  .entry-card{border:1.5px solid var(--line); border-radius:14px; margin-bottom:12px; overflow:hidden; background:var(--card);}
+  .entry-head{padding:12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:10px; flex-wrap:wrap;}
+  .entry-head .who{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .branch-badge{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:11.5px; padding:3px 9px;
+    border-radius:20px; color:#fff; flex-shrink:0;
+  }
+  .branch-badge.r1{background:var(--teal);}
+  .branch-badge.r2{background:var(--plus);}
+  .branch-badge.rx{background:var(--ink-soft);}
+  .entry-meta{font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--ink-soft);}
+  .counts{display:flex; gap:6px; flex-wrap:wrap;}
+  .entry-body{padding:0 14px 14px; border-top:1px dashed var(--line); display:none;}
+  .entry-body.open{display:block;}
+  .entry-body h4{font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin:12px 0 6px;}
+  .entry-body ol{margin:0; padding-left:18px; font-size:13px; line-height:1.75;}
+  .entry-actions{display:flex; justify-content:flex-end; gap:14px; margin-top:12px;}
+  .entry-empty{padding:40px 16px; text-align:center; color:var(--ink-soft); font-size:12.5px; line-height:1.6;}
+
+  /* ---------- Rekap ---------- */
+  .rekap-tags{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .rekap-tags .n-entri{font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--ink-soft);}
+  table.rep-table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
+  table.rep-table th{
+    text-align:left; padding:8px; border-bottom:1.5px solid var(--line); font-size:10.5px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700;
+  }
+  table.rep-table td{padding:8px; border-bottom:1px solid #eef1ec;}
+  .flag-count{
+    background:#fbf1e0; color:var(--amber); padding:2px 8px; border-radius:20px; font-weight:700;
+    font-size:11px; font-family:'JetBrains Mono', monospace;
+  }
+  .rekap-output{
+    margin-top:10px; background:var(--teal-deep); border-radius:14px; padding:16px 18px;
+    color:#eaf3f0; font-family:'JetBrains Mono', monospace; font-size:12.5px; line-height:1.65;
+    white-space:pre-wrap; max-height:420px; overflow-y:auto;
+  }
 </style>
 </head>
 <body>
@@ -290,6 +386,27 @@
       <button class="history-btn load" onclick="restorePreviousActive()">Kembali ke isian sebelumnya</button>
     </div>
   </div>
+
+  <div class="main-tabs">
+    <button type="button" class="main-tab-btn active" data-tab="input" onclick="switchMainTab('input')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      Input Manual
+    </button>
+    <button type="button" class="main-tab-btn" data-tab="tempel" onclick="switchMainTab('tempel')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Tempel Teks
+    </button>
+    <button type="button" class="main-tab-btn" data-tab="riwayat-entri" onclick="switchMainTab('riwayat-entri')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
+      Riwayat
+    </button>
+    <button type="button" class="main-tab-btn" data-tab="rekap" onclick="switchMainTab('rekap')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9m6 10V5m6 14v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Rekap
+    </button>
+  </div>
+
+  <section class="tab-panel" id="tabpanel-input">
 
   <div class="card">
     <h2>Info Update</h2>
@@ -384,6 +501,77 @@
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
   </div>
+
+  </section>
+
+  <section class="tab-panel" id="tabpanel-tempel" hidden>
+    <div class="card">
+      <h2>Tempel Update Buku Stok</h2>
+      <div class="shared-note">Data yang disimpan di sini bersifat <b>bersama (shared)</b> — semua orang yang membuka halaman ini bisa melihat dan menambah data riwayat &amp; rekap.</div>
+      <div class="field">
+        <label>Tempel teks update di sini</label>
+        <textarea id="pasteBox" placeholder="update buku penjualan stok - dan + di Rafa 1 siang tgl 17/07/26 ( Zen ) :&#10;*YANG -*&#10;1. Renadinac (-2) web 9 fisik 7 (Rafa1:3)&#10;*YANG +*&#10;1. Faxiden 20 (+1) web 9 fisik 10 (Rafa1:2)&#10;*YANG KLOP ✅*&#10;1. Carbidu 0,5 (Rafa1:10)"></textarea>
+        <p class="paste-hint">Bisa tempel satu update, atau beberapa sekaligus (pisahkan dengan label "DATA 1 :", "DATA 2 :", dst). Sistem otomatis mendeteksi cabang, shift, tanggal, petugas, dan daftar item.</p>
+      </div>
+      <div class="row-actions">
+        <button class="btn-ghost" onclick="clearPasteBox()">Bersihkan</button>
+        <button class="btn-main" onclick="parsePasteBox()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Proses teks
+        </button>
+      </div>
+      <div id="pastePreviewArea" style="margin-top:18px;"></div>
+      <div class="row-actions" id="saveAllBar" style="display:none;">
+        <button class="btn-main" onclick="saveAllPending()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          Simpan semua ke riwayat
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tabpanel-riwayat-entri" hidden>
+    <div class="card">
+      <h2>Riwayat Update (Tempel Teks)</h2>
+      <div class="filters">
+        <div class="f-item"><label>Dari</label><input type="date" id="rwFrom"></div>
+        <div class="f-item"><label>Sampai</label><input type="date" id="rwTo"></div>
+        <div class="f-item"><label>Cabang</label>
+          <select id="rwCabang"><option value="">Semua</option><option>Rafa 1</option><option>Rafa 2</option></select>
+        </div>
+        <div class="f-item"><button class="btn-ghost" style="width:100%;" onclick="renderRiwayatEntri()">Terapkan</button></div>
+      </div>
+      <div id="riwayatEntriList"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tabpanel-rekap" hidden>
+    <div class="card">
+      <h2>Rekap</h2>
+      <div class="filters">
+        <div class="f-item"><label>Dari</label><input type="date" id="rkFrom"></div>
+        <div class="f-item"><label>Sampai</label><input type="date" id="rkTo"></div>
+        <div class="f-item"><label>Cabang</label>
+          <select id="rkCabang"><option value="">Semua</option><option>Rafa 1</option><option>Rafa 2</option></select>
+        </div>
+        <div class="f-item"><label>Tipe</label>
+          <select id="rkTipe"><option value="all">Semua</option><option value="minus">Yang − saja</option><option value="plus">Yang + saja</option><option value="klop">Yang klop saja</option></select>
+        </div>
+        <div class="f-item"><button class="btn-main" style="width:100%;" onclick="buildRekap()">Buat rekap</button></div>
+      </div>
+
+      <div id="rekapSummary"></div>
+      <h4 style="font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--teal); font-weight:700; margin:20px 0 4px;">Item yang berulang selisih (perlu dicek)</h4>
+      <div id="rekapRepeats"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:8px;">
+        <h4 style="font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--teal); font-weight:700; margin:0;">Teks rekap (siap kirim)</h4>
+        <button class="btn-ghost" onclick="copyRekap()">Salin teks</button>
+      </div>
+      <div class="rekap-output" id="rekapText">Klik "Buat rekap" untuk menghasilkan teks.</div>
+    </div>
+  </section>
+
 </div>
 
 <div class="history-overlay" id="historyOverlay" onclick="if(event.target===this) closeHistoryModal()">
@@ -408,6 +596,15 @@ let rows = [];
 let idCounter = 0;
 let hideToko = { t1:false, t2:false };
 let editingFromId = null;
+
+function switchMainTab(tab){
+  document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
+  const panel = document.getElementById('tabpanel-' + tab);
+  if(panel) panel.hidden = false;
+  if(tab === 'riwayat-entri') renderRiwayatEntri();
+  if(tab === 'rekap' && lastRekapText === '') { /* biarkan user klik "Buat rekap" */ }
+}
 
 function toggleHideToko(key){
   hideToko[key] = !hideToko[key];
@@ -1069,6 +1266,484 @@ async function deleteHistoryEntry(id){
 }
 
 loadState();
+
+/* =========================================================
+   TEMPEL TEKS + RIWAYAT ENTRI (shared) + REKAP
+   Data disimpan bersama (shared=true) supaya semua orang yang
+   membuka halaman ini bisa melihat & menambah riwayat update.
+   ========================================================= */
+
+const ENTRIES_KEY = 'stock-entries';
+let entries = [];
+let openEntryCards = {};
+let pending = [];
+let lastRekapText = '';
+
+async function sharedStorageGet(key){
+  if(hasClaudeStorage) return await window.storage.get(key, true);
+  try{
+    const val = localStorage.getItem('shared:' + key);
+    return val !== null ? { value: val } : null;
+  } catch(e){ return null; }
+}
+async function sharedStorageSet(key, value){
+  if(hasClaudeStorage) return await window.storage.set(key, value, true);
+  try{ localStorage.setItem('shared:' + key, value); return { value }; }
+  catch(e){ return null; }
+}
+
+async function loadEntries(){
+  try{
+    const res = await sharedStorageGet(ENTRIES_KEY);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  } catch(e){ entries = []; }
+}
+async function saveEntries(){
+  try{ await sharedStorageSet(ENTRIES_KEY, JSON.stringify(entries)); }
+  catch(e){ console.error('Gagal menyimpan entri:', e); }
+}
+
+/* ---------------- parsing teks ---------------- */
+function splitPasteBlocks(raw){
+  let parts = raw.split(/\n(?=\s*DATA\s*\d*\s*:)/i).map(s=>s.trim()).filter(Boolean);
+  if(parts.length<=1){
+    parts = raw.split(/DATA\s*\d+\s*:/i).map(s=>s.trim()).filter(Boolean);
+    if(parts.length<=1) return [raw.trim()];
+    return parts;
+  }
+  return parts.map(p=>p.replace(/^\s*DATA\s*\d*\s*:\s*/i,'').trim());
+}
+
+function capitalizeWord(s){ return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase(); }
+
+function parsePasteHeader(header){
+  const cabangMatch = header.match(/rafa\s*([12])/i);
+  const cabang = cabangMatch ? 'Rafa '+cabangMatch[1] : '';
+  const shiftMatch = header.match(/\b(pagi|siang|sore|malam)\b/i);
+  const shift = shiftMatch ? capitalizeWord(shiftMatch[1]) : '';
+  const tglMatch = header.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  let tanggal = '';
+  if(tglMatch){
+    let [, dd, mm, yy] = tglMatch;
+    if(yy.length===2) yy = '20'+yy;
+    tanggal = `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+  }
+  const parenMatches = [...header.matchAll(/\(([^)]+)\)/g)];
+  let petugas = '';
+  for(const m of parenMatches){
+    const val = m[1].trim();
+    if(val && val!=='-' && val!=='✅'){ petugas = val; break; }
+  }
+  return {cabang, shift, tanggal, petugas};
+}
+
+function parsePasteItemLine(line, type){
+  line = line.replace(/^\s*\d+\.\s*/, '').replace(/➡️/g,'').trim();
+  if(type==='klop'){
+    const catMatch = line.match(/\(([^)]*)\)\s*$/);
+    const catatan = catMatch ? catMatch[1].trim() : '';
+    const nama = catMatch ? line.slice(0, catMatch.index).trim() : line.trim();
+    return {nama, catatan};
+  }
+  let deltaMatch = line.match(/:\s*([+-]\s*\d+)/) || line.match(/\(\s*([+-]\s*\d+)\s*\)/);
+  let nama, selisih, rest;
+  if(deltaMatch){
+    nama = line.slice(0, deltaMatch.index).replace(/:\s*$/,'').trim();
+    selisih = deltaMatch[1].replace(/\s+/g,'');
+    rest = line.slice(deltaMatch.index + deltaMatch[0].length);
+  } else {
+    selisih = '';
+    const nameEndMatch = line.match(/:|(?:\bdi\s*)?\bweb\b|\bfisik\b/i);
+    if(nameEndMatch){
+      nama = line.slice(0, nameEndMatch.index).replace(/:\s*$/,'').trim();
+      rest = line.slice(nameEndMatch.index);
+    } else {
+      nama = line.trim(); rest='';
+    }
+  }
+  const webMatch = rest.match(/(?:di\s*)?web\s*(-?\d+)/i);
+  const fisikMatch = rest.match(/fisik\s*(-?\d+)/i);
+  const web = webMatch ? webMatch[1] : '';
+  const fisik = fisikMatch ? fisikMatch[1] : '';
+  const catMatch = rest.match(/\(([^)]+)\)\s*$/);
+  const catatan = catMatch ? catMatch[1].trim() : '';
+  if(!selisih && web!=='' && fisik!==''){
+    const diff = Number(fisik) - Number(web);
+    if(!Number.isNaN(diff)) selisih = String(diff);
+  }
+  return {nama, selisih, web, fisik, catatan};
+}
+
+function parsePasteBlockData(block){
+  const markerRe = /\*\s*YANG\s+([^*]+?)\s*\*/gi;
+  const markers = [...block.matchAll(markerRe)];
+  const header = (markers.length ? block.slice(0, markers[0].index) : block).trim();
+  const {cabang, shift, tanggal, petugas} = parsePasteHeader(header);
+
+  const minus=[], plus=[], klop=[];
+  markers.forEach((m, i)=>{
+    const label = m[1].toLowerCase();
+    let type = 'unknown';
+    if(label.includes('klop') || label.includes('✅')) type='klop';
+    else if(label.includes('+')) type='plus';
+    else if(label.includes('-')) type='minus';
+    const start = m.index + m[0].length;
+    const end = markers[i+1] ? markers[i+1].index : block.length;
+    const content = block.slice(start, end);
+    let lines;
+    if(type==='klop'){
+      lines = content.split('\n').map(l=>l.trim()).filter(l=> l.length>0 && !/^\*/.test(l));
+    } else {
+      lines = content.split('\n').map(l=>l.trim()).filter(l=> l.length>0 && (/^\d+\./.test(l) || /[+\-]\s*\d+/.test(l)));
+    }
+    lines.forEach(l=>{
+      const item = parsePasteItemLine(l, type);
+      if(!item.nama) return;
+      if(type==='minus') minus.push(item);
+      else if(type==='plus') plus.push(item);
+      else if(type==='klop') klop.push(item);
+    });
+  });
+
+  const warnings = [];
+  if(!cabang) warnings.push('Cabang tidak terdeteksi — cek manual.');
+  if(!tanggal) warnings.push('Tanggal tidak terdeteksi — cek manual.');
+  if(minus.length===0 && plus.length===0 && klop.length===0) warnings.push('Tidak ada item terdeteksi pada teks ini.');
+
+  return {
+    _pid: 'p'+Date.now()+Math.random().toString(36).slice(2,7),
+    cabang, shift, tanggal, petugas, minus, plus, klop, warnings
+  };
+}
+
+function parsePasteBox(){
+  const raw = document.getElementById('pasteBox').value;
+  if(!raw.trim()){ flashSavedMsg('Tempel teks dulu'); return; }
+  const blocks = splitPasteBlocks(raw);
+  pending = blocks.map(parsePasteBlockData);
+  renderPastePreview();
+}
+
+function clearPasteBox(){
+  document.getElementById('pasteBox').value = '';
+  pending = [];
+  renderPastePreview();
+}
+
+function renderPastePreview(){
+  const area = document.getElementById('pastePreviewArea');
+  if(pending.length===0){ area.innerHTML=''; document.getElementById('saveAllBar').style.display='none'; return; }
+  area.innerHTML = pending.map((p, idx)=>`
+    <div class="pv-card" data-idx="${idx}">
+      <div class="pv-head-fields">
+        <div><label>Cabang</label>
+          <select onchange="pending[${idx}].cabang=this.value">
+            <option value="" ${!p.cabang?'selected':''}>-</option>
+            <option value="Rafa 1" ${p.cabang==='Rafa 1'?'selected':''}>Rafa 1</option>
+            <option value="Rafa 2" ${p.cabang==='Rafa 2'?'selected':''}>Rafa 2</option>
+          </select>
+        </div>
+        <div><label>Shift</label>
+          <select onchange="pending[${idx}].shift=this.value">
+            <option value="" ${!p.shift?'selected':''}>-</option>
+            <option value="Pagi" ${p.shift==='Pagi'?'selected':''}>Pagi</option>
+            <option value="Siang" ${p.shift==='Siang'?'selected':''}>Siang</option>
+            <option value="Sore" ${p.shift==='Sore'?'selected':''}>Sore</option>
+            <option value="Malam" ${p.shift==='Malam'?'selected':''}>Malam</option>
+          </select>
+        </div>
+        <div><label>Tanggal</label>
+          <input type="date" value="${p.tanggal}" onchange="pending[${idx}].tanggal=this.value">
+        </div>
+        <div><label>Petugas</label>
+          <input type="text" value="${escapeHtml(p.petugas)}" onchange="pending[${idx}].petugas=this.value">
+        </div>
+        <button class="pv-remove" onclick="removePending(${idx})">Hapus</button>
+      </div>
+      <div class="pv-body">
+        ${p.warnings.map(w=>`<div class="pv-warning">⚠ ${w}</div>`).join('')}
+        <div class="counts">
+          ${badgeCount('minus', p.minus.length)}
+          ${badgeCount('plus', p.plus.length)}
+          ${badgeCount('klop', p.klop.length)}
+        </div>
+        ${sectionListPreview('YANG -', p.minus, 'minus')}
+        ${sectionListPreview('YANG +', p.plus, 'plus')}
+        ${sectionListPreview('YANG KLOP ✅', p.klop, 'klop')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('saveAllBar').style.display = 'flex';
+}
+
+function badgeCount(type, n){
+  if(type==='klop') return `<span class="badge klop">✅ ${n}</span>`;
+  if(type==='minus') return `<span class="badge minus">− ${n}</span>`;
+  return `<span class="badge plus">+ ${n}</span>`;
+}
+
+function sectionListPreview(title, items, type){
+  if(!items.length) return '';
+  const lis = items.map(it=>{
+    if(type==='klop') return `<li>${escapeHtml(it.nama)}${it.catatan?' <span style="color:var(--ink-soft)">('+escapeHtml(it.catatan)+')</span>':''}</li>`;
+    const sign = type==='minus' ? '-' : '+';
+    return `<li>${escapeHtml(it.nama)} (${sign}${numOnly(it.selisih)}) web ${it.web||'?'} fisik ${it.fisik||'?'}${it.catatan?' <span style="color:var(--ink-soft)">('+escapeHtml(it.catatan)+')</span>':''}</li>`;
+  }).join('');
+  return `<h4>${title}</h4><ol>${lis}</ol>`;
+}
+
+function removePending(idx){
+  pending.splice(idx,1);
+  renderPastePreview();
+}
+
+async function saveAllPending(){
+  if(pending.length===0) return;
+  const bad = pending.filter(p=>!p.cabang || !p.tanggal);
+  if(bad.length>0){
+    if(!confirm(`${bad.length} entri belum lengkap (cabang/tanggal kosong). Tetap simpan?`)) return;
+  }
+  pending.forEach(p=>{
+    entries.unshift({
+      id: 'e'+Date.now()+Math.random().toString(36).slice(2,7),
+      tanggal: p.tanggal, cabang: p.cabang, shift: p.shift, petugas: p.petugas,
+      minus: p.minus, plus: p.plus, klop: p.klop,
+      createdAt: new Date().toISOString()
+    });
+  });
+  await saveEntries();
+  flashSavedMsg(`${pending.length} entri tersimpan ke riwayat ✓`);
+  pending = [];
+  document.getElementById('pasteBox').value = '';
+  renderPastePreview();
+}
+
+function numOnly(v){
+  return String(v||'').replace(/^[+-]\s*/, '') || '?';
+}
+
+function flashSavedMsg(text){
+  setSaveStatus(text);
+  setTimeout(()=>{ if(document.getElementById('saveStatus').textContent === text) setSaveStatus('\u00A0'); }, 2500);
+}
+
+/* ---------------- riwayat entri ---------------- */
+function fmtDatePaste(iso){
+  if(!iso) return '-';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+
+function entryToPasteText(entry, typeFilter){
+  typeFilter = typeFilter || 'all';
+  let lines = [];
+  lines.push(`📦 ${entry.cabang||'-'} — ${entry.shift||'-'} (${entry.petugas || '-'}) — ${fmtDatePaste(entry.tanggal)}`);
+  if((typeFilter==='all'||typeFilter==='minus') && entry.minus.length){
+    lines.push('', '*YANG -*');
+    entry.minus.forEach((it,i)=>{
+      lines.push(`${i+1}. ${it.nama} (-${numOnly(it.selisih)}) web ${it.web||'?'} fisik ${it.fisik||'?'}${it.catatan?' ('+it.catatan+')':''}`);
+    });
+  }
+  if((typeFilter==='all'||typeFilter==='plus') && entry.plus.length){
+    lines.push('', '*YANG +*');
+    entry.plus.forEach((it,i)=>{
+      lines.push(`${i+1}. ${it.nama} (+${numOnly(it.selisih)}) web ${it.web||'?'} fisik ${it.fisik||'?'}${it.catatan?' ('+it.catatan+')':''}`);
+    });
+  }
+  if((typeFilter==='all'||typeFilter==='klop') && entry.klop.length){
+    lines.push('', '*YANG KLOP ✅*');
+    entry.klop.forEach((it,i)=>{
+      lines.push(`${i+1}. ${it.nama}${it.catatan?' ('+it.catatan+')':''}`);
+    });
+  }
+  return lines.join('\n');
+}
+
+function filteredEntries({from,to,cabang}){
+  return entries.filter(e=>{
+    if(from && e.tanggal < from) return false;
+    if(to && e.tanggal > to) return false;
+    if(cabang && e.cabang !== cabang) return false;
+    return true;
+  }).sort((a,b)=> (b.tanggal+b.createdAt).localeCompare(a.tanggal+a.createdAt));
+}
+
+async function renderRiwayatEntri(){
+  if(entries.length===0 && !renderRiwayatEntri._loaded){
+    renderRiwayatEntri._loaded = true;
+    await loadEntries();
+  }
+  const list = filteredEntries({
+    from: document.getElementById('rwFrom').value,
+    to: document.getElementById('rwTo').value,
+    cabang: document.getElementById('rwCabang').value
+  });
+  const box = document.getElementById('riwayatEntriList');
+  if(list.length===0){
+    box.innerHTML = `<div class="entry-empty">Belum ada riwayat update.<br>Tempel teks di tab "Tempel Teks", lalu simpan — hasilnya akan muncul di sini.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(e=>{
+    const badgeClass = e.cabang==='Rafa 1' ? 'r1' : (e.cabang==='Rafa 2' ? 'r2' : 'rx');
+    const isOpen = openEntryCards[e.id] ? 'open':'';
+    return `
+    <div class="entry-card">
+      <div class="entry-head" onclick="toggleEntryCard('${e.id}')">
+        <div class="who">
+          <span class="branch-badge ${badgeClass}">${escapeHtml(e.cabang||'?')}</span>
+          <span class="entry-meta">${escapeHtml(e.shift||'-')} · ${escapeHtml(e.petugas||'-')} · ${fmtDatePaste(e.tanggal)}</span>
+        </div>
+        <div class="counts">
+          ${badgeCount('minus', e.minus.length)}
+          ${badgeCount('plus', e.plus.length)}
+          ${badgeCount('klop', e.klop.length)}
+        </div>
+      </div>
+      <div class="entry-body ${isOpen}" id="entrybody-${e.id}">
+        ${sectionListPreview('YANG -', e.minus, 'minus')}
+        ${sectionListPreview('YANG +', e.plus, 'plus')}
+        ${sectionListPreview('YANG KLOP ✅', e.klop, 'klop')}
+        <div class="entry-actions">
+          <button class="link-btn riwayat-btn" onclick="copyEntryPaste('${e.id}')">Salin teks</button>
+          <button class="link-btn reset-btn" onclick="deleteEntryPaste('${e.id}')">Hapus entri</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEntryCard(id){
+  openEntryCards[id] = !openEntryCards[id];
+  const body = document.getElementById('entrybody-'+id);
+  if(body) body.classList.toggle('open');
+}
+
+function copyEntryPaste(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  navigator.clipboard.writeText(entryToPasteText(e,'all')).then(()=>flashSavedMsg('Teks entri disalin ✓'));
+}
+
+async function deleteEntryPaste(id){
+  if(!confirm('Hapus entri ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  entries = entries.filter(e=>e.id!==id);
+  await saveEntries();
+  renderRiwayatEntri();
+  flashSavedMsg('Entri dihapus');
+}
+
+/* ---------------- rekap ---------------- */
+function fmtDayPaste(iso){
+  if(!iso) return '-';
+  const [, , d] = iso.split('-');
+  return d;
+}
+
+function itemLineTextPaste(it, type, idx){
+  if(type==='klop'){
+    return `${idx+1}. ${it.nama}${it.catatan?' ('+it.catatan+')':''}`;
+  }
+  const sign = type==='minus' ? '-' : '+';
+  return `${idx+1}. ${it.nama} (${sign}${numOnly(it.selisih)}) web ${it.web||'?'} → fisik ${it.fisik||'?'}${it.catatan?' ('+it.catatan+')':''}`;
+}
+
+function buildGroupedRekap(list, tipe){
+  const sorted = [...list].sort((a,b)=> (a.tanggal+a.createdAt).localeCompare(b.tanggal+b.createdAt));
+  const typeLabel = {minus:'*YANG -*', plus:'*YANG +*', klop:'*YANG KLOP ✅*'};
+  const out = [];
+
+  if(tipe!=='all' && sorted.length){
+    out.push(`${typeLabel[tipe]} dari tgl ${fmtDayPaste(sorted[0].tanggal)}`);
+  }
+
+  let currentDate = null;
+  sorted.forEach(e=>{
+    const itemsByType = tipe==='all'
+      ? [['minus',e.minus],['plus',e.plus],['klop',e.klop]].filter(([,arr])=>arr.length)
+      : [[tipe, e[tipe]]];
+    if(!itemsByType.some(([,arr])=>arr.length)) return;
+
+    if(e.tanggal !== currentDate){
+      if(currentDate !== null) out.push('');
+      out.push(`📅 ${fmtDatePaste(e.tanggal)}`);
+      currentDate = e.tanggal;
+    }
+    out.push(`*${e.cabang||'-'} – ${e.shift||'-'} (${e.petugas||'-'})*`);
+    itemsByType.forEach(([type, arr])=>{
+      if(!arr.length) return;
+      if(tipe==='all') out.push(typeLabel[type]);
+      arr.forEach((it,i)=> out.push(itemLineTextPaste(it, type, i)));
+    });
+  });
+
+  return out.join('\n');
+}
+
+async function buildRekap(){
+  if(entries.length===0 && !renderRiwayatEntri._loaded){
+    renderRiwayatEntri._loaded = true;
+    await loadEntries();
+  }
+  const from = document.getElementById('rkFrom').value, to = document.getElementById('rkTo').value,
+        cabang = document.getElementById('rkCabang').value, tipe = document.getElementById('rkTipe').value;
+  const list = filteredEntries({from,to,cabang});
+
+  let cMinus=0,cPlus=0,cKlop=0;
+  list.forEach(e=>{ cMinus+=e.minus.length; cPlus+=e.plus.length; cKlop+=e.klop.length; });
+  document.getElementById('rekapSummary').innerHTML = `
+    <div class="rekap-tags">
+      ${badgeCount('minus', cMinus)}
+      ${badgeCount('plus', cPlus)}
+      ${badgeCount('klop', cKlop)}
+      <span class="n-entri">dari ${list.length} entri</span>
+    </div>`;
+
+  const groups = {};
+  list.forEach(e=>{
+    ['minus','plus'].forEach(type=>{
+      e[type].forEach(it=>{
+        const key = it.nama.trim().toLowerCase();
+        if(!groups[key]) groups[key] = {nama: it.nama, occ: []};
+        groups[key].occ.push({type, selisih:it.selisih, tanggal:e.tanggal, cabang:e.cabang, shift:e.shift});
+      });
+    });
+  });
+  const repeats = Object.values(groups).filter(g=>g.occ.length>1);
+  if(repeats.length===0){
+    document.getElementById('rekapRepeats').innerHTML = `<div class="entry-empty">Tidak ada item yang berulang pada rentang ini.</div>`;
+  } else {
+    document.getElementById('rekapRepeats').innerHTML = `
+      <table class="rep-table">
+        <thead><tr><th>Nama obat</th><th>Jumlah muncul</th><th>Detail</th></tr></thead>
+        <tbody>
+          ${repeats.map(g=>`
+            <tr>
+              <td>${escapeHtml(g.nama)}</td>
+              <td><span class="flag-count">${g.occ.length}×</span></td>
+              <td>${g.occ.map(o=>`${fmtDatePaste(o.tanggal)} ${escapeHtml(o.cabang)} ${escapeHtml(o.shift)}: ${o.type==='minus'?'-':'+'}${numOnly(o.selisih)}`).join(' · ')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  const relevant = list.filter(e=>{
+    if(tipe==='minus') return e.minus.length>0;
+    if(tipe==='plus') return e.plus.length>0;
+    if(tipe==='klop') return e.klop.length>0;
+    return true;
+  });
+  lastRekapText = relevant.length===0 ? 'Tidak ada data untuk filter ini.' : buildGroupedRekap(relevant, tipe);
+  document.getElementById('rekapText').textContent = lastRekapText;
+}
+
+function copyRekap(){
+  if(!lastRekapText){ flashSavedMsg('Buat rekap dulu'); return; }
+  navigator.clipboard.writeText(lastRekapText).then(()=>flashSavedMsg('Rekap disalin ✓'));
+}
+
+(async function initSharedEntries(){
+  await loadEntries();
+})();
 
 </script>
 </body>
