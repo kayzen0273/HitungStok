@@ -164,6 +164,106 @@
   .preview b{color:#fff;}
 
   .footnote{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
+
+  #metaPetugas{cursor:pointer; background:var(--card);}
+  #metaPetugas::placeholder{color:#9aada6;}
+
+  .field-dropdown{position:relative;}
+  .field-dropdown-panel{
+    display:none; position:absolute; top:calc(100% + 6px); left:0; width:100%;
+    background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+    box-shadow:0 10px 26px rgba(15,30,27,0.16); z-index:50; padding:10px;
+    max-height:260px; overflow-y:auto; animation:dropIn .12s ease-out;
+  }
+  .field-dropdown-panel.show{display:block;}
+  @keyframes dropIn{ from{transform:translateY(-4px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .modal-list{display:flex; flex-direction:column; gap:6px; margin-bottom:8px;}
+  .modal-option{
+    text-align:left; background:#fafaf6; border:1.5px solid var(--line); border-radius:9px;
+    padding:9px 11px; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink);
+    cursor:pointer; display:flex; align-items:center; gap:9px; width:100%;
+  }
+  .modal-option:hover, .modal-option:active{background:var(--mint); border-color:#a9c9c0;}
+  .modal-option .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); flex-shrink:0;}
+  .modal-empty{font-size:12px; color:var(--ink-soft); padding:4px 2px 8px;}
+  .modal-manual{display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--line);}
+  .modal-manual input{
+    flex:1; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13px; background:var(--card); color:var(--ink); min-width:0;
+  }
+  .modal-manual input:focus{outline:none; border-color:var(--teal);}
+  .modal-add{
+    background:var(--teal); color:#fff; border:none; padding:0 13px; border-radius:9px;
+    font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0;
+  }
+  .modal-add:hover{background:var(--teal-deep);}
+
+  .hide-toko-row{display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .hide-toko-row .htr-label{font-size:12px; color:var(--ink-soft); font-weight:600;}
+  .chip-toggle{
+    display:inline-flex; align-items:center; gap:6px; background:var(--card); color:var(--ink-soft);
+    border:1.5px solid var(--line); padding:6px 12px; border-radius:20px; font-size:12.5px;
+    font-weight:700; font-family:inherit; cursor:pointer;
+  }
+  .chip-toggle:hover{border-color:#a9c9c0;}
+  .chip-toggle .eye{width:13px;height:13px; flex-shrink:0;}
+  .chip-toggle.active{background:var(--minus-bg); color:var(--minus); border-color:#e4b8ab;}
+
+  .link-btn{background:none; border:none; font-size:11px; font-weight:700; text-decoration:underline; padding:2px 0; cursor:pointer;}
+  .riwayat-btn{color:var(--teal); margin-right:12px;}
+  .reset-btn{color:var(--ink-soft);}
+
+  .history-overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,30,27,0.45); z-index:200;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .history-overlay.show{display:flex;}
+  .history-modal{
+    background:var(--card); border-radius:16px; width:100%; max-width:560px; max-height:82vh;
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(15,30,27,0.3);
+  }
+  .history-modal-head{
+    display:flex; align-items:center; justify-content:space-between; padding:16px 18px;
+    border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .history-modal-head h3{margin:0; font-size:15px; font-weight:800;}
+  .history-close{
+    background:var(--mint); border:none; color:var(--teal-deep); width:28px; height:28px;
+    border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; line-height:1;
+  }
+  .history-close:hover{background:#d7ece2;}
+  .history-modal-body{overflow-y:auto; padding:14px 18px 18px;}
+  .history-empty{font-size:12.5px; color:var(--ink-soft); text-align:center; padding:34px 10px; line-height:1.6;}
+  .history-item{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .history-item-title{font-weight:700; font-size:13.5px;}
+  .toko-tap{cursor:default; user-select:none;}
+  .edited-badge{
+    display:inline-block; font-size:10px; font-weight:700; color:var(--amber);
+    background:#fbf1e0; padding:2px 7px; border-radius:20px; vertical-align:middle;
+  }
+  .history-item-sub{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .history-item-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .history-btn{
+    font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; border:1.5px solid var(--line);
+    background:var(--card); cursor:pointer; color:var(--ink);
+  }
+  .history-btn.load{color:var(--teal-deep); border-color:#a9c9c0; background:var(--mint);}
+  .history-btn.load:hover{background:#d7ece2;}
+  .history-btn.del{color:var(--minus); border-color:#e4b8ab; background:var(--minus-bg);}
+  .history-btn.del:hover{background:#f6dbd2;}
+  .history-item-text{
+    margin-top:10px; background:var(--teal-deep); color:#eaf3f0; font-family:'JetBrains Mono', monospace;
+    font-size:11.5px; line-height:1.6; white-space:pre-wrap; padding:10px 12px; border-radius:10px;
+    max-height:220px; overflow-y:auto;
+  }
+
+  .restore-banner{
+    display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:var(--mint); border:1.5px solid #a9c9c0; border-radius:12px; padding:10px 14px;
+    margin-bottom:16px; font-size:12.5px; color:var(--teal-deep); font-weight:700;
+  }
+  .restore-banner.show{display:flex;}
+  .restore-banner-actions{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -179,30 +279,46 @@
     </div>
     <div style="text-align:right;">
       <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
-      <button onclick="resetAll()" style="background:none;border:none;color:var(--ink-soft);font-size:11px;font-weight:600;text-decoration:underline;padding:2px 0;cursor:pointer;">Reset data</button>
+      <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
+      <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
+    </div>
+  </div>
+
+  <div class="restore-banner" id="restoreBanner">
+    <span>Kamu sedang mengedit data dari riwayat.</span>
+    <div class="restore-banner-actions">
+      <button class="history-btn load" onclick="restorePreviousActive()">Kembali ke isian sebelumnya</button>
     </div>
   </div>
 
   <div class="card">
     <h2>Info Update</h2>
     <div class="meta-grid">
-      <div class="field"><label>Nama Toko</label><input id="metaToko" value="rafa 1" oninput="saveState()"></div>
+      <div class="field field-dropdown"><label>Nama Toko</label>
+        <input id="metaToko" placeholder="Pilih toko" readonly onclick="openTokoModal(event)">
+        <div class="field-dropdown-panel" id="tokoModal">
+          <div class="modal-list" id="tokoList"></div>
+          <div class="modal-manual">
+            <input id="tokoManualInput" placeholder="Atau ketik nama toko" onkeydown="if(event.key==='Enter') submitManualToko()">
+            <button class="modal-add" onclick="submitManualToko()">Pakai</button>
+          </div>
+        </div>
+      </div>
       <div class="field"><label>Waktu</label>
         <select id="metaWaktu" onchange="saveState()">
           <option>pagi</option><option selected>siang</option><option>sore</option><option>malam</option>
         </select>
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
-      <div class="field"><label>Petugas</label>
-        <input list="petugasOptions" id="metaPetugas" placeholder="Pilih atau ketik nama" oninput="saveState()">
-        <datalist id="petugasOptions">
-          <option value="Sely">
-          <option value="Zen">
-          <option value="Putri">
-          <option value="Mely">
-          <option value="Dinda">
-          <option value="Hayati">
-        </datalist>
+      <div class="field field-dropdown"><label>Petugas</label>
+        <input id="metaPetugas" placeholder="Pilih petugas" readonly onclick="openPetugasModal(event)">
+        <div class="field-dropdown-panel" id="petugasModal">
+          <div class="modal-list" id="petugasList"></div>
+          <div class="modal-manual">
+            <input id="petugasManualInput" placeholder="Atau ketik nama baru" onkeydown="if(event.key==='Enter') submitManualPetugas()">
+            <button class="modal-add" onclick="submitManualPetugas()">Pakai</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -242,22 +358,70 @@
 
   <div class="card">
     <h2>Format WhatsApp</h2>
+    <div class="hide-toko-row">
+      <span class="htr-label">Sembunyikan nama toko di teks:</span>
+      <button type="button" class="chip-toggle" id="hideT1Btn" onclick="toggleHideToko('t1')">
+        <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Rafa 1
+      </button>
+      <button type="button" class="chip-toggle" id="hideT2Btn" onclick="toggleHideToko('t2')">
+        <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Rafa 2
+      </button>
+    </div>
     <div class="generate-bar">
       <button class="btn-main" onclick="generate(true)">
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="#fff" stroke-width="1.8"/><path d="M5 3v14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
         Salin ke WhatsApp
       </button>
+      <button class="btn-add" onclick="copyNamaBarang()" id="btnCopyNama" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Salin nama barang saja
+      </button>
       <span class="copied-msg" id="copiedMsg">Tersalin ✓ siap ditempel di WhatsApp</span>
+      <span class="copied-msg" id="copiedMsgNama">Tersalin ✓ nama barang siap ditempel</span>
     </div>
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
   </div>
+</div>
 
+<div class="history-overlay" id="historyOverlay" onclick="if(event.target===this) closeHistoryModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Riwayat Laporan</h3>
+      <button class="history-close" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="history-modal-body" id="historyListBody"></div>
+  </div>
 </div>
 
 <script>
+// Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
+const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
+
+// Daftar nama petugas yang muncul di modal pilihan.
+// Ganti / tambah / hapus nama di sini sesuai petugas toko.
+const PETUGAS_LIST = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
+
 let rows = [];
 let idCounter = 0;
+let hideToko = { t1:false, t2:false };
+let editingFromId = null;
+
+function toggleHideToko(key){
+  hideToko[key] = !hideToko[key];
+  updateHideTokoUI();
+  saveState();
+  // kalau preview sudah ada isinya, langsung refresh biar sesuai (tanpa auto-copy)
+  const preview = document.getElementById('preview');
+  if(preview && !preview.classList.contains('empty')) generate(false);
+}
+
+function updateHideTokoUI(){
+  document.getElementById('hideT1Btn').classList.toggle('active', hideToko.t1);
+  document.getElementById('hideT2Btn').classList.toggle('active', hideToko.t2);
+}
 
 function newRow(){
   return { id: idCounter++, nama:'', t1:'', t2:'', apk:'' };
@@ -366,6 +530,13 @@ function formatTanggal(isoDate){
   return `${dd}/${mm}/${yyyy.slice(2)}`;
 }
 
+function breakdownText(t1, t2){
+  const parts = [];
+  if(!hideToko.t1) parts.push(`Rafa1:${t1}`);
+  if(!hideToko.t2) parts.push(`Rafa2:${t2}`);
+  return parts.length ? ` (${parts.join(' ')})` : '';
+}
+
 function generate(doCopy){
   const toko = document.getElementById('metaToko').value.trim() || 'toko';
   const waktu = document.getElementById('metaWaktu').value;
@@ -395,21 +566,21 @@ function generate(doCopy){
   if(minusList.length){
     out += `\n *YANG -* \n`;
     minusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
   if(plusList.length){
     out += `\n *YANG +* \n`;
     plusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
   if(klopList.length){
     out += `\n *YANG KLOP ✅*\n`;
     klopList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (Rafa1:${it.t1} Rafa2:${it.t2})\n`;
+      out += `${i+1}. ${it.nama}${breakdownText(it.t1, it.t2)}\n`;
     });
   }
 
@@ -423,6 +594,15 @@ function generate(doCopy){
   preview.textContent = out.trim();
 
   if(doCopy){
+    saveHistoryEntry({
+      id: Date.now(),
+      savedAt: new Date().toISOString(),
+      toko, waktu, tgl: tglRaw, petugas,
+      rows: JSON.parse(JSON.stringify(rows)),
+      hideToko: {...hideToko},
+      text: out.trim(),
+      editedFrom: editingFromId || null
+    });
     navigator.clipboard.writeText(out.trim()).then(() => {
       const msg = document.getElementById('copiedMsg');
       msg.classList.add('show');
@@ -437,7 +617,40 @@ function generate(doCopy){
   }
 }
 
+function copyNamaBarang(){
+  const namaList = rows
+    .map(r => r.nama.trim())
+    .filter(nama => nama !== '');
+
+  if(namaList.length === 0){
+    alert('Belum ada nama barang yang diisi.');
+    return;
+  }
+
+  const teks = namaList.map((nama, i) => `${i+1}. ${nama}`).join('\n');
+
+  navigator.clipboard.writeText(teks).then(() => {
+    const msg = document.getElementById('copiedMsgNama');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = teks;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    const msg = document.getElementById('copiedMsgNama');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  });
+}
+
 const STORAGE_KEY = 'stok-opname-state';
+const HISTORY_KEY = 'stok-opname-history';
+const PRE_HISTORY_KEY = 'stok-opname-pre-history';
 const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
 
 async function storageGet(key){
@@ -495,7 +708,9 @@ function saveState(){
         petugas: document.getElementById('metaPetugas').value
       },
       rows,
-      idCounter
+      idCounter,
+      hideToko,
+      editingFromId
     };
     try{
       const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
@@ -526,26 +741,40 @@ async function loadState(){
         for(let i=0;i<5;i++) rows.push(newRow());
       }
       if(state.meta){
-        document.getElementById('metaToko').value = state.meta.toko ?? 'rafa 1';
+        document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
         document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
         document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
         document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
       } else {
         document.getElementById('metaTgl').value = todayISO();
       }
+      if(state.hideToko){
+        hideToko = { t1: !!state.hideToko.t1, t2: !!state.hideToko.t2 };
+      }
+      editingFromId = state.editingFromId || null;
       setSaveStatus('Data tersimpan dimuat');
     } else {
       for(let i=0;i<5;i++) rows.push(newRow());
+      document.getElementById('metaToko').value = 'Rafa 1';
       document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
     for(let i=0;i<5;i++) rows.push(newRow());
+    document.getElementById('metaToko').value = 'Rafa 1';
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
+  updateHideTokoUI();
   render();
+
+  try{
+    const preResult = await storageGet(PRE_HISTORY_KEY);
+    if(preResult && preResult.value) showRestoreBanner();
+  } catch(e){
+    // tidak ada snapshot tersimpan, abaikan
+  }
 }
 
 function todayISO(){
@@ -559,20 +788,284 @@ async function resetAll(){
   if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?')) return;
   try{
     await storageDelete(STORAGE_KEY);
+    await storageDelete(PRE_HISTORY_KEY);
   } catch(err){
     console.error('Gagal reset:', err);
   }
   rows = [];
   idCounter = 0;
+  hideToko = { t1:false, t2:false };
+  editingFromId = null;
+  hideRestoreBanner();
   for(let i=0;i<5;i++) rows.push(newRow());
-  document.getElementById('metaToko').value = 'rafa 1';
+  document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
+  updateHideTokoUI();
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
   render();
   setSaveStatus('\u00A0');
+}
+
+function openTokoModal(e){
+  if(e) e.stopPropagation();
+  closePetugasModal();
+  const listEl = document.getElementById('tokoList');
+  if(TOKO_LIST.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada toko di daftar. Ketik nama secara manual di bawah.</div>';
+  } else {
+    listEl.innerHTML = TOKO_LIST.map(name => `
+      <button type="button" class="modal-option" onclick="selectToko('${name.replace(/'/g, "\\'")}')">
+        <span class="dot"></span>${escapeHtml(name)}
+      </button>
+    `).join('');
+  }
+  document.getElementById('tokoManualInput').value = '';
+  document.getElementById('tokoModal').classList.add('show');
+}
+
+function closeTokoModal(){
+  document.getElementById('tokoModal').classList.remove('show');
+}
+
+function selectToko(name){
+  document.getElementById('metaToko').value = name;
+  saveState();
+  closeTokoModal();
+}
+
+function submitManualToko(){
+  const val = document.getElementById('tokoManualInput').value.trim();
+  if(!val) return;
+  selectToko(val);
+}
+
+function openPetugasModal(e){
+  if(e) e.stopPropagation();
+  closeTokoModal();
+  const listEl = document.getElementById('petugasList');
+  if(PETUGAS_LIST.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
+  } else {
+    listEl.innerHTML = PETUGAS_LIST.map(name => `
+      <button type="button" class="modal-option" onclick="selectPetugas('${name.replace(/'/g, "\\'")}')">
+        <span class="dot"></span>${escapeHtml(name)}
+      </button>
+    `).join('');
+  }
+  document.getElementById('petugasManualInput').value = '';
+  document.getElementById('petugasModal').classList.add('show');
+}
+
+function closePetugasModal(){
+  document.getElementById('petugasModal').classList.remove('show');
+}
+
+function selectPetugas(name){
+  document.getElementById('metaPetugas').value = name;
+  saveState();
+  closePetugasModal();
+}
+
+function submitManualPetugas(){
+  const val = document.getElementById('petugasManualInput').value.trim();
+  if(!val) return;
+  selectPetugas(val);
+}
+
+document.addEventListener('click', function(e){
+  document.querySelectorAll('.field-dropdown').forEach(field => {
+    if(!field.contains(e.target)){
+      field.querySelector('.field-dropdown-panel')?.classList.remove('show');
+    }
+  });
+});
+
+async function getHistoryList(){
+  try{
+    const result = await storageGet(HISTORY_KEY);
+    if(result && result.value) return JSON.parse(result.value);
+  } catch(e){
+    // belum ada riwayat tersimpan
+  }
+  return [];
+}
+
+async function setHistoryList(list){
+  try{
+    await storageSet(HISTORY_KEY, JSON.stringify(list));
+  } catch(err){
+    console.error('Gagal menyimpan riwayat:', err);
+  }
+}
+
+async function saveHistoryEntry(entry){
+  const list = await getHistoryList();
+  list.unshift(entry);
+  if(list.length > 50) list.length = 50;
+  await setHistoryList(list);
+}
+
+async function openHistoryModal(){
+  document.getElementById('historyOverlay').classList.add('show');
+  const body = document.getElementById('historyListBody');
+  body.innerHTML = '<div class="history-empty">Memuat riwayat…</div>';
+  const list = await getHistoryList();
+  renderHistoryList(list);
+}
+
+function closeHistoryModal(){
+  document.getElementById('historyOverlay').classList.remove('show');
+}
+
+function renderHistoryList(list){
+  const body = document.getElementById('historyListBody');
+  if(!list.length){
+    body.innerHTML = '<div class="history-empty">Belum ada riwayat.<br>Setiap kali kamu menekan "Salin ke WhatsApp", laporannya otomatis tersimpan di sini dan bisa dimuat ulang untuk diedit kapan saja.</div>';
+    return;
+  }
+  body.innerHTML = list.map(entry => {
+    const savedDate = new Date(entry.savedAt);
+    const savedFormatted = isNaN(savedDate.getTime()) ? '-' : savedDate.toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const tglFormatted = formatTanggal(entry.tgl);
+    return `
+      <div class="history-item">
+        <div class="history-item-title"><span class="toko-tap" onclick="handleTokoTap(${entry.id})">${escapeHtml(entry.toko || '-')}</span> · ${escapeHtml(entry.waktu || '-')} · ${tglFormatted}${entry.editedFrom ? ' <span class="edited-badge">✎ Diedit</span>' : ''}</div>
+        <div class="history-item-sub">Petugas: ${escapeHtml(entry.petugas || '-')} • Disimpan ${savedFormatted}</div>
+        <div class="history-item-actions">
+          <button class="history-btn load" onclick="loadHistoryEntry(${entry.id})">Muat &amp; edit</button>
+          <button class="history-btn" onclick="toggleHistoryText(${entry.id})">Lihat teks</button>
+          <button class="history-btn del" id="delBtn-${entry.id}" style="display:none;" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
+        </div>
+        <div class="history-item-text" id="histText-${entry.id}" style="display:none;">${escapeHtml(entry.text || '')}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+const tokoTapState = {};
+
+function handleTokoTap(id){
+  const now = Date.now();
+  const state = tokoTapState[id] || { count:0, lastTap:0 };
+  if(now - state.lastTap > 1500){
+    state.count = 0;
+  }
+  state.count++;
+  state.lastTap = now;
+  tokoTapState[id] = state;
+  if(state.count >= 5){
+    const btn = document.getElementById(`delBtn-${id}`);
+    if(btn) btn.style.display = 'inline-block';
+    state.count = 0;
+  }
+}
+
+function toggleHistoryText(id){
+  const el = document.getElementById(`histText-${id}`);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadHistoryEntry(id){
+  const list = await getHistoryList();
+  const entry = list.find(h => h.id === id);
+  if(!entry) return;
+  if(!confirm('Muat data riwayat ini ke form untuk diedit? Isian yang sedang aktif akan disimpan sementara dan bisa dikembalikan lagi nanti.')) return;
+
+  // simpan isian yang sedang aktif supaya bisa dikembalikan lagi —
+  // jangan timpa snapshot lama kalau sudah ada snapshot yang belum dikembalikan,
+  // supaya "kembali ke isian sebelumnya" selalu mengacu ke isian aktif yang asli
+  let existingSnapshot = null;
+  try{
+    const existing = await storageGet(PRE_HISTORY_KEY);
+    if(existing && existing.value) existingSnapshot = existing.value;
+  } catch(e){
+    // belum ada snapshot tersimpan
+  }
+
+  if(!existingSnapshot){
+    const snapshot = {
+      meta: {
+        toko: document.getElementById('metaToko').value,
+        waktu: document.getElementById('metaWaktu').value,
+        tgl: document.getElementById('metaTgl').value,
+        petugas: document.getElementById('metaPetugas').value
+      },
+      rows: JSON.parse(JSON.stringify(rows)),
+      idCounter,
+      hideToko: {...hideToko},
+      editingFromId
+    };
+    await storageSet(PRE_HISTORY_KEY, JSON.stringify(snapshot));
+  }
+
+  rows = JSON.parse(JSON.stringify(entry.rows || []));
+  idCounter = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
+  document.getElementById('metaToko').value = entry.toko || '';
+  document.getElementById('metaWaktu').value = entry.waktu || 'siang';
+  document.getElementById('metaTgl').value = entry.tgl || todayISO();
+  document.getElementById('metaPetugas').value = entry.petugas || '';
+  hideToko = entry.hideToko ? {...entry.hideToko} : { t1:false, t2:false };
+  editingFromId = entry.editedFrom || entry.id;
+  updateHideTokoUI();
+  render();
+  saveState();
+  showRestoreBanner();
+  closeHistoryModal();
+  generate(false);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function showRestoreBanner(){
+  document.getElementById('restoreBanner').classList.add('show');
+}
+
+function hideRestoreBanner(){
+  document.getElementById('restoreBanner').classList.remove('show');
+}
+
+async function restorePreviousActive(){
+  const result = await storageGet(PRE_HISTORY_KEY);
+  if(!result || !result.value){
+    hideRestoreBanner();
+    return;
+  }
+  const snap = JSON.parse(result.value);
+  rows = snap.rows || [];
+  idCounter = snap.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+  if(snap.meta){
+    document.getElementById('metaToko').value = snap.meta.toko || '';
+    document.getElementById('metaWaktu').value = snap.meta.waktu || 'siang';
+    document.getElementById('metaTgl').value = snap.meta.tgl || todayISO();
+    document.getElementById('metaPetugas').value = snap.meta.petugas || '';
+  }
+  hideToko = snap.hideToko || { t1:false, t2:false };
+  editingFromId = snap.editingFromId || null;
+  updateHideTokoUI();
+  render();
+  await storageDelete(PRE_HISTORY_KEY);
+  hideRestoreBanner();
+  saveState();
+  const preview = document.getElementById('preview');
+  if(preview && !preview.classList.contains('empty')) generate(false);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+async function deleteHistoryEntry(id){
+  const pass = prompt('Masukkan kata sandi untuk menghapus riwayat ini:');
+  if(pass === null) return;
+  if(pass !== '1234'){
+    alert('Kata sandi salah. Riwayat tidak dihapus.');
+    return;
+  }
+  if(!confirm('Hapus riwayat ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  let list = await getHistoryList();
+  list = list.filter(h => h.id !== id);
+  await setHistoryList(list);
+  renderHistoryList(list);
 }
 
 loadState();
