@@ -115,6 +115,8 @@
   .badge.minus{background:var(--minus-bg); color:var(--minus);}
   .badge.plus{background:var(--plus-bg); color:var(--plus);}
   .badge.klop{background:var(--klop-bg); color:var(--klop);}
+  .badge.unchecked{background:#f0efe8; color:#9aada6; font-weight:700;}
+  .badge.partial{background:#fbf1e0; color:var(--amber);}
   .del-btn{
     background:none; border:none; cursor:pointer; color:#c2c9c4; padding:4px; border-radius:6px;
     display:flex; align-items:center; justify-content:center;
@@ -141,6 +143,40 @@
   .stat.minus .n{color:var(--minus);}
   .stat.plus .n{color:var(--plus);}
   .stat.klop .n{color:var(--klop);}
+  .stat.total .n{color:var(--teal);}
+  .stat.checked .n{color:var(--klop);}
+  .stat.unchecked .n{color:var(--amber);}
+
+  .search-row{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+  .search-box-wrap{position:relative; flex:1; min-width:200px;}
+  .search-box-wrap svg{
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    width:15px; height:15px; color:#9aada6; pointer-events:none;
+  }
+  #searchBox{
+    width:100%; padding:9px 12px 9px 33px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
+  }
+  #searchBox:focus{outline:none; border-color:var(--teal);}
+  .clear-search{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; color:#9aada6; padding:3px;
+    display:none; align-items:center; justify-content:center;
+  }
+  .clear-search.show{display:flex;}
+  .clear-search:hover{color:var(--minus);}
+  .clear-search svg{width:14px;height:14px;}
+  .visible-count{font-size:11.5px; color:var(--ink-soft); font-weight:600; white-space:nowrap;}
+  .empty-row-msg{text-align:center; padding:28px 10px; color:var(--ink-soft); font-size:13px;}
+
+  .pagination-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  .page-btn{
+    background:var(--card); border:1.5px solid var(--line); color:var(--ink);
+    padding:7px 12px; border-radius:9px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .page-btn:hover:not(:disabled){border-color:#a9c9c0; background:var(--mint);}
+  .page-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .page-info{font-size:12px; color:var(--ink-soft); font-weight:600; padding:0 4px; white-space:nowrap;}
 
   .generate-bar{
     display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap;
@@ -325,7 +361,21 @@
 
   <div class="card">
     <h2>Daftar Barang</h2>
-    <div class="table-scroll">
+    <div class="search-row">
+      <div class="search-box-wrap">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchBox" type="text" placeholder="Cari nama barang..." oninput="onSearchInput(this.value)">
+        <button type="button" class="clear-search" id="clearSearchBtn" onclick="clearSearch()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <button type="button" class="chip-toggle" id="uncheckedToggleBtn" onclick="toggleUncheckedFilter()">
+        <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
+        Belum dicek saja
+      </button>
+      <span class="visible-count" id="visibleCountLabel"></span>
+    </div>
+    <div class="table-scroll" id="tableAnchor">
     <table>
       <thead>
         <tr>
@@ -342,15 +392,29 @@
       <tbody id="rows"></tbody>
     </table>
     </div>
+    <div class="pagination-row" id="paginationRow">
+      <button type="button" class="page-btn" id="firstPageBtn" onclick="goToPage(1)">« Awal</button>
+      <button type="button" class="page-btn" id="prevPageBtn" onclick="goToPage(currentPage-1)">‹ Sebelumnya</button>
+      <span class="page-info" id="pageInfo"></span>
+      <button type="button" class="page-btn" id="nextPageBtn" onclick="goToPage(currentPage+1)">Berikutnya ›</button>
+      <button type="button" class="page-btn" id="lastPageBtn" onclick="goToPage(999999)">Akhir »</button>
+    </div>
     <div class="row-actions">
       <button class="btn-add" onclick="addRow()">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         Tambah barang
       </button>
+      <button class="btn-add" onclick="loadMasterItems()" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Muat barang master yang belum ada
+      </button>
     </div>
   </div>
 
   <div class="summary-strip">
+    <div class="stat total"><div class="n" id="statTotal">0</div><div class="l">Total barang</div></div>
+    <div class="stat checked"><div class="n" id="statChecked">0</div><div class="l">Sudah dicek</div></div>
+    <div class="stat unchecked"><div class="n" id="statUnchecked">0</div><div class="l">Belum dicek</div></div>
     <div class="stat minus"><div class="n" id="statMinus">0</div><div class="l">Yang minus</div></div>
     <div class="stat plus"><div class="n" id="statPlus">0</div><div class="l">Yang plus</div></div>
     <div class="stat klop"><div class="n" id="statKlop">0</div><div class="l">Yang klop</div></div>
@@ -408,6 +472,24 @@ let rows = [];
 let idCounter = 0;
 let hideToko = { t1:false, t2:false };
 let editingFromId = null;
+let searchQuery = '';
+let showOnlyUnchecked = false;
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
+// Daftar master seluruh barang apotek — dipakai untuk mengisi otomatis
+// daftar barang saat pertama kali dibuka / lewat tombol "Muat barang master".
+const MASTER_ITEMS = ["(IFI) VIT B6 10MG", "Acarbose 100 mg (pratapa)", "Acarbose 100mg ( beta)", "Acarbose 100mg (yarindo) tab", "Acarbose 50 mg tab (pratapa)", "Acarbose 50mg (Yarindo) tab", "Acetyl cistein( yarindo)", "Acetylcystein tab (nulab)", "Acifar (acyclovir) tab", "ACIFAR 400MG", "Acifar cream", "Acne patch jerawat", "ACNOL LOT 10ML", "Actifed plus cough suppresant syr", "ACTIFED PLUS EXPECTORANT Hijau (60ml)", "Actifed plus suppresant (merah) 60ml", "Acyclovir 400mg (Novell) tab", "ACYCLOVIR CR 5% 5GR", "ACYCLOVIR TAB (HJ)", "ADEM SARI", "AILIN FLUSH V (cuci mata)", "Air mineral botol 220ml", "Alat Uap Nebu Electric", "Albothyl sol 5ml", "Aldit parfum roll on", "Aldit parfum spray", "Alermax tab", "Algo botol bayi new born 60ml", "Algo dot botol susu 60ml BPA free", "Alkohol 100ml", "Alkohol swab", "ALLERON TAB", "Alletrol SM", "Alletrol TM", "ALLOPURINOL 100 (TRIMAN)", "Allopurinol 100mg tab (hexa)", "ALODAN 300mg tab", "Alofar 100mg tab", "Alofar 300mg tab", "ALPHAMOL Kapl", "Alphara tab", "Ambeven caps", "Ambroxol 30mg (Nova) Tab", "Ambroxol syr (erela) 60ml", "Amlodipin 10mg (Berno) tab", "AMLODIPIN 10MG (DEXA)", "Amlodipin 10mg (hexa)", "amlodipin 10mg tab (mulia)", "Amlodipin 5mg (Dexa) tab", "Amlodipin 5mg (nova)", "Amlodipin tab 10mg", "Amlodipin tab 5mg", "Amlodipine 5mg (hj", "Amoxan 250mg tab", "Amoxan 500mg caps", "AMOXAN SYR 60ML", "AMOXICILLIN 500 NOVA", "Amoxicillin Tab (hexa)", "Anacetine Plus syr 60ml", "Anacetine syr 60ml", "Anakonidin OBH syr 30ml", "Anakonidin OBH syr 60ml", "Anakonidin syr 30ml", "Anakonidin syr 60ml", "Anastan 500mg tab", "ANDALAN Ovulation Test", "Andalan pil kb (biru) tab", "Andalan pil kb FE", "Andalan Pil Kb Laktasi", "Andalan postpil kb", "andalan tespack midstream", "Andalut tab", "Anelat tab", "Anlene Gold 230gr", "Antangin JRG tab", "ANTANGIN PERMEN", "Antangin Permen 4S bks", "Antasida doen tab (mersi)", "Antasida doen tab (triman)", "antasida syr (erela)", "Antimo anak sash jeruk", "antimo anak strawberry", "Antimo tab dewasa", "Apyalis drop 10ml", "Apyalis syr 100ml", "Aqua botol 600ml", "Aqua gelas", "Asam Mefenamat 500mg (mersi) tab", "Asam mefenamat tab (hexa)", "Asepso  Plus  Reguler 80gr sabun batang", "Asepso clean 80gr", "Asepso fresh oranges", "Asepso sulphur 80gr", "Asifit tab", "Aspilet tab", "ATORVASTATIN 10 MG TAB (HJ)", "Atorvastatin 10mg (DIPA) Tab", "ATORVASTATIN 20 MG (HJ)", "Atorvastatin 20 ogb beta", "Atorvastatin 20mg (DIPA) Tab", "Atorvastatin 20mg tab (mulia)", "Aza cream 10gr", "Azovir cr", "Baby Cough Pacdin 60ml", "Baby Cough pacdin strawberry 60ml", "Baby Cough pasaba syr 60ml", "Baby Happy Pampers M-32", "Baby many pedi set", "Bactoderm cr", "Balpirik Extra Hijau 20gr", "Balpirik extra merah 20gr", "Balsem Cap Lang 10gr", "Balsem Cap Lang 20gr", "Balsem Geliga 10gr", "Balsem Geliga 20gr", "balsem geliga 40gr", "Balsem lang 40gr", "Balsem Telon TJ 20Gr", "Balsem Telon Tj 40gr", "Batsaria", "Batugin Sirup 300ml", "BDL sabun papaya", "Bebio c & f 9ml (biru)", "Bebio Tummy 9ml (merah)", "BECOM C", "Bedak Herocyn 50gr", "Bedak Herocyn 85gr", "Bedak Herocyn Baby 100gr", "bedak herocyn baby 200gr", "Bedak Salicyl 2% 60gr (KF)", "Bejo - Bintang 7 masuk angin cair", "bejo anak jahe merah", "Beneuron Tab", "Beng beng", "Benoson - N cr 5gr", "Benoson cr 5gr", "BENOSON-N CR 15G", "BENZOLAC 2,5% 5gr cr", "BENZOLAC 5%", "BENZOLAC CL GEL 10gr", "Bepanthen Baby 10gr", "Bepanthen oint 20gr", "Bersih Darah Kembang bulan (kapsida)", "BETADINE FEMININE HYGIENE 60ML", "BETADINE KUMUR 190ML", "Betadine obat kumur 100ml", "Betadine salep", "BETADINE SKIN CLEANSER 100 ML", "Betadine sol 15ml", "Betadine sol 30ml", "Betadine sol 5ml", "betadine sol 60 ml", "BETAHISTINE", "Betametason cr (kf) 5gr", "Betason - N cr 5gr", "Betason cr 5gr", "Bicnat - Natrium bicarbonat tab (pim)", "BIO OIL MINYAK TELON LAVENDER 50 ML", "BIO OIL MKP 50 ML", "BIO OIL MKP PLUS JAHE 50 ML", "BIOLYSIN APPETITE SYR 60 ML", "Biolysin Emulsion 60ml", "BIOLYSIN GROWTH SYR 250 ML", "Biolysin Kids blackcurrent vit 30 butir", "BIOLYSIN KIDS RASA STRAWBERRY", "biolysin smart syr 100ml", "BIOLYSIN SMART SYR 60ML", "BIOLYSIN SYR 100ML", "BIOLYSIN SYR 60 ML", "BIOLYSIN TAB ACTIVE RASA BLACKCURRANT", "BIOLYSIN TAB ACTIVE RASA ORANGE", "BIOLYSIN TAB ACTIVE RASA STRAWBERRY", "Biolysin Tablet", "Biomega tab", "Bioplacenton salep 15gr", "BIOVERMITH", "BIROPYRON", "Bisolvon ekstra dewasa syr", "Bisolvon kids strawberry 60ml", "Bisolvon Solution", "BISOPROLOL 2,5MG (ogb beta)", "Bisoprolol 2,5mg tab (berno)", "Bisoprolol 5mg tab (Dexa)", "BLACKMORES BIO C'30", "Blackmores calcimag", "Blackmores daily imun c 500", "Blackmores habbatusauda", "BLACKMORES I - FOLIC", "BLACKMORES KOALA KIDS BODY", "Blackmores multivitamin 30'caps", "BLACKMORES ODOUR FISH OIL", "Blackmores odourless fish oil", "BLACKMORES PREG & BFG", "BLACKMORES VITAMIN D3 1000 IU", "Blood transfusion set (onemed)", "Bodrex extra kap", "Bodrex flu  dan  batuk  Berdahak tab (hijau)", "Bodrex flu dan batuk tdk berdahak (biru)", "bodrex migra tab", "Bodrex Tab", "Bodrexin demam forte sirup 60ml", "Bodrexin F dan B DPH Tdk Berdahak syr 56ml", "Bodrexin Flu  dan  Batuk PE syr 56ml", "Bodrexin Pilek Alergi PE syr 56ml", "Bodrexin Tab", "Boost D 1000iu tab", "Botol Dot Huki Box Ortho 60ml shaped", "Botol Dot Huki reg 120ml", "Botol Dot Huki reg 240ml", "Botol dot huki round ortho 120ml", "Botol dot kinawa animal 250ml", "Botol dot lusty bunny kuning 125ml", "Botol dot mini kipas hijau 50ml", "Botol dot mini makhota pink 50ml", "Botol dot mini rabbit kuning 50ml", "Botol susu kemasan plastik polos", "BOTOL SUSU PIGEON 50ML", "BROCON", "Bromhexine hcl tab (erlimpex)", "BROMIFAR 8 MG TAB", "Bromifar plus syr 60ml", "Bromifar plus tab", "Bronchifar kap", "Bronchitin Expect syr 60ml", "Bronkris tab", "BUFACARYL Tab", "bufacomb orabase oint", "BUFACORT - N", "BUFANTACID FORTE SYR", "Bufantacid tab", "Bufatetra Oint 15gr", "BUFECT Susp", "Bufect susp forte 60ml", "Burnazin 35g Krim", "BYE BYE FEVER DEWASA", "Bye-bye Fever Baby", "Bye-bye Fever Child", "Caladine Baby Powder 100gr", "Caladine Baby powder 55gr", "Caladine cream 15gr", "CALADINE LIQUID SOAP 110ML", "Caladine Lotion 60ml", "Caladine lotion 95ml", "Caladine Powder (Hijau) 100gr", "Caladine powder 60gr", "Caladine powder biru 100gr", "Caladine powder pink 100gr", "calcifar plus tab", "Calcifar tab", "CALDANA FLEX (5 STRIP 6 KAPL", "Callusol 10ml", "Calortusin tab", "Candesartan 16mg (dexa) tab", "Candesartan 8mg (dexa) tab", "Candesartan 8mg ogb beta", "Canesten cr 5gr", "CANESTEN CRM 10 GR", "Cannon ball permen kecil", "Captopril 12,5mg tab (dexa)", "Captopril 25mg (dexa) tab", "Captopril 25mg (erita) tab", "Captopril 50mg (dexa) tab", "Cara pemakaian skincare :1.bersihkan wajah dgn facial wash,keringkan.2.pakai toner dengan kapas tap\" Ke seluruh wajah.3. Gunakan sunscreen dipagi hari/ nighcream dimalam hari. 3.glicore dipake 1mgg 3x tdk dicampur dgn racikan", "Carbidu 0,5mg tab", "Carbidu 0,75mg tab", "Carmed 20% 40gr", "Cataflam 50mg tab", "CATAFLAM Tab 25 mg", "Catgut Chromic (onemed) - alkes", "Catheter tip urine onemed - alkes", "Cavicur Emuls 60ml", "Cavicur Tab", "Caviplex CDEZ Tab", "Caviplex gummy vit", "Caviplex syr 60ml", "Caviplex tab", "Cazetin Drop 15ml", "CDR effervescent 10s", "CEFADROXIL 500 DEXA", "CEFADROXIL 500 MG TAB (MEPRO)", "Cefadroxil 500mg tab (Hexa)", "Cefadroxyl dry syr (ifar)", "Cefixime 100mg (dexa) tab", "Cefixime 100mg tab (HJ)", "Cefixime 100mg Tab (IFARS)", "Cefixime 200mg (dexa)", "Cefixime dry syr", "Cek asam urat", "cek gula", "Cek Kolesterol", "Celana Khitan M - alkes", "cendo asthenof tm 5ml", "Cendo Catarlent MD", "Cendo Catarlent TM", "Cendo catarlent tm 15ml", "Cendo Cenfresh TM", "Cendo Conver 2% 15ml", "Cendo cyclon tm", "Cendo Floxa MD", "Cendo hyalub MD", "Cendo hyalub TM", "Cendo lyteers MD", "Cendo Lyteers TM 15ml", "CENDO TETES MATA ALBUVIT 10%", "Cendo Vitrolenta TM", "Cendo Xitrol MD", "Cendo xitrol SM", "Cendo Xitrol TM 5ml", "Cerebrofort gold 200ml Orange", "Cerebrofort gold orange 100ml", "Cerebrofort gold strawberry 100ml", "Cerebrofort gummy", "CEREBROVIT EXCEL", "Cessa Baby Feedrop (merah)", "Cessa Baby Happy Nose (Biru)", "Cessa baby Lenire (kuning)", "Cessa Kids Happy Nose (Biru)", "Cessvit tab", "Cetirizine 10mg tab (HJ)", "CHIL GO MILK VANILA 6X130 ML", "Chloramfecort - H cr 10gr", "Chocolito snack", "CINDALA", "CINGBATU", "CINOLON N CREAM 5 GRAM", "Ciprofloxacin 500 (nova) tab", "Ciprofloxacin 500mg (hexa) tab", "Clindamicyn 150mg (Novel) tab", "Clindamicyn 300mg (tropika) tab", "Clofen kapsul Ambeien/Wasir", "Clonaderm cr 5gr", "Cloud", "Co Amoxiclav 625gr (mepro) caps", "COD LIVER OIL 100 CAPS", "Cod liver oil minyak ikan 50's", "Cohistan expect syr 60ml", "COLDREXIN", "Coldrexin Expectorant pilek syr 60ml", "coldrexin pilek demam syr", "Colfin Sirup", "Colipred Cr 5gr", "Combantrin syr 10ml jeruk", "Combantrin tab", "Combivent nebu", "COMTUSI FORTE TABLET", "Comtusi syr 60ml strawberry", "Confidence pampers dewasa XL(6)", "Contrexyn demam jeruk syr 60ml", "Contrexyn demam tab", "Contrexyn flu & batuk berdahak", "Cooling 5 cherry spray", "Cooling 5 orange spray", "COOLING-5 (COOLMINT)", "Coparcetine kap", "Coparcetine kids cough syr 60ml", "coparcetine syr 60ml", "Coredryl Exp Syr 100ml", "Cotrimoxazole 480mg tab  (mersi)", "Cotton bud huki botol", "Cotton bud hukki dewasa 100ps", "Cotton bud korek kuping cusson 50's", "Cotton bun hukki anak 100s", "Counterpain 15gr", "Counterpain 30gr", "Counterpain 5gr", "Counterpain 60gr", "COUNTERPAIN COOL 15 GR", "ctm (nova) tab", "ctm (trifa)", "CTM 4MG", "curcuma force tab", "Curcuma Plus Appetite Syrup Rasa Jeruk 60ml", "Curcuma plus Fruit  dan  Veg Orange syr 100ml", "Curcuma plus grow orange 200ml", "Curcuma plus grow strawberry 200ml", "Curcuma Plus Lysine syr 60ml", "CURCUMA SHARPY ORANGE", "Curcuma syr imuns", "Curvit 60ml syr", "curvit cl emulsion 175ml", "CURVIT SYR 120ML", "Cusson baby Bar sabun barang all varian", "Cusson Baby Hair Lotion - Cundle nut 50ml", "Cusson body wash active nourish ungu 280ml", "Cusson body wash pink 100ml+100ml", "CUSSON BODY WASH SOFT SMOOTH 280ML", "Cusson hair & body wash (refill) 55ml", "Cussons baby cologne 50ml parfum", "Cussons baby cream 50gr - biru", "CUSSONS BABY CREAM SOFT SMOOTH 50X72 Pink", "Cussons baby milk & wash 50ml", "Cussons baby oil 100ml - biru", "Cussons baby oil 100ml - pink", "Cussons baby powder 50gr", "CUSSONS BABY POWDER F.NOURISH 75gr Ungu", "CUSSONS BABY POWDER MILD GENTLE 75 PINK", "CUSSONS BABY POWDER SOFT SMOOTH 75gr", "CUSSONS BABY TELON OIL PLUS 60ML", "Daktarin cr 5gr", "Daneuron tab", "Dapyrin tab", "Darsi", "DECADRYL EXP 120ML", "DECADRYL EXP SYR 60ML", "Decolgen tab", "Decolsin tab", "Degirol tab isi 10", "DEGIROL TAB ISI 4", "DEMACOLIN TAB", "Denicam 20mg tab", "Dermafix (onemed) 10x25", "Dermafix 10x15cm plester luka transparant - alkes", "Dermafix plester anti air 10x20cm", "Dermafix plester luka 10x12 cm", "dermaplast plester onehealth 15cm x 5m", "DERMATIX Ultra", "Desoximetasone cr 5gr", "Dettol liq 45ml", "Devosix drop", "DEXA - M 0,75 mg Tab", "Dexamet 0,5 (Harsen) tab", "dexamet 0,75 (harsen)", "Dexigen", "DEXKETOPROFEN TABLET", "Dextaco syr 60ml", "DEXTAMINE Syr", "Dextamine tab", "Dexteem plus tab", "Diabetasol susu 170gr", "DIAPET ANAK SASHET", "Diapet kapsul", "Diapet Syr 60ml", "DICLOFENAC POTTASSIUM", "Die da yao jing betadine china", "DIGOXIN Tab 0,25 mg, FIRST MEDIPHARMA", "Dimenhidrinat tab (errela)", "Dionicol dry syr 60ml", "Dionicol tab", "Divoltar 50mg tab", "Dolo Neurobion tab", "Dolo scaneuron tab", "Domperidon tab", "Dompet P3K - alkes", "DP Pesan Obat 50%", "Dr faccia Acne flek serum racikan", "Dr faccia acne glow night", "Dr faccia facial wash aha", "Dr faccia facial wash pepaya", "Dr faccia racikan Acne", "Dr faccia sunscreen glow", "Dr faccia toner aha", "DRAMAMINE", "Drink - Chil Go milk chocolate 130 ml", "Drink - Chil Go milk straw 130ml", "Drink - Cimory anak 70ml", "Drink - Crystaline pet 330ml", "Drink - Hydro coco kecil", "Drink - Im coco mango 350ml", "Drink - Inaco Jelly Drink all Var", "Drink - Indomilk kids", "Drink - Indomilk Kids Yoghurt", "Drink - jelly drink", "Drink - Kara nata de coco lecy 130ml", "Drink - Kopi ABC", "Drink - Larutan kaki 3 /badak kaleng dewasa 500ml", "Drink - larutan kaki 3 dewasa 250ml", "Drink - larutan kaki 3 dewasa 500ml", "Drink - lee mineral 600ml", "Drink - Milku", "Drink - Milo", "Drink - Milo Uk 180ml", "Drink - mr.jussie susu all varian", "Drink - Pocari sweat botol 250ml", "Drink - Real Good susu all var", "Drink - Sidomuncul vit C & D lemon water", "Drink - Susu Indomilk botol", "Drink - Teh Pucuk", "Drink - Yakult less sugar", "Drink - Yakult mangga", "Drink - Yakult ori", "DRINK IM COCO STROWBERI", "DRINK YAKULT STROWBERY", "Duckbill masker anak & dewasa", "Dulcolax isi 10tab", "Dulcolax Supp", "DULCOLAX TAB ISI 4", "Egoji gummy  (strawberry)", "Egoji Gummy (jeruk)", "EGOJI GUMMY BLACK CURENT", "Ekaplast plester", "ELASTIC BANDAGE ONEHEALT 10Cm", "Elevit multivitamin", "Elkana CL emulsion 120ml", "elkana susp", "ELKANA TAB", "Eltazon Cap", "Em kapsul", "Empeng bayi", "Emturnas 500mg tab", "Enbatic plus salep kulit", "ENBATIC POWDER", "Enbatic salep kulit 10gr", "Enervon C Botol isi 30", "Enervon C vit Tab", "Enkasari Herbal", "Entrasol gold vanilla 170gr", "Entrostop Herbal Anak", "Entrostop Herbal Dewasa", "Eperison tab", "Eperisone tab baru", "Erdostein DS 60ml", "Erla Neo Hydrocort cr 5gr", "Erladerm N 5gr", "ERLAFLU SYR 60 ML", "Erlamicetin cr SM 3,5 gr", "Erlamicetin PLUS TM", "Erlamicetin Tetes telinga", "ERLAMOL DROP", "ERLAMOL SYR", "ERMETHASON 0,75", "ERMETHASONE TAB", "Erphaflam tab", "Erphamazole cr 5gr", "esemaag", "Etabion Tab", "ETAFEN Tab", "ETAFLUSIN PE Kapl", "Etaflusin syr", "ETAMOX 500", "Etawalin susu", "Ever E 250 IU", "Eyeboost syr", "Eyevit 500mg tab 5x6", "FAKTU Salep", "Faktu supp", "Fargetix 500mg tab", "FARMOTEN", "Farsifen 200mg tab", "Farsifen 400Mg tab", "Farsifen Forte Syr 60ml", "Farsifen plus tab", "Farsifen Syr", "Fasidol Drops 15ml", "Fasidol F syr", "Fasidol Forte tab", "Fasidol Plus Kaplet", "Fasidol syr", "Fasidol tab", "Fatigon Spirit tab", "Fatigon tab", "Faxiden 10mg tab", "Faxiden 20mg tab", "Feminax tab", "Feminax vita bright", "Fenamin 500mg tab", "Fenofibrat 100mg", "Ferlin drop 30ml", "Ferlin syr 100ml", "Ferriz Drop 15ml", "Ferriz syr 60ml", "FG Troches meiji tab", "FIESTA 2in1 LAVENDER MESSAGE GEL", "Fiesta bubble gum", "Fiesta Cofee Kondom 3s", "Fiesta Delay kondom (biru tua)", "Fiesta fun pack", "Fiesta intim mint cool gel 70ml", "Fiesta intim mix varian gel", "FIESTA INTIM NATURAL GEL 70ml", "Fiesta intim strawberry warm gel 70ml", "Fiesta lubricant gel", "Fiesta max dotted 12 sahset", "Fiesta max dotted kondom (pink)", "Fiesta natural gel 70ml", "Fiesta party 12 shaset", "FIESTA PERFORMAX 3'S", "Fiesta strawberry 12 shaset", "Fiesta strawberry kondom (merah) - alkes", "Fiesta ultrasafe", "Fiesta ultrathin 12 shaset+ free fiesta natural gel shaset", "FIESTA WILD & WILD 3'S", "fitkom anggur 21 tab", "Fitkom Jeruk 21 tab", "Fitkom Strawberry 21 tab", "Flasicox 15mg", "Floxifar tab", "Floxigra tab", "Flucadex syr 60ml", "Flucadex tab", "Flucort n cr 5gr", "Fluimucil 200mg granul", "Flumin plus 60ml", "Flunarizine tab (nulab)", "Flutamol syr 60ml", "Flutamol tab", "Flutop c syr 60ml", "Flutrop Tab", "folamil genio", "FOLAMIL GOLD", "Folavit tab", "Forumen ear TT", "Frescare smash", "Frescare Vapobalm Matcha", "Fresh care 10ml strong", "Fresh care ori 10ml", "FRESH CARE SMASH 8ML HOT STRONG", "FRESH CARE SMASH FRUITY", "FRESH CARE SMASH MATCHA 10 ML", "Freshcare greentea", "Freshcare Kayu putih", "FRESHCARE LAVENDER", "Freshcare mix citrus", "Freshcare Vapobalm Sakura", "Fruitamin drink 350ml", "Fruzz permen", "Fucilex cr 5gr", "Fungasol Cr 10gr", "Fungiderm cr 5gr", "Furosemide 40mg (FM) Tab", "GABAPENTIN 100MG", "GABAPENTIN 300MG (Nulab)", "Gantungan hp", "Gantungan tali empeng", "Gastrucid syr 60ml", "Gastrucid Tab", "gelas takar obat 15ml", "Genalten cr 5gr", "GENE TBP", "Genoint oint salep kulit 15gr", "Genoint SM", "Genoint TM 5ml", "Gentalex Cr 5gr", "Gentamicin cr 5gr (molex)", "GENTAMICIN SULFATE Salep 0,1%, KF", "GENTASOLON", "Gentian violet ungu", "GIOVAN SOAP FRES", "GLIBENCLAMIDE Kapl 5 mg, FIRST MEDIPHARMA", "Glicore 10% cr", "Glicore 8% cr", "Glikos 500mg tab", "Glikos 850mg tab", "Glimepirid 1mg (dexa) tab", "Glimepirid 1mg (hexa) tab", "Glimepirid 2mg (hexa) tab", "Glimepirid 2mg nulab", "Glimepirid 3mg (Dexa)", "Glimepirid 3mg (KF) tab", "Glimepirid 3mg (nulab)", "Glimepirid 3mg hj", "Glimepirid 4mg  (dexa)", "glimepirid 4mg (hj)", "Glimepirid 4mg (NULAB)", "Glimepiride 2mg (dexa) tab", "Glucosamine MPL 500MG Tab", "Gludepatic 500 tab", "Gom", "GPU KRIM SEREH 60gr", "Grafachlor tab", "Grafadon 500mg tab", "Grafalin 2mg tab", "Grafalin 4mg tab", "Grafamic tab", "Grafazol 500mg tab", "Grantusif tab", "Gratazon tab 0,5mg", "Gratheos 50mg tab", "Graxine tab", "grazeo 10mg tab", "Grazeo tab 20mg", "Griseofulvin 500mg tab (darya)", "GUAIFENESIN (GG) 100mg TRIMAN", "Guanistrep syr 60ml", "H-Booster syr", "HABBATUSAUDA", "Habutop 100 caps (de nature)", "Habutop 50 caps (de nature)", "Habutop isi 200 caps", "Handsanitizer 250ml - onemed - alkes", "Hansaplas plester roll 1,25x5m (sedang)", "HANSAPLAST Kain Elastis", "hansaplast kain elastis isi 10 - alkes", "Hansaplast kain elastis jumbo", "Hansaplast koyo - hangat", "Hansaplast Koyo - Hot", "Hansaplast waterpropf anti air 10s", "Helixim 100mg dry syr", "hemaviton Action", "Hemaviton stamina plus", "HERBAKOF SYR 100ML", "Herbakof syr 60ml", "Herocyn 150gr besar", "HEXAVASK 10MG", "Hexos permen", "Histaklor tab", "HISTAPAN tab", "Histigo tab", "Holy sabun hijau", "Hotin Aroma Therapy botol 60 ml", "Hotin Aromatherapy tube 120gr", "Hotin aromatherapy tube 60gr", "Hotin aromatherpay botol 120ml", "Hotin cr tube 120gr", "Hotin cr tube 60gr", "Hotin Cream 60ml", "Hotin Cream botol 120ml", "HOTIN CREAM STRONG TUBE 30G", "HOTIN CREAM TUBE 30G", "Hotin DCL tube 120gr", "Hotin DCL tube 30gr", "Hotin DCL tube 60gr", "Hotin strong botol 120ml", "Hotin Strong Tube 120ml", "hotin strong tube kotak 60gr", "Hufabetamin syr", "Hufabion 10x10", "Hufaclovir Cream", "Hufadexta - M", "Hufadine 150mg tab", "HUFADON Susp", "Hufagesic drop", "Hufagrip BP Hijau 60ml syr", "Hufagrip f&b syr (kuning)", "Hufagrip Forte Tab", "Hufagrip Pilek syr 60ml", "Hufagrip tab", "Hufagrip TMP 120mg syr", "HUFAGRIP TMP FORTE 160 demam syr", "Hufamag plus syr 60ml", "Hufamag plus tab 10x10", "HUFAMYCETIN Susp", "Hufaneuron tab", "HUFANOXIL 500MG Tab", "Hufanoxil syr", "Hufaprofen syr 60ml", "HUFARIZINE", "HUFAVIT KALK", "HUFAXICAM 15MG", "Hufaxicam 7,5mg tab", "Hufaxol syr", "Hufralgin tab", "Huki - Dot silicone Reg (ujung bulat)", "Huki botol dot PP 240ml", "Huki Dot Botol PP SP 120ml", "Huki Dot Botol PP SP shaped 60ml", "Huki dot silikon M, L, S(Kotak dus)", "Huki nipple gepeng ortho mix size", "Hydrocortison salep kulit", "Hydrocortisone cr", "Ibuprofen 200mg Nova", "Ibuprofen 400mg (nova) tab", "Ideal Cotton Bal 100's", "Ideal Popok Celana (M)", "Ideal Popok Celana Dewasa (L) - alkes", "Ika Salicyl talk menthol", "Ika Sariawan", "Ikadryl 100ml", "imboos kids syr (60ml)", "Imboost Cough dewasa syr 60ml", "Imboost Cough Kids syr 60ml", "Imboost force (cough) dewasa syr 60ml", "Imboost force cough kids syr 60ml", "Imboost force kids vit syr 60ml", "Imboost kids tablet hisap", "Imboost kids vit syr 45ml", "Imboost strip 4tab", "imboost tab 10s", "IMODIUM", "Imunped drop 15ml", "imunped syr 60ml", "Inamid Tab", "Incidal OD tab 10mg", "Inflow catheter no 20 - alkes", "Inflow Iv catether no. 22 - alkes", "Inflow Iv Catether no. 26", "Inflow IV Catheter no 24 - alkes", "Infus set anak (onemed) - alkes", "Infus set anak Gea", "Infus set dewasa (onemed)", "Infus set dewasa avico", "Inhaler Lang 6", "Innaquin cr 10gr", "Insto 7,5ml", "Insto Cool 7,5ml", "Insto Moist 7,5ml (dry eyes)", "Insto TM Regular 15ML", "INTERHISTIN Tab", "Intunal Forte tab", "Intunal tab 10s", "Inza flu & batuk kaplet", "INZA Tab", "Inzana Tab", "iodine betadine 15ml", "Iodine Betadine 30ml", "Iodine Betadine 60ml", "Ipi Zinc plus", "Iremax tab", "ISDN 5mg (yarindo) tab", "Itramol SYR 60 ml", "Iv catheter gea 22,", "Iv catheter gea 24", "Iv catheter gea 26", "Jajanan - Biskuit boneka", "Jajanan - chocolatos", "Jajanan - choki stick", "Jajanan - Fruity vit jelly", "Jajanan - lotte choco pie", "Jajanan - Mini Pizza Ranjani", "Jajanan - Mochi snow", "Jajanan - modi Kwek kwek bebek", "Jajanan - nyam2", "Jajanan - roma chesee cream", "Jajanan - Rose Mawar Gummy", "Jajanan - Tango wafer", "Jajanan - Taring Yupi", "Jajanan - waffle", "Jajanan - Yupi mallow", "Jajanan - Yupi pizza", "Jarum cek darah", "Jf dermamed 90gr sabun", "Jinsu sabun sereh", "KADITIK 50MG", "Kalmethasone 0,5mg", "Kalmicetine CRM 2% 15gr", "Kalpanak Salep Pot", "Kalpanax CRM 5gr KLBE", "Kamax obat panu cair", "Kamulvit B12 SYR 120ml", "Kandistatin drop 12ml", "Kanna cr 15gr", "Kantong asi - alkes", "Kaotin syr 60ml", "Kapas carrens 25", "Kapas carrens 50gr kecil", "Kapas putih ball pembalut luka 500gr (carrens) - alkes", "Kapas Putih Pembalut Onemed 25 GR", "Kapas selection 35gr", "Kapsida HS", "Kasa gulung narita 10cm", "kasa hexa husada kotak 16cm x16cm - alkes", "Kasa kotak narita", "kasa steril kotak 16x16cm isi 12s (Medstuff)", "kasa verban gulung hidrofil 2x10cm(medstuff)", "Kassa kotak HK", "KASSA STERIL 10CMX10CM ISI 2", "Kassa steril 16x16 onemed", "Kassa Steril Lembaran (onemed) 7,5x7, 5cm", "KEJI BELING", "Kenalog In orabase cr 5gr", "Ketokenazol 200mg (hexa) tab", "Ketokenazole 200mg tab (dexa)", "ketokenazole cr (hj)", "KETOMED CREAM", "Ketomed Scalp Solution", "KETOROLAC 10 MG TAB (BERNO)", "Ketorolac inject", "KETOROLAC TAB (NULAB)", "KOMIX HERBAL all Varian SHASET", "KOMIX HERBAL JERUK NIPIS", "KOMIX HERBAL PEPPERMINT", "Komix herbal tub 15ml", "Komix Herbal Tub lemon", "Komix jahe shaset", "Komix kid obh madu shaset", "Komix kid strawberry", "Komix OBH", "kompolax 60ml syr", "KONDOM FIESTA BUBBLE GUM 3'S", "Kondom fiesta utra thin (biru)", "Kondom fiesta watermelon 3s - alkes", "KONDOM SUTRA GERIGI 12'S", "KONDOM SUTRA MERAH CLASSIC 12'S", "KONDOM SUTRA MERAH CLASSIC 3'S", "KONDOM SUTRA OK 12'S", "Konidin Tab", "Kontrabat syr", "KONVERMEX KAPLET 250 MG ISI 10", "Konvermex syr", "Kool fever anak", "Koolfever Bayi Sach", "Koolfever dewasa", "Korek kuping led", "KOYO CABE SHASET", "Krim 88", "Krim Otot Geliga 30gr", "KRIM PI KANG SHUANG", "KULDON SARIAWAN", "kupon undian ulangtahun apotek rafa ke 2-thn", "Kutilos Banded", "L bio", "Lactaboost asi", "Lactacyd all day care", "lactacyd all day care 150ml", "Lactacyd Baby 60ml Biru", "Lactamor tablet asi", "LACTAMORIN", "Lacto-B Sahset", "Lactogen 0-6t 180gr", "Lactogen 6-12 180gr", "Lactulax syr 60ml", "Lacyvir cr 5gr", "LACYVIR SM", "Lafalos cream 20gr", "Lamandel", "Lambucid 60ml", "Lanadexon tab", "LANCAR ASI PLUS DHA", "Lansoprazole (HJ) TAB", "Lansoprazole caps (nulab)", "Larutan kaki 3 anak original pet 200ml", "Larutan Kaki 3 anak pet 200ml", "Lasal 4mg tab", "Lasal syr 100ml", "Lasal syr expectorant 100ml", "Laserin herbal syr 60ml", "Laserin madu 100ml", "LASERIN MADU 60ML", "Laserin madu jeruk 4x30ml", "LASERIN SYR 110ML", "Laserin syr 30ml", "LAXADINE 60ML", "Laxadine syr 30ml", "Laxing tab", "Lecozinc Drop 15ml", "Lecozinc syr 60ml", "LECOZINC TAB", "Lelap tab", "Lerzin Cap", "Lerzin drops", "Lerzin syr", "Levofloxacin tab 500mg", "Licodexon 0,5mg tab", "Licokalk kalsium tab", "LICOSTAN", "LIPEPSA", "Liprolac", "LIQUID CLEANSER 100 ML HUKI", "Lisinopril 5mg (novell) tab", "Listerine cool mint 100ml", "LISTERINE FRESHBURST 100 ML", "LISTERINE ZERO 100 ML", "LITROL", "LODIA", "Lokev tab", "Loratadine 10mg (ETA) tab", "Loratadine nulab tab", "LORIHIS Syr", "LOSTACEF Syr 125 mg/5 ml", "LOVERS Tissue", "Maaggel susp 60ml", "Madu al shifa 250ml", "Madu al shifa 500ml", "Madu Angkak Thrombofit 280gr (kecil)", "MADU ANGKAK TROMBOFIT 460gr", "Madu Kurma TJ 150gr", "MADU KURMAQU 350gr", "Madu masemaag (Besar) 350gr", "Madu masemaag (k)", "Madu murni nusantara isi 100ml", "Madu murni nusantara isi 250ml", "Madu Promil (at thoifah)", "Madu SP pencernaan Assalamah", "Madu stamen ( at thoifah )", "Madu super Nusantara isi 100ml", "Madu Super Nusantara isi 250ml", "Madu Syamil Family", "Madu TJ Hitam Pahit 250gr", "Madu tj jahe merah mint 150ml", "Madu tj joybee grow emulsion 200ml", "Madu Tj Joybee Mulvt Jeruk", "MADU TJ JOYBEE ORI 150GR", "Madu TJ Joybee Strawberry 100 ML", "Madu TJ Joybumin albumin 200ml", "Madu TJ Lemon 150gr", "madu tj murni 150gr", "Madu TJ Murni 250g", "madu tj panas dalam", "Madu TJ sashet all varian", "Madurasa ORI Sach", "MARINE GUMMY GRAPE", "MARINE GUMMY STRAW", "Masker kain", "Masker medis - alkes", "Masker medis karakter", "Masker nebulizer anak (besmed)", "Masker nebulizer anak (cosmomed) - alkes", "Masker nebulizer dewasa (besmed)", "Masker nebulizer dewasa (onehealth)", "Masker Oksigen Onehealth - Anak", "Masker Oksigen Onehealth - Bayi", "Masker Oksigen Onehealth - Dewasa", "MAXPROBUMIN", "MBK Abu box", "MBK PUTIH BOX", "MBK ROLL ON BIRU", "MBK ROLL ON HITAM", "MBK ROLL ON PINK", "MBK ROLL ON UNGU", "mecobalamin 500mg tab (nulab)", "MECOBALAMIN blister (MULIA)", "Medicated oil for season 20ml", "Mediklin Gel 15gr", "Mediklin TR gel cr", "Medisoft cotton ball biru kecil", "Medisoft Cotton ball hijau 120gr besar", "MEFINAL 500", "Megabumin kapsul ikan gabus", "Meloxicam 15mg (dexa)", "Meloxicam 15mg (hj)", "Meloxicam 15mg TAB (Nova)", "Meloxicam 7,5 MG (HJ)", "MELOXICAM 7,5MG (DEXA)", "Meloxicam 7,5mg (nulab)", "Meloxicam 7,5mg tab (nova)", "Meloxicam 7,5mg TAB (OTTO)", "menthol arba (k) 8gr", "MERIT", "Merit plus 30", "Merries pampers L-28", "Mersibion inj", "Metformin 500mg (hj)", "Metformin 500mg XR (otto)", "Methyl 8mg (Berno)", "methyl 8mg (dexa)", "methyl prednisolon 16mg (dexa)", "METHYL PREDNISOLON 16MG MBF", "Methylpred 4mg (ifar)", "Methylprednisolon 4 Mg (ETA)", "Methylprednisolon 8mg (nulab) tab", "Metronidazole 500mg (nov)", "Mextril Batuk tab", "MICONAZOLE CR DEXA", "miconazole cr kf", "MICONAZOLE CR MULIA 10G", "Microgynon kb tab", "Microlax enema 5ml", "micropore - alkes", "Micropore sedang", "MINOSEP Antiseptic Solution", "Minyak angin cap kapak 10ml", "Minyak Angin cap kapak 14ml", "Minyak angin cap kapak 28ml", "Minyak Angin cap kapak 3ml", "Minyak Angin Cap kapak 56ml", "Minyak Angin Cap kapak 5ml", "Minyak angin lang 24ml", "Minyak Angin Lang 3ml", "Minyak Angin Lang 6ml", "Minyak Gandapura Cap Lang 60ml", "Minyak gandapura Lang 30ml", "Minyak Kayu putih  Lang NO,1 (120ml)", "Minyak Kayu putih  Lang NO,2 (60ml)", "Minyak Kayu putih  Lang NO,3 (30ml)", "Minyak Kayu putih  Lang NO,4 (15ml)", "Minyak Kayu putih Lang NO,0 (210ml)", "Minyak Sereh Dragon 30ml", "Minyak Tawon CC 20ml", "Minyak Tawon DD 30ml", "Minyak Tawon EE 60ml", "Minyak telon tresno joyo (tj) 60ml", "Minyak telon tresno joyo 100ml", "Minyak urang aring", "Minyak Urut Dragon 60ml", "Minyak Urut GPU NO,0 100ml", "Minyak Urut GPU NO,1 60ml", "Minyak Urut GPU NO,2 30ml", "Minyak VCO 60ml", "Mitu tissu basah", "Mixagrip Flu  dan  Batuk tab", "Mixagrip Flu tab", "Mixagrip herbal greges cair", "MIXALGIN", "Molacort 0,5mg tab", "Molacort 0,75mg tab", "MOLAKRIM", "Molexflu tab", "Mometasone cr 5gr(nulab)", "MOMETASONE FUROATE CREAM 0,1% 5GR (NOVEL)", "Momilen Diaper 15gr cr", "Momilen Nursing Cream 5gr", "MOSCARE SKIN LOTION NYAMUK 50gr - CUSSONS", "MUCERA DROPS 15 ML", "MUCERA Syr", "Mucos Drops 20ml", "Mucos SYR 60ml", "Mucos Tab 30mg", "MUPIROCIN CALC 2% 5 GR NVL", "My baby face cream pink", "MY BABY LOTION TELON PLUS 50G", "my baby powder 100gr telon", "MY BABY POWDER 50gr", "My Baby Powder 50gr (soft gentle blue)", "My Baby Powder 50gr (Telon plus)", "my baby powder healhty & protect blue 100gr", "MY BABY PWD 150G EF/135G EF-BIANG", "My Baby Telon Long Prot 60ml", "My Baby Telon Long Prot 90ml", "My Baby Telon Plus 150ml", "My baby telon plus 30ml", "My Baby Telon Plus 60ml", "My Baby Telon Plus 90ml", "My Baby Telon Plus Lavender 90ml", "MY WELL VIT D3 1000", "Mycazol CR", "Mycoral cr 5gr", "Mycoral tab 200mg", "Mylanta syr 150ml", "Mylanta syr 50ml", "Mylanta tab", "Na Diclofenac 50 Novel(sodium diclofen)", "Nacl satoria", "Nano nano permen all varian", "nasal cannul anak oksigen O2 (oxyflow)", "nasal cannul bayi oksigen O2 (onehealth)", "nasal cannul dewasa oksigen O2 (oxyflow) - alkes", "Natur E Active beauty cap", "NATUR E ADVANCED (4X4 STRIP)", "Natur e skin start 100iu", "NATUR E SKIN START IIBL MOIST 100ML (DVL)", "Natur E White", "Nebacetin OINT 5gr", "Nebacetin Powder", "Nelco special spc 100ml", "NELICORT", "Neo Entrostop", "Neo Hormoviton tab", "Neo Kaolana syr 120ml", "Neo napasin tab", "Neo rheumacyl bode tab", "neo rheumacyl neuro", "Neo Ultracap tab", "Neo Vedrin Drop", "NEOCENTA GEL 15 GRAM", "NEOSMA EXPECTORANT SYR", "Neozep Forte tab", "NEPROLIT", "Neuralgin RX", "NEUROBION 5000", "Neurobion Biru tab", "Neurobion forte tab", "Neurodex tab", "Neurosanbe plus tablet", "NEW ASTAR CREAM 15 GRAM", "New diatab tablet 4s", "New enzyplex tab", "NEXITRA / asam tranexamat", "Niacef Gel 15gr", "Nichoflam 50mg tab", "Nifedipin tab (dexa)", "Nipple Dot Cussons Mix size toples", "Nipple gepeng polos", "Nisagon", "Norages Drops tetes", "Norages syr 60ml", "Norit Tablet", "Nosib 6gr", "Novatusin syr", "Nutrijel drink 350ml", "NVL EGOJI GUMMY MELON", "OB Combi ATT 60ml syr", "Ob combi b/f anak new", "OB HERBAL 100ML", "Ob herbal 30ml", "OB Herbal 60ml", "OB HERBAL JUNIOR 30ml", "Ob Herbal Permen", "OB Herbal ziplong", "Obat batuk ibu dan anak 75ml", "obat sakit gigi burung kakak tua", "OBH C B/F ANAK APEL 60 ML", "Obh combi b/f 100ml menthol Dewasa", "Obh combi b/f anak apel syr", "Obh Combi b/f anak madu 60ml", "obh combi batuk flu 60ml menthol dws", "OBH Combi Batuk flu orange anak 60ml", "OBH Combi Batuk Flu Strawberry anak syr", "OBH COMBI REG BATUK BERDAHAK JAHE 100ml", "OBH Combi Reg Berdahak Mentol 100ml", "OBH Itrasal botol kaca", "Obh nelco anak nelco jeruk 55ml", "Obh nelco herbal 100ml", "Obh Nelco spc anak straw", "OBH Nelco SPC Pe 55ml", "OBH TROPICA PLUS RASA MENTHOL DEWASA", "OBP Itrasal 100ml", "OCTENILIN", "OCTENILIN SPRAY ANTISEPTIK", "Omedom tab", "Omefulvin 125mg tab", "Omegdiar tab", "OMEGESIC", "Omenacort tab", "Omeprazole ( nulab)", "Omeprazole 20mg (Nova) cap", "omeprazole caps (hj)", "OMEPROKSIL", "Omepros isi 10", "Omeric 100mg tab", "Omeric 300mg tab", "OMESTAN 500", "Ondansentron 4mg (mbf)", "ONDANSENTRON 8MG (MBF)", "Ondansentron 8mg Landson", "Ondansentron inject", "Opistan 500mg tab", "Oralit shahset", "Orphen tab", "Orsaderm Crm 5gr", "Oskadon", "OSKADON EXTRA/TAB 4'S", "Oskadon SP", "OSKADRYL BATUK BERDAHAK Tab", "OSSOPAN 800MG", "Otilon TT 8ml", "Otolin TT", "Ottopan Drop", "Ovulation test", "Oxytetracyclin Sk Kf 5gr", "Pagoda Salep extra 10gr", "PANADOL ANAK-ANAK Tab", "Panadol biru Demam kap", "Panadol Extra Merah", "Panadol extra mini 4s", "Panadol Hijau Flu  dan  Batuk kap", "PANADOL SYRUP ANAK 30 ML", "Paracetamol syr (mersi)", "Paracetamol tab (ETA)", "Paracetamol Tab (Ifi)", "Paracetamol tab (mersi)", "Paracetamol tab (triman)", "PARACETAMOL TP(TROPIKA) 500 KAP", "PARACETINE SIRUP", "PARAFLU Kapl", "Param kocok 25ml", "PARAMEX FLU&BATUK", "Paramex Nyeri Otot (merah)", "Paramex nyeri otot hot cream 30gr", "Paramex nyeri otot hot cream 60gr", "Paramex tab", "Paratusin syr 60ml", "Paratusin tab", "Parfum Lamour 30ml spray", "Parfum Lamour roll on", "PASABA COUGH AND FLU", "Pasta gigi cussons kids 45gr - all flavour", "Peditox 50ml", "peka 0,2gr", "Pen needle jarum insulin", "Pensil warna prokids", "Penyedot ingus", "Permen", "PERMEN TOLAK ANGIN", "Permen tolak angin bijian", "Pharmaton go Formula tab", "Phenol gliserol TT", "Pil Kb Elzsa Andalan", "Pil kita Tablet", "Pillow strawberry snack", "Pillow ubi snack", "Pim trakol Cherry syr", "Pim trakol Plus lemon 60ml", "PIMTRAKOL KIDS SYR 60ML", "Pioglitazone 30mg (dexa) tab", "Pipet obat karet merah", "pipet plastik polos", "Piroxicam 10 (trifa)", "Piroxicam 10mg Nova", "PIROXICAM 20 ( IFI )", "Piroxicam 20mg GRAHA", "Piroxicam 20mg tab (nova)", "Pispot pria tanpa tutup plastik - alkes", "Pispot pria tutup", "Pispot wanita tutup plastik - alkes", "Planotab kb", "Plantacid F syr 100ml", "PLANTACID F TAB", "Plantacid syr 100ml", "Plester bening roll transparant", "Plester plesterin bulat infus", "plester roll luka 1,25cmx1m ( hansaplast ) - alkes", "plesterin hansaplas Anti air isi 10s", "Plesterin kids warna hijau isi 10", "Plesterin Roll Ultrafix", "Plossa Blumountain (biru)", "Plossa Citrus Herbal 10ml", "Plossa Eucalyptus (hijau)", "Plossa Redhot (merah)", "Pocari sweat 350ml botol", "Pocari sweat shaset", "Poldan Mig", "Polident addesive fresh mint 20gr", "Polindent cleaner", "POLOFAR PLUS TAB", "POLOFAR TAB", "Polycrol Forte tab", "Polysilane susp 100ml", "POLYSILANE SUSP 180ML", "Polysilane tab", "Pompa Asi Electric", "Pompa asi manual", "Pondex syr 60ml", "Ponstan 500mg tab", "POSTINOR-2", "Pot urine", "Praxion 100mg drop", "Praxion 120mg syr (oren) 60ml", "Praxion 250mg SYR 60ml", "Prednison 5mg (holi)", "PREDNISON TAB (TRIMAN)", "Prenagen emesis choco 180gr", "Prenagen emesis vanila 180gr", "Prenagen esensis", "Prima air mineral 220ml", "Primadol cap", "Primavon tab", "Primolut N Tab", "PROBAFLU", "Procold Flu", "Proderma N cr", "Prodermis cr", "Prokids gummy anggur", "Prokids gummy jeruk", "Prokids gummy rasa susu", "Prokids gummy strawberry", "PROKIDS MIXED FRUIT GUMMY", "Promaag Herbal sash", "Promaag suspensi 7ml", "promaag tab", "Pronicy tab", "Propanolol 40mg (dexa)", "PROPOLIS", "Proris forte SYR 50ml", "Proris kaplet", "Proris syr (hijau)", "Prostakur", "Pure kids inhalant geranium 10ml", "Purwoceng obat kuat", "Puyer sakit kepala Bintang 7", "Pyrexin SYR 120mg 60ml", "Q life menstrual pacth", "QOM/GOM AFI", "Racikan Acne night cream 2", "Racikan Totol Acne gel", "Ramipril 10mg tab (novel)", "RAMOLIT SACH", "Ranitidin 150mg HX", "Ranitidin inject", "RAPET WANGI", "Reco SM 5mg", "Reco TM 10ml", "Reco TT 10ml", "Redoxon eff 10s", "Renabetic 5mg tab", "Renadinac 50mg tab", "RENALYTE", "Renovit Gold Kaplet", "Resida cair / kalpanak cair botol", "Rhelafen susp 100mg syr", "Rhemafar 4mg tab", "Rhemafar 8mg tab", "Rheumacyl bode 2s", "RHINOS JUNIOR", "RHINOS NEO", "Rhinos SR caps (50)", "Rivanol 100ml (onemed) - alkes", "Rivanol 300ml", "RL - OTSUKA", "RL (EMTEJEBE)", "Rohto Cool", "Rohto Dry Fresh 7ml", "Rohto eyeflush", "Rohto TM 7ml", "Rohto V-Extra", "Roppang roti", "Roverton drop", "Roverton syr", "Sabun dettol", "Sabun JF Acne 90gr", "Sabun JF Acne Care 65gr", "SABUN PAPAYA 70GR", "Sabun papaya orange 135gr", "Safe care aromatherapy 10ml", "SAFECARE STRONG AROMA THERAPY", "SAGESTAM Krim", "SAKATONIK ABC CURCUMA MADU TAB", "sakatonik ABC Grape 30", "Sakatonik ABC Orange isi 30 tab", "Sakatonik ABC Strawberry isi 30tab", "Sakatonik activ 100ml", "Sakatonik activ 330ml", "SAKATONIK ACTIV MULTIVITAMIN ZAT BESI", "Salbutamol 2mg ETA", "Salbutamol 4 mg Tab (Graha Farma)", "Salbutamol 4mg Yarindo", "Salep 2-4 15gr NUFA", "Salep 88", "Salep Ichtyol 15gr (Cito) 24", "Salep kulit kembang Bulan", "Salep Levetran", "Salep Ultracililin 5gr", "SALFENAL FORTE Kapl", "salicyl nelco biru", "Salicyl nelco menthol 60gr (pink)", "SALICYL TALK ZAK ADINDA", "Salonpas cream Hot 30gr", "Salonpas Hot", "Salonpas super 5x2", "Salonpas super isi 12 s", "Samcofenac tab", "Sanadryl 120ml", "Sanadryl expect syr 60ml", "Sanaflu tab", "Sanbflex drop", "Sangobion caps isi 10", "Sangobion tab 4s", "SANGOBION VITATONIK 250ML", "SANGOBION VITATONIK 400ML", "SANMAG Susp", "Sanmol drops", "SANMOL FORTE SYR 60ML", "Sanmol Forte Tab", "Sanmol syr 60ml", "Sanmol tab 500mg", "Sanprima Sirup", "Sari Kurma al jazira", "Sari Kurma TJ 250gr", "SARIDON TAB", "SARIKURMA MADU ANGKAK", "sarung tangan handscoon latex non steril (safegloves)", "sarung tangan maxter steril - alkes", "Sarung tangan plastik", "Saudi Pampers Dewasa Isi 2 (L)", "Saudi pampers dewasa isi 2 (M)", "Saudi Pampers Dewasa Isi 2 (XL)", "Scabimite cr 10gr", "scalpel bisturi - alkes", "Scanderma plus cream", "Scandexon cream", "Scandexon tab", "Scanovir", "Scantaren gel 20gr", "Scoot vita 200ml syr", "Selsun blue 120ml", "selsun blue shampoo 60ml", "Seltiford kids strawberry", "SELTIFORT KIDS ORANGE", "Selvim 10mg kap", "Selvim 20mg tab", "Sensodine gentle whittening 100gr", "Sensodine gigi berlubang 40gr", "sensodyne cool gel odol 100gr", "SGM Ananda 0-6 150gr", "SGM Ananda 1+ 150gr", "SGM Ananda 6-12 150gr", "SGM ANANDA GAIN UNGU (0-12) 400gr", "SGM BBLR 200GR", "Sgm eksplor 1+ 150gr", "Sgm Isopro Soy 0-6 200gr", "Sgm Isopro Soy 6-12 400gr", "SGM LLM+ 200GR", "SGM LLM+ 400GR", "Sidomuncul C1000 Collagen drink", "Sikat gigi bayi / anak", "Sikat lidah bayi", "Siladex ATT 30ml syr", "SILADEX ATT 60ML SYR", "Siladex CC 30 Ml (biru)", "siladex cc 60ml", "SILADEX DMP 30ML", "Siladex dmp 60ml", "Siladex me 30ml", "SILADEX ME 60ML", "Silex", "Simvastatin 10 (dexa)", "Simvastatin 10mg (Hexa) tab", "Simvastatin 10mg tab (Nova)", "SIMVASTATIN 20 (GRAHA)", "Simvastatin tab 20mg (nova)", "Slasi Penyegar Serbuk", "Sleek Liquid Baby Cleanser 70ml refill", "Snack - cannon ball permen sedang", "Snack - Chacha permen", "Snack - Choki choki", "Snack - Chupa Chup Melody Pop", "Snack - chuppa chups big babol permen karet", "Snack - coklat koin", "Snack - Cucu Choco Mallow", "Snack - Dilan chocholate crunchy", "Snack - Dilan cookies biskuit", "Snack - eggy party", "Snack - gummy lollipop", "Snack - Hello panda strawberry", "Snack - Hilo Choco snack candy", "Snack - jelly straws", "Snack - kiranti orange", "Snack - Korean seaweed rumput laut", "Snack - Larutan kaki 3 anak kaleng all var 250ml", "Snack - lollipop parago duplo", "Snack - Marry Queen chocolate", "Snack - mentos mix permen", "Snack - milkita candy", "Snack - Muffin cake", "Snack - permen chupa chups", "Snack - permen karet bubble up", "Snack - Ranjani Birthday Yupi Cake", "Snack - Ranjani Modi Block Yupi", "Snack - saripati jelly", "Snack - so good susu steril 189ml", "Snack - Susu tujuh kurma 200ml", "Snack - You -C 1000 orange 140ml", "Snack - Youka GM Spaghetty Yupi", "Snack - Yupi Bolicious all varian", "Snack - Yupi kiss pink love", "Snack - yupi sweet heart", "Sohoney JR madu", "SOLDEXTAM", "Solfenox kaplet", "Solinfec 200mg tab", "Solinfec cr 5gr", "Spasminal tab", "Spike penusuk infus- alkes", "spuit 10cc (onehealth) - alkes", "spuit 1cc (onemed) - alkes", "Spuit 3cc (onehealth) - alkes", "spuit 50cc catheter tip - alkes", "spuit 5cc (onemed)", "Stimuno Anggur Botol 60ml", "Stimuno Jeruk Beri Botol 60ml", "Stop cold tab", "STREPSIL COOL", "STREPSIL HONEY LEMON", "STREPSIL ORIGINAL", "SUCRALFAT SYR (DEXA)", "Sucralfat syr combiphar", "Sucralfat syr mepro (botol) 100ml", "SUCRALFAT TROPIKA(TP) SUSP 100 ML", "Sulfadiazin tab", "sultana 100ml (de nature)", "Sumagesic tab", "Super O2 air mineral", "superhoid supp", "Supertetra caps", "SUPRABIOTIC 500", "Susu bear brand", "Susu kambing etawa karomah", "Susu ultramimi kids", "Sutra 003 supertipis", "SUTRA CINTA 12'S", "SUTRA CINTA 3'S", "Sutra kondom gerigi (navy) - alkes", "Sutra Kondom Hitam Ok - alkes", "sutra kondom plus (abu) 3s - sutra", "SUTRA LUBRICANT GEL 50ml", "sutra tisu plus isi 3 - alkes", "Sweety pampers bronze L-28 (kuning)", "Sweety pampers bronze M-32 (kuning)", "Sweety Pampers bronze S-38 (kuning)", "Sweety Pampers silver L-28 (biru)", "Sweety Pampers Silver M- 32 (biru)", "Synalten cr 5gr", "TABLET TAMBAH DARAH", "TAHESTA CUKA APEL", "Tali masker biasa", "Tali masker pita rajut", "TANTUM VERDE 60 ML", "Tay Pin San Serbuk", "Teh daun jati cina", "Teh pucuk harum less sugar 350ml", "Teh sosro kotak 200ml", "Tempra 2-6t 30ml syr", "Tempra Drops 15ml", "TEMPRA F 6+ ANGGUR 30ML", "Tempra forte 6+ straw 30ml", "Tempra Forte 6t+ Syr 60ml", "Tempra syr 2-6 100ml", "Tempra Syrup 2-6t 60ml", "Tensocrepe verban gulung elastis 7,5cmx4m ( medicare ) - alkes", "Teosal tab", "Tera F tab", "Termometer digital karakter", "TERMOMETER polos", "TERMOREX BABY", "Termorex Plus 60ml syr", "Termorex plus syr 30ml", "Termorex Syr 30ml", "Termorex Syr 60ml", "Ternix plus syr", "TERNIX SYR 60 ML", "Tespack onemed amplop biru", "Tespack Quick & sure pink", "Test pack Andalan strip", "Testpack blueone", "testpack tes kehamilan (onehealth)", "Thai goat milk soap", "Thrombogel Gel 10gr", "Thrombophob Ointment (Hijau)", "Thrombopob Gel 20gr", "Tissue kering 200's", "Tissue magic power classic (hitam) - alkes", "Tissue uk Sedang", "Tisu basah", "TJ JOYBEE GUMMY", "Tolak Angin Anak", "tolak angin batuk cair saset", "Tolak Angin Cair", "Tolak Angin Cair Bebas Gula shahet", "Tolak Angin Flu", "Tolak Angin Linu", "Tonikum bayer 100ml", "Tonikum bayer 330ml", "Torniquet", "Transpulmin BB 10gr", "TRANSPULMIN KIDS 20G", "Tremenza Sirup", "Tremenza tab", "TRIAMINIC BATUK & PILEK RASA BERRY", "TRIAMINIC EKSPEKTORAN & PILEK (RASA LEMON)", "Trianta SYR 60ml", "Triocid susp 60ml", "Triocid Tablet", "Trisela Syr", "trisela tab", "TRODEX TAB", "Ts Cotton Bud", "Ts cotton bud besarr", "TUMERIC", "Tuntas pil", "TUZALOS", "Ultrafix mini plester", "ultrafix plester roll luka besar 5cm x 5m - alkes", "Ultraflu tab", "underpad perlak 45cmx60cm (onemed)", "Urine Bag - alkes", "UROTRACTIN", "V FRESH LANG", "VANQUIN PLUS", "Vaselin cream 50ml", "Vaselin racikan", "Vaselin swab (wintuell) 10x10", "VASOCARE 100ml", "Vegeta Herbal anggur shashet", "Verban roll natakasa", "Vermint Caps", "Vermoran obat cacing", "VESPERUM DROP @100 BTL", "Vesperum syr 60ml", "VICK F44 Anak 54ml syr", "vick F44 Anak ATT 27ml", "vick F44 Dws 100ml", "Vick Vaporub 25gr", "Vick vaporub 50gr", "Vicks Baby Balsam 10gr", "Vicks baby balsam 20gr", "Vicks F44 DWS ATT 27ml", "vicks f44 dws ATT 54ml", "Vicks Inhaler 6", "Vicks vaporub 10gr", "VICKS VAPORUB 25GR", "VIDORAN SMART ORANGE/SYR 100ML", "VIDORAN SMART SBERRY/SYR 100ML", "Vidoran xmart 1+ 125gr", "Vidoran xmart 3+ 350gr", "Vidoran xmart milk 0-6 t 125gr", "Vidoran Xmart Milk Strawberry UHT 110ml", "VIGEL Lubricating Gel", "Viostin caps", "Visto TM 5ml", "Vit A 50mg (IPI)45 tab", "Vit B complex  (nova)", "Vit B complex ( KF )", "Vit B complex (afi)", "Vit B Complex (IPI)45 tab", "Vit B Complex (IPI)80 tab", "Vit B1 (AFI)", "vit B1 (IPI)", "Vit B1 (Trifa)", "VIT B1 50MG BOX 100'S (NP/NOVA)", "Vit B12 (IPI)45 tab", "VIT B12 50MG (AFI)", "Vit B6 tab (afi)", "Vit C (IPI)45 Tab", "Vit c 500mg tab (triman)", "Vit C 50mg tab (triman)", "Vit C Ipi Botol", "vit D3 IPI", "VIT D3+K2 IPI", "Vit E (IPI)", "VIT IPI D3 1000 IU 70'S Botol", "Vit Ipi mineral & calcium", "Vit ipi mineral & magnesium", "Vitabumin 130ml", "Vitabumin 60ml", "Vitacid 0,05% 20gr", "Vitacid 0,1% 20gr cr", "Vitacid cr 0,025mg", "Vitacimin orange 2x50s", "vital ear oil 10ml", "Vitama  Plus  vimata (de nature)", "vitamin c1000 sidomuncul", "Vitaquin cr 15gr", "Voltadex tab", "Voltaren gel 10gr", "voltaren gel 20gr", "VOLTAREN GEL 5GR", "VOLTAREN SR 75", "VOLTAREN Tab 50 mg", "Vosea Tab", "Waisan maag puyer", "Waslap jari bayi polos", "Welmove caplet", "winatin tab", "Wing needle no. 25 (om)", "Wing needle no. 27 (om)", "wiros 20mg tab", "WOODS ATT MERAH 100ML", "Woods att merah 60ml", "WOODS EXP BIRU 100ML", "Woods Expect Biru 60ml", "Woods herbal natural 60ml", "Woods loz orange permen", "Wookey Wight Coklat Susu", "Wookey Wight Original susu", "WORMETRIN SUSPENSI", "Wund regeneration cream", "Wund Scar gel", "Xilergy caps", "Xilergy syr", "Y-Rins Cuci mata", "YASMIN", "Yupi blackcurent", "Yusimox syr 60ml", "Yusimox tab", "ZAMBUK MEDICATED OINTMENT 8GR", "ZANIC SYR", "Zaura 15ml", "Zaura 35ml", "ZEE RTD STRAWBERRY 185 ML", "ZEE RTD SWIZZ COK 185 ML", "Zee Susu UHT 185ml", "Zenirex expect 60ml", "Zensoderm cr", "Zevask 10mg tab", "Zevask 5mg tab", "ZIBAT PRO SYR 100ML", "ZINC SULFATE MONOHYDRATE Syr 55 mg, MEPROFARM", "Zolagel Diaper cream", "ZORALIN Krim", "Zoralin tab", "Zymuno"];
+
+function makeRowsFromMaster(){
+  return MASTER_ITEMS.map(name => ({ id: idCounter++, nama:name, t1:'', t2:'', apk:'' }));
+}
+
+function isChecked(r){
+  return (r.t1 !== '' && r.t1 !== null && r.t1 !== undefined) ||
+         (r.t2 !== '' && r.t2 !== null && r.t2 !== undefined) ||
+         (r.apk !== '' && r.apk !== null && r.apk !== undefined);
+}
 
 function toggleHideToko(key){
   hideToko[key] = !hideToko[key];
@@ -429,8 +511,19 @@ function newRow(){
 
 function addRow(){
   rows.push(newRow());
+  searchQuery = '';
+  showOnlyUnchecked = false;
+  const searchBox = document.getElementById('searchBox');
+  if(searchBox) searchBox.value = '';
+  const clearBtn = document.getElementById('clearSearchBtn');
+  if(clearBtn) clearBtn.classList.remove('show');
+  const uncheckedBtn = document.getElementById('uncheckedToggleBtn');
+  if(uncheckedBtn) uncheckedBtn.classList.remove('active');
+  currentPage = totalPagesCount(rows.length);
   render();
   saveState();
+  const anchor = document.getElementById('tableAnchor');
+  if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'end'});
 }
 
 function delRow(id){
@@ -449,7 +542,7 @@ function updateField(id, field, value){
     const fisikEl = document.getElementById(`fisik-${id}`);
     if(fisikEl) fisikEl.textContent = fisikOf(r);
     const statusEl = document.getElementById(`status-${id}`);
-    if(statusEl) statusEl.innerHTML = badgeHtml(statusOf(r));
+    if(statusEl) statusEl.innerHTML = checkBadgeHtml(r);
   }
   renderSummaryOnly();
   saveState();
@@ -457,6 +550,17 @@ function updateField(id, field, value){
 
 function badgeHtml(st){
   if(!st) return '<span style="color:#c2c9c4;font-size:12px;">—</span>';
+  if(st.type === 'klop') return '<span class="badge klop">KLOP ✓</span>';
+  if(st.type === 'minus') return `<span class="badge minus">${st.selisih}</span>`;
+  return `<span class="badge plus">+${st.selisih}</span>`;
+}
+
+// Badge status yang juga menandai barang yang belum dicek sama sekali,
+// dan barang yang fisiknya sudah diisi tapi Web/Apk belum diisi.
+function checkBadgeHtml(r){
+  if(!isChecked(r)) return '<span class="badge unchecked">Belum dicek</span>';
+  const st = statusOf(r);
+  if(!st) return '<span class="badge partial">Fisik terisi</span>';
   if(st.type === 'klop') return '<span class="badge klop">KLOP ✓</span>';
   if(st.type === 'minus') return `<span class="badge minus">${st.selisih}</span>`;
   return `<span class="badge plus">+${st.selisih}</span>`;
@@ -478,34 +582,104 @@ function statusOf(r){
   return {type:'plus', selisih};
 }
 
+function getVisibleRows(){
+  return rows.filter(r => {
+    if(showOnlyUnchecked && isChecked(r)) return false;
+    if(searchQuery && !r.nama.toLowerCase().includes(searchQuery)) return false;
+    return true;
+  });
+}
+
+function onSearchInput(val){
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('clearSearchBtn').classList.toggle('show', searchQuery.length > 0);
+  currentPage = 1;
+  render();
+}
+
+function clearSearch(){
+  searchQuery = '';
+  document.getElementById('searchBox').value = '';
+  document.getElementById('clearSearchBtn').classList.remove('show');
+  currentPage = 1;
+  render();
+}
+
+function toggleUncheckedFilter(){
+  showOnlyUnchecked = !showOnlyUnchecked;
+  document.getElementById('uncheckedToggleBtn').classList.toggle('active', showOnlyUnchecked);
+  currentPage = 1;
+  render();
+}
+
+function totalPagesCount(visibleCount){
+  return Math.max(1, Math.ceil(visibleCount / PAGE_SIZE));
+}
+
+function goToPage(n){
+  const total = totalPagesCount(getVisibleRows().length);
+  currentPage = Math.min(Math.max(1, n), total);
+  render();
+  const anchor = document.getElementById('tableAnchor');
+  if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
 function render(){
   const tbody = document.getElementById('rows');
   tbody.innerHTML = '';
-  rows.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    const st = statusOf(r);
-    const badge = badgeHtml(st);
-    tr.innerHTML = `
-      <td class="idx">${i+1}</td>
-      <td class="nama-col"><input class="nama" placeholder="Nama barang" size="${Math.max(14, r.nama.length + 2)}" value="${escapeHtml(r.nama)}" oninput="updateField(${r.id},'nama',this.value); this.size=Math.max(14,this.value.length+2)"></td>
-      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t1}" oninput="updateField(${r.id},'t1',this.value)"></td>
-      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t2}" oninput="updateField(${r.id},'t2',this.value)"></td>
-      <td class="num"><div class="fisik-val" id="fisik-${r.id}">${fisikOf(r)}</div></td>
-      <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.apk}" oninput="updateField(${r.id},'apk',this.value)"></td>
-      <td class="num status-cell" id="status-${r.id}">${badge}</td>
-      <td><button class="del-btn" onclick="delRow(${r.id})">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+  const visibleRows = getVisibleRows();
+  const totalPages = totalPagesCount(visibleRows.length);
+  if(currentPage > totalPages) currentPage = totalPages;
+  if(currentPage < 1) currentPage = 1;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = visibleRows.slice(start, start + PAGE_SIZE);
+
+  if(visibleRows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-row-msg">${rows.length===0 ? 'Belum ada barang. Klik "Tambah barang" atau "Muat barang master".' : 'Tidak ada barang yang cocok dengan pencarian / filter ini.'}</div></td></tr>`;
+  } else {
+    const frag = document.createDocumentFragment();
+    pageRows.forEach((r, i) => {
+      const globalIdx = start + i + 1;
+      const tr = document.createElement('tr');
+      const badge = checkBadgeHtml(r);
+      tr.innerHTML = `
+        <td class="idx">${globalIdx}</td>
+        <td class="nama-col"><input class="nama" placeholder="Nama barang" size="${Math.max(14, r.nama.length + 2)}" value="${escapeHtml(r.nama)}" oninput="updateField(${r.id},'nama',this.value); this.size=Math.max(14,this.value.length+2)"></td>
+        <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t1}" oninput="updateField(${r.id},'t1',this.value)"></td>
+        <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t2}" oninput="updateField(${r.id},'t2',this.value)"></td>
+        <td class="num"><div class="fisik-val" id="fisik-${r.id}">${fisikOf(r)}</div></td>
+        <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.apk}" oninput="updateField(${r.id},'apk',this.value)"></td>
+        <td class="num status-cell" id="status-${r.id}">${badge}</td>
+        <td><button class="del-btn" onclick="delRow(${r.id})">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button></td>
+      `;
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+  }
   renderSummaryOnly();
+  updatePaginationUI(totalPages, visibleRows.length, start, pageRows.length);
+}
+
+function updatePaginationUI(totalPages, visibleCount, start, pageCount){
+  const info = document.getElementById('pageInfo');
+  if(info){
+    info.textContent = visibleCount === 0 ? '' : `${start+1}–${start+pageCount} dari ${visibleCount} (hal. ${currentPage}/${totalPages})`;
+  }
+  const disablePrev = currentPage <= 1;
+  const disableNext = currentPage >= totalPages;
+  ['firstPageBtn','prevPageBtn'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = disablePrev; });
+  ['lastPageBtn','nextPageBtn'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = disableNext; });
+  const paginationRow = document.getElementById('paginationRow');
+  if(paginationRow) paginationRow.style.display = totalPages <= 1 ? 'none' : 'flex';
 }
 
 function renderSummaryOnly(){
   // update fisik + badge cells without full re-render, but simplest: recompute stats
-  let minus=0, plus=0, klop=0;
+  let minus=0, plus=0, klop=0, checked=0;
   rows.forEach(r=>{
+    if(isChecked(r)) checked++;
     const st = statusOf(r);
     if(st){
       if(st.type==='minus') minus++;
@@ -516,6 +690,24 @@ function renderSummaryOnly(){
   document.getElementById('statMinus').textContent = minus;
   document.getElementById('statPlus').textContent = plus;
   document.getElementById('statKlop').textContent = klop;
+  document.getElementById('statTotal').textContent = rows.length;
+  document.getElementById('statChecked').textContent = checked;
+  document.getElementById('statUnchecked').textContent = rows.length - checked;
+}
+
+function loadMasterItems(){
+  const existingNames = new Set(rows.map(r => r.nama.trim().toLowerCase()).filter(n => n !== ''));
+  let added = 0;
+  MASTER_ITEMS.forEach(name => {
+    if(!existingNames.has(name.toLowerCase())){
+      rows.push({ id: idCounter++, nama:name, t1:'', t2:'', apk:'' });
+      existingNames.add(name.toLowerCase());
+      added++;
+    }
+  });
+  render();
+  saveState();
+  alert(added > 0 ? `${added} barang baru dari daftar master ditambahkan.` : 'Semua barang master sudah ada di daftar kamu.');
 }
 
 function escapeHtml(s){
@@ -738,7 +930,7 @@ async function loadState(){
         rows = state.rows;
         idCounter = state.idCounter || (Math.max(...rows.map(r => r.id)) + 1);
       } else {
-        for(let i=0;i<5;i++) rows.push(newRow());
+        rows = makeRowsFromMaster();
       }
       if(state.meta){
         document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
@@ -754,14 +946,14 @@ async function loadState(){
       editingFromId = state.editingFromId || null;
       setSaveStatus('Data tersimpan dimuat');
     } else {
-      for(let i=0;i<5;i++) rows.push(newRow());
+      rows = makeRowsFromMaster();
       document.getElementById('metaToko').value = 'Rafa 1';
       document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
-    for(let i=0;i<5;i++) rows.push(newRow());
+    rows = makeRowsFromMaster();
     document.getElementById('metaToko').value = 'Rafa 1';
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
@@ -796,12 +988,20 @@ async function resetAll(){
   idCounter = 0;
   hideToko = { t1:false, t2:false };
   editingFromId = null;
+  searchQuery = '';
+  showOnlyUnchecked = false;
   hideRestoreBanner();
-  for(let i=0;i<5;i++) rows.push(newRow());
+  rows = makeRowsFromMaster();
   document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
+  const searchBox = document.getElementById('searchBox');
+  if(searchBox) searchBox.value = '';
+  const clearBtn = document.getElementById('clearSearchBtn');
+  if(clearBtn) clearBtn.classList.remove('show');
+  const uncheckedBtn = document.getElementById('uncheckedToggleBtn');
+  if(uncheckedBtn) uncheckedBtn.classList.remove('active');
   updateHideTokoUI();
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
