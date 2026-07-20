@@ -334,6 +334,19 @@
   .sync-dot.warn{background:var(--amber);}
   .sync-status-line{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:3px;}
   .sync-actions{display:flex; gap:14px; flex-wrap:wrap;}
+  .host-badge{
+    display:inline-block; background:var(--teal); color:#fff; font-size:10px; font-weight:800;
+    padding:2px 7px; border-radius:20px; vertical-align:middle; margin-left:4px;
+  }
+  .host-stop-btn{color:var(--minus);}
+  .host-resume-btn{color:var(--klop);}
+  .room-locked-banner{
+    display:flex; align-items:flex-start; gap:12px; background:var(--minus-bg);
+    border:1.5px solid #e4b8ab; color:var(--minus); border-radius:12px; padding:16px 18px; margin-bottom:16px;
+  }
+  .room-locked-banner svg{flex-shrink:0; margin-top:1px;}
+  .rlb-title{font-weight:800; font-size:14px; margin-bottom:2px;}
+  .rlb-sub{font-size:12.5px; font-weight:600; opacity:.9;}
 </style>
 </head>
 <body>
@@ -369,16 +382,28 @@
     </div>
     <div class="sync-active-row" id="syncActiveRow">
       <div>
-        <div class="sync-room-name"><span class="sync-dot" id="syncDot"></span>Room: <span class="sync-room-code" id="activeRoomLabel"></span></div>
+        <div class="sync-room-name"><span class="sync-dot" id="syncDot"></span>Room: <span class="sync-room-code" id="activeRoomLabel"></span> <span class="host-badge" id="hostBadge" style="display:none;">Kamu host</span></div>
         <div class="sync-status-line" id="syncStatus">&nbsp;</div>
       </div>
       <div class="sync-actions">
+        <button type="button" class="link-btn host-stop-btn" id="hostStopBtn" style="display:none;" onclick="stopRoomSession()">Hentikan kode</button>
+        <button type="button" class="link-btn host-resume-btn" id="hostResumeBtn" style="display:none;" onclick="resumeRoomSession()">Jalankan lagi</button>
         <button type="button" class="link-btn riwayat-btn" onclick="copyInviteLink()">Salin link undangan</button>
         <button type="button" class="link-btn reset-btn" onclick="leaveRoom()">Keluar room</button>
       </div>
     </div>
-    <div class="footnote">Masukkan kode room yang sama di HP rekan tim (atau bagikan link undangan) supaya data tersambung dan perubahan langsung muncul di kedua perangkat secara real-time.</div>
+    <div class="footnote">Masukkan kode room yang sama di HP rekan tim (atau bagikan link undangan) supaya data tersambung dan perubahan langsung muncul di kedua perangkat secara real-time. Yang pertama kali membuat room jadi host — host bisa menghentikan kode supaya rekan tim tidak melihat data lagi sampai dijalankan lagi.</div>
   </div>
+
+  <div class="room-locked-banner" id="roomLockedBanner" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <div>
+      <div class="rlb-title">Kode room ini dihentikan oleh host</div>
+      <div class="rlb-sub">Data barang disembunyikan sementara. Kamu akan otomatis melihat lagi begitu host menjalankan kode ini kembali.</div>
+    </div>
+  </div>
+
+  <div id="lockableContent">
 
   <div class="card">
     <h2>Info Update</h2>
@@ -494,6 +519,7 @@
     </div>
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
+  </div>
   </div>
 </div>
 
@@ -945,6 +971,8 @@ let roomCode = '';
 let realtimeChannel = null;
 let syncPushTimer = null;
 let applyingRemote = false;
+let sessionActive = true;
+let hostClientId = null;
 
 function getClientId(){
   try{
@@ -989,6 +1017,28 @@ function updateRoomUI(){
     joinRow.classList.remove('hide');
     activeRow.classList.remove('show');
   }
+  updateSessionUI();
+}
+
+function isRoomHost(){
+  return !!roomCode && !!hostClientId && hostClientId === CLIENT_ID;
+}
+
+function updateSessionUI(){
+  const hostBadge = document.getElementById('hostBadge');
+  const stopBtn = document.getElementById('hostStopBtn');
+  const resumeBtn = document.getElementById('hostResumeBtn');
+  const banner = document.getElementById('roomLockedBanner');
+  const content = document.getElementById('lockableContent');
+  const host = isRoomHost();
+
+  if(hostBadge) hostBadge.style.display = (roomCode && host) ? '' : 'none';
+  if(stopBtn) stopBtn.style.display = (roomCode && host && sessionActive) ? '' : 'none';
+  if(resumeBtn) resumeBtn.style.display = (roomCode && host && !sessionActive) ? '' : 'none';
+
+  const locked = !!roomCode && !sessionActive && !host;
+  if(banner) banner.style.display = locked ? 'flex' : 'none';
+  if(content) content.style.display = locked ? 'none' : '';
 }
 
 function collectCurrentState(){
@@ -999,7 +1049,8 @@ function collectCurrentState(){
       tgl: document.getElementById('metaTgl').value,
       petugas: document.getElementById('metaPetugas').value
     },
-    rows, idCounter, hideToko, editingFromId
+    rows, idCounter, hideToko, editingFromId,
+    session: { active: sessionActive, hostClientId: hostClientId }
   };
 }
 
@@ -1016,7 +1067,12 @@ function applyRemoteState(state){
   }
   hideToko = state.hideToko || { t1:false, t2:false };
   editingFromId = state.editingFromId || null;
+  if(state.session){
+    sessionActive = state.session.active !== false;
+    hostClientId = state.session.hostClientId || hostClientId;
+  }
   updateHideTokoUI();
+  updateSessionUI();
   render();
   applyingRemote = false;
   // simpan juga ke cache lokal supaya tetap ada kalau offline
@@ -1041,13 +1097,26 @@ async function joinRoom(rawCode){
     if(error) throw error;
 
     if(data){
+      const hasSessionInfo = !!(data.state && data.state.session && data.state.session.hostClientId);
+      if(!hasSessionInfo){
+        // Room lama sebelum fitur host ada — jadikan orang yang pertama buka jadi host.
+        hostClientId = CLIENT_ID;
+        sessionActive = true;
+      }
       applyRemoteState(data.state);
       saveState();
-      setSyncStatus('Tersambung • data room dimuat', 'on');
+      if(!hasSessionInfo){
+        // simpan info host supaya tersimpan untuk rekan tim berikutnya
+        pushToRoom(true);
+      }
+      setSyncStatus(sessionActive ? 'Tersambung • data room dimuat' : 'Tersambung • kode ini sedang dihentikan oleh host', sessionActive ? 'on' : 'warn');
     } else {
+      hostClientId = CLIENT_ID;
+      sessionActive = true;
       const state = collectCurrentState();
       const { error: insErr } = await sb.from('stok_opname_rooms').insert({ room_code: roomCode, state, updated_by: CLIENT_ID });
       if(insErr) throw insErr;
+      updateSessionUI();
       setSyncStatus('Tersambung • room baru dibuat, data saat ini dimigrasi', 'on');
     }
     subscribeRoom();
@@ -1074,29 +1143,51 @@ function subscribeRoom(){
     });
 }
 
-function pushToRoom(){
+async function doPushToRoomNow(){
+  const client = initSupabaseClient();
+  if(!client || !roomCode) return;
+  const state = collectCurrentState();
+  try{
+    const { error } = await sb.from('stok_opname_rooms')
+      .upsert({ room_code: roomCode, state, updated_by: CLIENT_ID, updated_at: new Date().toISOString() }, { onConflict: 'room_code' });
+    if(error) throw error;
+    setSyncStatus(sessionActive ? ('Realtime aktif • kode room: ' + roomCode) : 'Kode dihentikan • rekan tim tidak melihat data sampai dijalankan lagi', sessionActive ? 'on' : 'warn');
+  } catch(err){
+    console.error('Gagal sinkron ke room:', err);
+    setSyncStatus('Gagal sinkron ke room, cek koneksi.', 'warn');
+  }
+}
+
+function pushToRoom(immediate){
   if(!roomCode || applyingRemote) return;
   clearTimeout(syncPushTimer);
-  syncPushTimer = setTimeout(async () => {
-    const client = initSupabaseClient();
-    if(!client) return;
-    const state = collectCurrentState();
-    try{
-      const { error } = await sb.from('stok_opname_rooms')
-        .upsert({ room_code: roomCode, state, updated_by: CLIENT_ID, updated_at: new Date().toISOString() }, { onConflict: 'room_code' });
-      if(error) throw error;
-      setSyncStatus('Realtime aktif • kode room: ' + roomCode, 'on');
-    } catch(err){
-      console.error('Gagal sinkron ke room:', err);
-      setSyncStatus('Gagal sinkron ke room, cek koneksi.', 'warn');
-    }
-  }, 500);
+  if(immediate){ doPushToRoomNow(); return; }
+  syncPushTimer = setTimeout(doPushToRoomNow, 500);
+}
+
+async function stopRoomSession(){
+  if(!isRoomHost()) return;
+  if(!confirm('Hentikan kode room ini? Rekan tim tidak akan bisa melihat data sampai kamu menjalankannya lagi.')) return;
+  sessionActive = false;
+  updateSessionUI();
+  render();
+  await doPushToRoomNow();
+}
+
+async function resumeRoomSession(){
+  if(!isRoomHost()) return;
+  sessionActive = true;
+  updateSessionUI();
+  render();
+  await doPushToRoomNow();
 }
 
 async function leaveRoom(){
   if(!confirm('Keluar dari room ini? Perangkat ini tidak akan lagi tersinkron otomatis, tapi data di room tetap ada untuk rekan tim lain.')) return;
   if(realtimeChannel && sb){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
   roomCode = '';
+  sessionActive = true;
+  hostClientId = null;
   try{ localStorage.removeItem(ROOM_KEY); }catch(e){}
   updateRoomUI();
   setSyncStatus('\u00A0');
