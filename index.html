@@ -300,6 +300,71 @@
   }
   .restore-banner.show{display:flex;}
   .restore-banner-actions{display:flex; gap:8px; flex-wrap:wrap;}
+
+  /* ===== Kasir ===== */
+  .kasir-btn{color:var(--plus);}
+  .kasir-tabs{display:flex; gap:4px; padding:0 18px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .kasir-tab{
+    background:none; border:none; padding:12px 4px; margin-right:16px; font-size:13px; font-weight:700;
+    color:var(--ink-soft); cursor:pointer; border-bottom:2.5px solid transparent; font-family:inherit;
+  }
+  .kasir-tab.active{color:var(--teal-deep); border-bottom-color:var(--teal);}
+  .kasir-section{display:none;}
+  .kasir-section.active{display:block;}
+  .kasir-field{margin-bottom:12px;}
+  .kasir-field label{display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .kasir-field input{
+    width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
+  }
+  .kasir-field input:focus{outline:none; border-color:var(--teal);}
+  .kasir-toko-row{display:flex; gap:8px;}
+  .kasir-toko-opt{
+    flex:1; text-align:center; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer; background:var(--card);
+    font-family:inherit;
+  }
+  .kasir-toko-opt.active{background:var(--mint); border-color:#a9c9c0; color:var(--teal-deep);}
+  .kasir-item-row{position:relative;}
+  .kasir-suggest{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--card);
+    border:1.5px solid var(--line); border-radius:10px; box-shadow:0 10px 26px rgba(15,30,27,0.16);
+    max-height:190px; overflow-y:auto; z-index:60;
+  }
+  .kasir-suggest.show{display:block;}
+  .kasir-suggest-opt{
+    padding:8px 11px; font-size:13px; font-weight:600; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .kasir-suggest-opt:hover{background:var(--mint);}
+  .kasir-suggest-opt .stok-hint{font-size:10.5px; color:var(--ink-soft); font-weight:600; white-space:nowrap;}
+  .kasir-stock-hint{font-size:11px; color:var(--ink-soft); margin-top:5px; min-height:14px;}
+  .kasir-qty-harga{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+  .kasir-add-btn{width:100%; justify-content:center;}
+  .kasir-cart-table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:16px;}
+  .kasir-cart-table th{
+    text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);
+    font-weight:700; padding:0 6px 6px; border-bottom:1.5px solid var(--line);
+  }
+  .kasir-cart-table th.num, .kasir-cart-table td.num{text-align:center;}
+  .kasir-cart-table td{padding:7px 6px; border-bottom:1px solid #eef1ec; vertical-align:middle;}
+  .kasir-cart-empty{text-align:center; padding:20px 10px; color:var(--ink-soft); font-size:12.5px;}
+  .kasir-unmatched-tag{
+    display:inline-block; font-size:9px; font-weight:700; color:var(--amber); background:#fbf1e0;
+    padding:1px 6px; border-radius:20px; margin-left:5px; vertical-align:middle;
+  }
+  .kasir-total-row{
+    display:flex; justify-content:space-between; align-items:center; margin-top:14px;
+    padding-top:12px; border-top:1.5px solid var(--line); font-weight:800; font-size:15px;
+  }
+  .kasir-total-row .val{font-family:'JetBrains Mono', monospace; color:var(--teal-deep);}
+  .kasir-finish-btn{margin-top:14px; width:100%; justify-content:center;}
+  .kasir-result{
+    margin-top:14px; background:var(--teal-deep); border-radius:12px; padding:14px 16px;
+    color:#eaf3f0; font-size:12.5px; line-height:1.7;
+  }
+  .kasir-result b{color:#fff;}
+  .kasir-history-total{color:var(--teal-deep); font-weight:800;}
 </style>
 </head>
 <body>
@@ -315,6 +380,7 @@
     </div>
     <div style="text-align:right;">
       <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
+      <button class="link-btn riwayat-btn kasir-btn" onclick="openKasirModal()">Kasir</button>
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
@@ -457,6 +523,78 @@
       <button class="history-close" onclick="closeHistoryModal()">✕</button>
     </div>
     <div class="history-modal-body" id="historyListBody"></div>
+  </div>
+</div>
+
+<div class="history-overlay" id="kasirOverlay" onclick="if(event.target===this) closeKasirModal()">
+  <div class="history-modal" style="max-width:600px;">
+    <div class="history-modal-head">
+      <h3>Kasir</h3>
+      <button class="history-close" onclick="closeKasirModal()">✕</button>
+    </div>
+    <div class="kasir-tabs">
+      <button type="button" class="kasir-tab active" id="kasirTabBtnNew" onclick="switchKasirTab('new')">Transaksi Baru</button>
+      <button type="button" class="kasir-tab" id="kasirTabBtnHistory" onclick="switchKasirTab('history')">Riwayat Kasir</button>
+    </div>
+    <div class="history-modal-body">
+
+      <div class="kasir-section active" id="kasirSectionNew">
+        <div class="kasir-field">
+          <label>Nama Kasir</label>
+          <input id="kasirNamaInput" placeholder="Nama kasir yang bertugas">
+        </div>
+        <div class="kasir-field">
+          <label>Toko (stok fisik &amp; web yang dikurangi)</label>
+          <div class="kasir-toko-row">
+            <button type="button" class="kasir-toko-opt" id="kasirTokoT1" onclick="selectKasirToko('t1')">Rafa 1</button>
+            <button type="button" class="kasir-toko-opt" id="kasirTokoT2" onclick="selectKasirToko('t2')">Rafa 2</button>
+          </div>
+        </div>
+        <div class="kasir-field kasir-item-row">
+          <label>Cari Barang</label>
+          <input id="kasirItemInput" placeholder="Ketik nama barang dari stok aktif..." autocomplete="off" oninput="onKasirItemInput(this.value)" onfocus="onKasirItemInput(this.value)">
+          <div class="kasir-suggest" id="kasirSuggest"></div>
+          <div class="kasir-stock-hint" id="kasirStockHint"></div>
+        </div>
+        <div class="kasir-qty-harga">
+          <div class="kasir-field" style="margin-bottom:0;">
+            <label>Jumlah</label>
+            <input id="kasirQtyInput" type="number" min="1" value="1">
+          </div>
+          <div class="kasir-field" style="margin-bottom:0;">
+            <label>Harga (manual saat ini)</label>
+            <input id="kasirHargaInput" type="number" min="0" placeholder="mis. 15000">
+          </div>
+        </div>
+        <button type="button" class="btn-add kasir-add-btn" onclick="addToKasirCart()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Tambah ke keranjang
+        </button>
+
+        <table class="kasir-cart-table">
+          <thead>
+            <tr>
+              <th>Barang</th>
+              <th class="num" style="width:40px;">Qty</th>
+              <th class="num" style="width:80px;">Harga</th>
+              <th class="num" style="width:88px;">Subtotal</th>
+              <th style="width:28px;"></th>
+            </tr>
+          </thead>
+          <tbody id="kasirCartBody"></tbody>
+        </table>
+
+        <div class="kasir-total-row"><span>Total Belanja</span><span class="val" id="kasirTotalVal">Rp 0</span></div>
+        <button type="button" class="btn-main kasir-finish-btn" onclick="finishKasirTransaction()">Selesai Transaksi</button>
+        <div id="kasirResultBox"></div>
+        <div class="footnote">Harga diisi manual dadakan setiap transaksi (tidak disimpan sebagai harga tetap barang). Barang yang cocok dengan nama di stok aktif akan otomatis mengurangi Rafa 1/2 &amp; Web/Apk sesuai toko yang dipilih; barang di luar daftar ditandai <span class="kasir-unmatched-tag" style="margin-left:0;">manual</span> dan tidak memotong stok.</div>
+      </div>
+
+      <div class="kasir-section" id="kasirSectionHistory">
+        <div id="kasirHistoryListBody"></div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -1266,6 +1404,269 @@ async function deleteHistoryEntry(id){
   list = list.filter(h => h.id !== id);
   await setHistoryList(list);
   renderHistoryList(list);
+}
+
+// ===== Kasir =====
+const KASIR_HISTORY_KEY = 'stok-opname-kasir-history';
+let kasirCart = [];
+let kasirCartIdCounter = 0;
+let kasirToko = null; // 't1' atau 't2'
+let kasirSelectedRowId = null;
+
+function openKasirModal(){
+  document.getElementById('kasirOverlay').classList.add('show');
+  switchKasirTab('new');
+  renderKasirCart();
+}
+
+function closeKasirModal(){
+  document.getElementById('kasirOverlay').classList.remove('show');
+}
+
+function switchKasirTab(tab){
+  const isNew = tab === 'new';
+  document.getElementById('kasirSectionNew').classList.toggle('active', isNew);
+  document.getElementById('kasirSectionHistory').classList.toggle('active', !isNew);
+  document.getElementById('kasirTabBtnNew').classList.toggle('active', isNew);
+  document.getElementById('kasirTabBtnHistory').classList.toggle('active', !isNew);
+  if(!isNew) openKasirHistoryTab();
+}
+
+function selectKasirToko(t){
+  kasirToko = t;
+  document.getElementById('kasirTokoT1').classList.toggle('active', t === 't1');
+  document.getElementById('kasirTokoT2').classList.toggle('active', t === 't2');
+  onKasirItemInput(document.getElementById('kasirItemInput').value);
+}
+
+function onKasirItemInput(val){
+  kasirSelectedRowId = null;
+  const q = val.trim().toLowerCase();
+  const box = document.getElementById('kasirSuggest');
+  document.getElementById('kasirStockHint').textContent = '';
+  if(!q){ box.classList.remove('show'); box.innerHTML = ''; return; }
+  const matches = rows.filter(r => r.nama.trim() !== '' && r.nama.toLowerCase().includes(q)).slice(0, 8);
+  if(!matches.length){ box.classList.remove('show'); box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(r => {
+    const stokTxt = kasirToko
+      ? `${kasirToko==='t1' ? 'Rafa1' : 'Rafa2'}: ${parseInt(r[kasirToko])||0} · Web: ${parseInt(r.apk)||0}`
+      : `Fisik: ${fisikOf(r)} · Web: ${parseInt(r.apk)||0}`;
+    return `<div class="kasir-suggest-opt" onclick="selectKasirItem(${r.id})"><span>${escapeHtml(r.nama)}</span><span class="stok-hint">${stokTxt}</span></div>`;
+  }).join('');
+  box.classList.add('show');
+}
+
+function selectKasirItem(id){
+  const r = rows.find(x => x.id === id);
+  if(!r) return;
+  kasirSelectedRowId = id;
+  document.getElementById('kasirItemInput').value = r.nama;
+  document.getElementById('kasirSuggest').classList.remove('show');
+  const stokTxt = kasirToko
+    ? `Stok ${kasirToko==='t1' ? 'Rafa 1' : 'Rafa 2'} saat ini: ${parseInt(r[kasirToko])||0} · Web/Apk: ${parseInt(r.apk)||0}`
+    : `Fisik saat ini: ${fisikOf(r)} · Web/Apk: ${parseInt(r.apk)||0}`;
+  document.getElementById('kasirStockHint').textContent = stokTxt;
+  document.getElementById('kasirHargaInput').focus();
+}
+
+document.addEventListener('click', function(e){
+  const box = document.getElementById('kasirSuggest');
+  const input = document.getElementById('kasirItemInput');
+  if(box && input && !box.contains(e.target) && e.target !== input){
+    box.classList.remove('show');
+  }
+});
+
+function addToKasirCart(){
+  const namaInput = document.getElementById('kasirItemInput');
+  const nama = namaInput.value.trim();
+  const qty = parseInt(document.getElementById('kasirQtyInput').value) || 0;
+  const hargaRaw = document.getElementById('kasirHargaInput').value;
+  const harga = parseInt(hargaRaw);
+
+  if(!nama){ alert('Isi / pilih nama barang dulu.'); return; }
+  if(qty <= 0){ alert('Jumlah harus lebih dari 0.'); return; }
+  if(hargaRaw === '' || isNaN(harga) || harga < 0){ alert('Isi harga barang ini (harga manual saat ini).'); return; }
+
+  let matchedRowId = kasirSelectedRowId;
+  if(!matchedRowId){
+    const exact = rows.find(r => r.nama.trim().toLowerCase() === nama.toLowerCase());
+    if(exact) matchedRowId = exact.id;
+  }
+
+  kasirCart.push({
+    cartId: kasirCartIdCounter++,
+    nama,
+    qty,
+    harga,
+    matchedRowId: matchedRowId || null
+  });
+
+  namaInput.value = '';
+  document.getElementById('kasirQtyInput').value = 1;
+  document.getElementById('kasirHargaInput').value = '';
+  document.getElementById('kasirStockHint').textContent = '';
+  kasirSelectedRowId = null;
+  renderKasirCart();
+  namaInput.focus();
+}
+
+function removeFromKasirCart(cartId){
+  kasirCart = kasirCart.filter(it => it.cartId !== cartId);
+  renderKasirCart();
+}
+
+function formatRupiah(n){
+  n = Math.round(n) || 0;
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+
+function kasirTotal(){
+  return kasirCart.reduce((sum, it) => sum + (it.qty * it.harga), 0);
+}
+
+function renderKasirCart(){
+  const body = document.getElementById('kasirCartBody');
+  if(!body) return;
+  if(!kasirCart.length){
+    body.innerHTML = `<tr><td colspan="5"><div class="kasir-cart-empty">Keranjang masih kosong. Cari barang di atas untuk menambahkan.</div></td></tr>`;
+  } else {
+    body.innerHTML = kasirCart.map(it => `
+      <tr>
+        <td>${escapeHtml(it.nama)}${it.matchedRowId ? '' : '<span class="kasir-unmatched-tag">manual</span>'}</td>
+        <td class="num">${it.qty}</td>
+        <td class="num">${formatRupiah(it.harga)}</td>
+        <td class="num">${formatRupiah(it.qty * it.harga)}</td>
+        <td><button class="del-btn" onclick="removeFromKasirCart(${it.cartId})">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button></td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('kasirTotalVal').textContent = formatRupiah(kasirTotal());
+}
+
+async function finishKasirTransaction(){
+  const kasirNama = document.getElementById('kasirNamaInput').value.trim();
+  if(!kasirNama){ alert('Isi nama kasir dulu.'); return; }
+  if(!kasirToko){ alert('Pilih toko (Rafa 1 / Rafa 2) dulu.'); return; }
+  if(!kasirCart.length){ alert('Keranjang masih kosong.'); return; }
+
+  const tokoLabel = kasirToko === 't1' ? 'Rafa 1' : 'Rafa 2';
+  if(!confirm(`Selesaikan transaksi ini?\nStok fisik ${tokoLabel} dan Web/Apk barang yang cocok akan otomatis dikurangi sesuai keranjang.`)) return;
+
+  kasirCart.forEach(it => {
+    if(!it.matchedRowId) return;
+    const r = rows.find(x => x.id === it.matchedRowId);
+    if(!r) return;
+    const curToko = parseInt(r[kasirToko]) || 0;
+    r[kasirToko] = String(curToko - it.qty);
+    const curApk = parseInt(r.apk) || 0;
+    r.apk = String(curApk - it.qty);
+  });
+
+  render();
+  saveState();
+
+  const total = kasirTotal();
+  const entry = {
+    id: Date.now(),
+    savedAt: new Date().toISOString(),
+    kasir: kasirNama,
+    toko: tokoLabel,
+    items: kasirCart.map(it => ({ nama: it.nama, qty: it.qty, harga: it.harga, subtotal: it.qty * it.harga, matched: !!it.matchedRowId })),
+    total
+  };
+  await saveKasirHistoryEntry(entry);
+
+  const resultBox = document.getElementById('kasirResultBox');
+  resultBox.innerHTML = `
+    <div class="kasir-result">
+      <b>Transaksi tersimpan ✓</b><br>
+      Kasir: ${escapeHtml(kasirNama)} · Toko: ${escapeHtml(tokoLabel)}<br><br>
+      ${entry.items.map((it,i) => `${i+1}. ${escapeHtml(it.nama)} x${it.qty} — ${formatRupiah(it.subtotal)}`).join('<br>')}
+      <br><br><b>Total Belanja: ${formatRupiah(total)}</b>
+    </div>
+  `;
+
+  kasirCart = [];
+  renderKasirCart();
+}
+
+async function getKasirHistoryList(){
+  try{
+    const result = await storageGet(KASIR_HISTORY_KEY);
+    if(result && result.value) return JSON.parse(result.value);
+  } catch(e){
+    // belum ada riwayat kasir tersimpan
+  }
+  return [];
+}
+
+async function setKasirHistoryList(list){
+  try{
+    await storageSet(KASIR_HISTORY_KEY, JSON.stringify(list));
+  } catch(err){
+    console.error('Gagal menyimpan riwayat kasir:', err);
+  }
+}
+
+async function saveKasirHistoryEntry(entry){
+  const list = await getKasirHistoryList();
+  list.unshift(entry);
+  if(list.length > 100) list.length = 100;
+  await setKasirHistoryList(list);
+}
+
+async function openKasirHistoryTab(){
+  const body = document.getElementById('kasirHistoryListBody');
+  body.innerHTML = '<div class="history-empty">Memuat riwayat kasir…</div>';
+  const list = await getKasirHistoryList();
+  renderKasirHistoryList(list);
+}
+
+function renderKasirHistoryList(list){
+  const body = document.getElementById('kasirHistoryListBody');
+  if(!list.length){
+    body.innerHTML = '<div class="history-empty">Belum ada transaksi kasir.<br>Setiap transaksi yang diselesaikan otomatis tersimpan di sini.</div>';
+    return;
+  }
+  body.innerHTML = list.map(entry => {
+    const savedDate = new Date(entry.savedAt);
+    const savedFormatted = isNaN(savedDate.getTime()) ? '-' : savedDate.toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const itemsText = (entry.items || []).map((it,i) => `${i+1}. ${it.nama} x${it.qty} — ${formatRupiah(it.subtotal)}${it.matched ? '' : ' (manual)'}`).join('\n');
+    return `
+      <div class="history-item">
+        <div class="history-item-title">${escapeHtml(entry.kasir || '-')} · ${escapeHtml(entry.toko || '-')} · <span class="kasir-history-total">${formatRupiah(entry.total || 0)}</span></div>
+        <div class="history-item-sub">Disimpan ${savedFormatted}</div>
+        <div class="history-item-actions">
+          <button class="history-btn" onclick="toggleKasirHistoryText(${entry.id})">Lihat item</button>
+          <button class="history-btn del" onclick="deleteKasirHistoryEntry(${entry.id})">Hapus</button>
+        </div>
+        <div class="history-item-text" id="kasirHistText-${entry.id}" style="display:none;">${escapeHtml(itemsText)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleKasirHistoryText(id){
+  const el = document.getElementById(`kasirHistText-${id}`);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function deleteKasirHistoryEntry(id){
+  const pass = prompt('Masukkan kata sandi untuk menghapus transaksi ini:');
+  if(pass === null) return;
+  if(pass !== '1234'){
+    alert('Kata sandi salah. Transaksi tidak dihapus.');
+    return;
+  }
+  if(!confirm('Hapus transaksi kasir ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  let list = await getKasirHistoryList();
+  list = list.filter(h => h.id !== id);
+  await setKasirHistoryList(list);
+  renderKasirHistoryList(list);
 }
 
 loadState();
