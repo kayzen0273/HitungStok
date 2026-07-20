@@ -533,9 +533,10 @@ function makeRowsFromMaster(){
 }
 
 function isChecked(r){
-  return (r.t1 !== '' && r.t1 !== null && r.t1 !== undefined) ||
-         (r.t2 !== '' && r.t2 !== null && r.t2 !== undefined) ||
-         (r.apk !== '' && r.apk !== null && r.apk !== undefined);
+  // Barang dianggap "sudah dicek" hanya kalau kolom Web/Apk sudah diisi.
+  // Fisik (Rafa 1 / Rafa 2) terisi saja belum cukup, karena perbandingan
+  // baru bisa dilakukan setelah data Web/Apk ada.
+  return (r.apk !== '' && r.apk !== null && r.apk !== undefined);
 }
 
 function toggleHideToko(key){
