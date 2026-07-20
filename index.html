@@ -6,6 +6,7 @@
 <title>Stok Opname — Pencatatan Barang</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --ink:#173b36;
@@ -169,14 +170,28 @@
   .visible-count{font-size:11.5px; color:var(--ink-soft); font-weight:600; white-space:nowrap;}
   .empty-row-msg{text-align:center; padding:28px 10px; color:var(--ink-soft); font-size:13px;}
 
-  .pagination-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; flex-wrap:wrap;}
-  .page-btn{
-    background:var(--card); border:1.5px solid var(--line); color:var(--ink);
-    padding:7px 12px; border-radius:9px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  .pagination-bar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;
+    padding-top:12px; border-top:1px solid var(--line);
   }
-  .page-btn:hover:not(:disabled){border-color:#a9c9c0; background:var(--mint);}
-  .page-btn:disabled{opacity:.4; cursor:not-allowed;}
-  .page-info{font-size:12px; color:var(--ink-soft); font-weight:600; padding:0 4px; white-space:nowrap;}
+  .page-nav{
+    background:var(--card); border:1.5px solid var(--line); color:var(--ink);
+    padding:6px 12px; border-radius:8px; font-size:12.5px; font-weight:600;
+  }
+  .page-nav:hover:not(:disabled){border-color:var(--teal); color:var(--teal);}
+  .page-nav:disabled{opacity:.4; cursor:not-allowed;}
+  .page-nums{display:flex; gap:4px; flex-wrap:wrap;}
+  .page-btn{
+    background:var(--card); border:1.5px solid var(--line); color:var(--ink-soft);
+    min-width:30px; height:30px; padding:0 6px; border-radius:7px; font-size:12.5px; font-weight:700;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .page-btn:hover{border-color:var(--teal); color:var(--teal);}
+  .page-btn.active{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .page-info{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-left:auto; white-space:nowrap;}
+  @media(max-width:480px){
+    .page-info{margin-left:0; width:100%; order:10;}
+  }
 
   .generate-bar{
     display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap;
@@ -300,6 +315,25 @@
   }
   .restore-banner.show{display:flex;}
   .restore-banner-actions{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .sync-card{border-color:#a9c9c0; background:linear-gradient(180deg,#fbfffd,var(--card));}
+  .sync-join-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .sync-join-row input{
+    flex:1; min-width:160px; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
+  }
+  .sync-join-row input:focus{outline:none; border-color:var(--teal);}
+  .sync-join-row .btn-main{padding:9px 16px; box-shadow:none; font-size:13px;}
+  .sync-active-row{display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .sync-active-row.show{display:flex;}
+  .sync-join-row.hide{display:none;}
+  .sync-room-name{font-weight:800; font-size:13.5px;}
+  .sync-room-code{font-family:'JetBrains Mono', monospace; color:var(--teal-deep);}
+  .sync-dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:#c2c9c4; margin-right:5px;}
+  .sync-dot.on{background:var(--klop);}
+  .sync-dot.warn{background:var(--amber);}
+  .sync-status-line{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:3px;}
+  .sync-actions{display:flex; gap:14px; flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -325,6 +359,25 @@
     <div class="restore-banner-actions">
       <button class="history-btn load" onclick="restorePreviousActive()">Kembali ke isian sebelumnya</button>
     </div>
+  </div>
+
+  <div class="card sync-card">
+    <h2>Sinkronisasi Tim (Realtime)</h2>
+    <div class="sync-join-row" id="syncJoinRow">
+      <input id="roomCodeInput" placeholder="Kode room, mis: rafa-opname" onkeydown="if(event.key==='Enter') joinRoom(this.value)">
+      <button type="button" class="btn-main" onclick="joinRoom(document.getElementById('roomCodeInput').value)">Gabung / Buat Room</button>
+    </div>
+    <div class="sync-active-row" id="syncActiveRow">
+      <div>
+        <div class="sync-room-name"><span class="sync-dot" id="syncDot"></span>Room: <span class="sync-room-code" id="activeRoomLabel"></span></div>
+        <div class="sync-status-line" id="syncStatus">&nbsp;</div>
+      </div>
+      <div class="sync-actions">
+        <button type="button" class="link-btn riwayat-btn" onclick="copyInviteLink()">Salin link undangan</button>
+        <button type="button" class="link-btn reset-btn" onclick="leaveRoom()">Keluar room</button>
+      </div>
+    </div>
+    <div class="footnote">Masukkan kode room yang sama di HP rekan tim (atau bagikan link undangan) supaya data tersambung dan perubahan langsung muncul di kedua perangkat secara real-time.</div>
   </div>
 
   <div class="card">
@@ -375,7 +428,7 @@
       </button>
       <span class="visible-count" id="visibleCountLabel"></span>
     </div>
-    <div class="table-scroll" id="tableAnchor">
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -392,13 +445,7 @@
       <tbody id="rows"></tbody>
     </table>
     </div>
-    <div class="pagination-row" id="paginationRow">
-      <button type="button" class="page-btn" id="firstPageBtn" onclick="goToPage(1)">« Awal</button>
-      <button type="button" class="page-btn" id="prevPageBtn" onclick="goToPage(currentPage-1)">‹ Sebelumnya</button>
-      <span class="page-info" id="pageInfo"></span>
-      <button type="button" class="page-btn" id="nextPageBtn" onclick="goToPage(currentPage+1)">Berikutnya ›</button>
-      <button type="button" class="page-btn" id="lastPageBtn" onclick="goToPage(999999)">Akhir »</button>
-    </div>
+    <div class="pagination-bar" id="paginationBar" style="display:none;"></div>
     <div class="row-actions">
       <button class="btn-add" onclick="addRow()">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -511,19 +558,10 @@ function newRow(){
 
 function addRow(){
   rows.push(newRow());
-  searchQuery = '';
-  showOnlyUnchecked = false;
-  const searchBox = document.getElementById('searchBox');
-  if(searchBox) searchBox.value = '';
-  const clearBtn = document.getElementById('clearSearchBtn');
-  if(clearBtn) clearBtn.classList.remove('show');
-  const uncheckedBtn = document.getElementById('uncheckedToggleBtn');
-  if(uncheckedBtn) uncheckedBtn.classList.remove('active');
-  currentPage = totalPagesCount(rows.length);
+  const visibleCount = getVisibleRows().length;
+  currentPage = Math.max(1, Math.ceil(visibleCount / PAGE_SIZE));
   render();
   saveState();
-  const anchor = document.getElementById('tableAnchor');
-  if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'end'});
 }
 
 function delRow(id){
@@ -612,38 +650,39 @@ function toggleUncheckedFilter(){
   render();
 }
 
-function totalPagesCount(visibleCount){
-  return Math.max(1, Math.ceil(visibleCount / PAGE_SIZE));
+function goToPage(p){
+  currentPage = p;
+  render();
+  const tableCard = document.getElementById('rows');
+  if(tableCard) tableCard.closest('.card').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-function goToPage(n){
-  const total = totalPagesCount(getVisibleRows().length);
-  currentPage = Math.min(Math.max(1, n), total);
-  render();
-  const anchor = document.getElementById('tableAnchor');
-  if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'start'});
+function prevPage(){
+  if(currentPage > 1){ currentPage--; render(); }
+}
+
+function nextPage(totalPages){
+  if(currentPage < totalPages){ currentPage++; render(); }
 }
 
 function render(){
   const tbody = document.getElementById('rows');
   tbody.innerHTML = '';
   const visibleRows = getVisibleRows();
-  const totalPages = totalPagesCount(visibleRows.length);
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   if(currentPage > totalPages) currentPage = totalPages;
   if(currentPage < 1) currentPage = 1;
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const pageRows = visibleRows.slice(start, start + PAGE_SIZE);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = visibleRows.slice(startIdx, startIdx + PAGE_SIZE);
 
   if(visibleRows.length === 0){
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-row-msg">${rows.length===0 ? 'Belum ada barang. Klik "Tambah barang" atau "Muat barang master".' : 'Tidak ada barang yang cocok dengan pencarian / filter ini.'}</div></td></tr>`;
   } else {
-    const frag = document.createDocumentFragment();
     pageRows.forEach((r, i) => {
-      const globalIdx = start + i + 1;
       const tr = document.createElement('tr');
       const badge = checkBadgeHtml(r);
       tr.innerHTML = `
-        <td class="idx">${globalIdx}</td>
+        <td class="idx">${startIdx + i + 1}</td>
         <td class="nama-col"><input class="nama" placeholder="Nama barang" size="${Math.max(14, r.nama.length + 2)}" value="${escapeHtml(r.nama)}" oninput="updateField(${r.id},'nama',this.value); this.size=Math.max(14,this.value.length+2)"></td>
         <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t1}" oninput="updateField(${r.id},'t1',this.value)"></td>
         <td class="num"><input class="num-in" type="number" placeholder="0" value="${r.t2}" oninput="updateField(${r.id},'t2',this.value)"></td>
@@ -654,25 +693,36 @@ function render(){
           <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button></td>
       `;
-      frag.appendChild(tr);
+      tbody.appendChild(tr);
     });
-    tbody.appendChild(frag);
   }
+  renderPaginationBar(visibleRows.length, totalPages);
   renderSummaryOnly();
-  updatePaginationUI(totalPages, visibleRows.length, start, pageRows.length);
 }
 
-function updatePaginationUI(totalPages, visibleCount, start, pageCount){
-  const info = document.getElementById('pageInfo');
-  if(info){
-    info.textContent = visibleCount === 0 ? '' : `${start+1}–${start+pageCount} dari ${visibleCount} (hal. ${currentPage}/${totalPages})`;
+function renderPaginationBar(totalVisible, totalPages){
+  const bar = document.getElementById('paginationBar');
+  if(!bar) return;
+  if(totalVisible <= PAGE_SIZE){
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    return;
   }
-  const disablePrev = currentPage <= 1;
-  const disableNext = currentPage >= totalPages;
-  ['firstPageBtn','prevPageBtn'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = disablePrev; });
-  ['lastPageBtn','nextPageBtn'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = disableNext; });
-  const paginationRow = document.getElementById('paginationRow');
-  if(paginationRow) paginationRow.style.display = totalPages <= 1 ? 'none' : 'flex';
+  bar.style.display = 'flex';
+  const startNum = (currentPage - 1) * PAGE_SIZE + 1;
+  const endNum = Math.min(currentPage * PAGE_SIZE, totalVisible);
+
+  let pageButtons = '';
+  for(let p = 1; p <= totalPages; p++){
+    pageButtons += `<button type="button" class="page-btn${p===currentPage ? ' active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+  }
+
+  bar.innerHTML = `
+    <button type="button" class="page-nav" ${currentPage===1 ? 'disabled' : ''} onclick="prevPage()">&larr; Sebelumnya</button>
+    <div class="page-nums">${pageButtons}</div>
+    <button type="button" class="page-nav" ${currentPage===totalPages ? 'disabled' : ''} onclick="nextPage(${totalPages})">Berikutnya &rarr;</button>
+    <span class="page-info">${startNum}–${endNum} dari ${totalVisible}</span>
+  `;
 }
 
 function renderSummaryOnly(){
@@ -693,6 +743,8 @@ function renderSummaryOnly(){
   document.getElementById('statTotal').textContent = rows.length;
   document.getElementById('statChecked').textContent = checked;
   document.getElementById('statUnchecked').textContent = rows.length - checked;
+  const label = document.getElementById('visibleCountLabel');
+  if(label) label.textContent = `Menampilkan ${getVisibleRows().length} dari ${rows.length} barang`;
 }
 
 function loadMasterItems(){
@@ -881,6 +933,195 @@ async function storageDelete(key){
   }
 }
 
+// ====== Sinkronisasi Tim (Supabase Realtime) ======
+const SUPABASE_URL = 'https://hoyframcjysrpkbjmfit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveWZyYW1janlzcnBrYmptZml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzA2MTYsImV4cCI6MjEwMDEwNjYxNn0.FZHy-qnZxltXNtHzkQ-bLyEiiW5Kp2fxK9ry5oA-cTY';
+const ROOM_KEY = 'stok-opname-room';
+const CLIENT_ID_KEY = 'stok-opname-client-id';
+
+let sb = null;
+let roomCode = '';
+let realtimeChannel = null;
+let syncPushTimer = null;
+let applyingRemote = false;
+
+function getClientId(){
+  try{
+    let id = localStorage.getItem(CLIENT_ID_KEY);
+    if(!id){
+      id = (crypto.randomUUID ? crypto.randomUUID() : ('c-' + Date.now() + '-' + Math.random().toString(16).slice(2)));
+      localStorage.setItem(CLIENT_ID_KEY, id);
+    }
+    return id;
+  } catch(e){
+    return 'c-' + Date.now();
+  }
+}
+const CLIENT_ID = getClientId();
+
+function initSupabaseClient(){
+  if(!sb && window.supabase && typeof window.supabase.createClient === 'function'){
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return sb;
+}
+
+function setSyncStatus(text, mode){
+  const el = document.getElementById('syncStatus');
+  if(el) el.textContent = text;
+  const dot = document.getElementById('syncDot');
+  if(dot) dot.className = 'sync-dot' + (mode === 'on' ? ' on' : mode === 'warn' ? ' warn' : '');
+}
+
+function normalizeRoomCode(raw){
+  return (raw || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+}
+
+function updateRoomUI(){
+  const joinRow = document.getElementById('syncJoinRow');
+  const activeRow = document.getElementById('syncActiveRow');
+  if(roomCode){
+    joinRow.classList.add('hide');
+    activeRow.classList.add('show');
+    document.getElementById('activeRoomLabel').textContent = roomCode;
+  } else {
+    joinRow.classList.remove('hide');
+    activeRow.classList.remove('show');
+  }
+}
+
+function collectCurrentState(){
+  return {
+    meta: {
+      toko: document.getElementById('metaToko').value,
+      waktu: document.getElementById('metaWaktu').value,
+      tgl: document.getElementById('metaTgl').value,
+      petugas: document.getElementById('metaPetugas').value
+    },
+    rows, idCounter, hideToko, editingFromId
+  };
+}
+
+function applyRemoteState(state){
+  if(!state) return;
+  applyingRemote = true;
+  rows = state.rows || [];
+  idCounter = state.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+  if(state.meta){
+    document.getElementById('metaToko').value = state.meta.toko || '';
+    document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+    document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+    document.getElementById('metaPetugas').value = state.meta.petugas || '';
+  }
+  hideToko = state.hideToko || { t1:false, t2:false };
+  editingFromId = state.editingFromId || null;
+  updateHideTokoUI();
+  render();
+  applyingRemote = false;
+  // simpan juga ke cache lokal supaya tetap ada kalau offline
+  try{ storageSet(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+async function joinRoom(rawCode){
+  const code = normalizeRoomCode(rawCode);
+  if(!code){ alert('Isi dulu kode room-nya, ya. Contoh: rafa-opname'); return; }
+  const client = initSupabaseClient();
+  if(!client){ setSyncStatus('Gagal memuat modul sinkronisasi. Cek koneksi internet.', 'warn'); return; }
+
+  if(realtimeChannel){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
+
+  roomCode = code;
+  try{ localStorage.setItem(ROOM_KEY, roomCode); }catch(e){}
+  updateRoomUI();
+  setSyncStatus('Menghubungkan…');
+
+  try{
+    const { data, error } = await sb.from('stok_opname_rooms').select('*').eq('room_code', roomCode).maybeSingle();
+    if(error) throw error;
+
+    if(data){
+      applyRemoteState(data.state);
+      saveState();
+      setSyncStatus('Tersambung • data room dimuat', 'on');
+    } else {
+      const state = collectCurrentState();
+      const { error: insErr } = await sb.from('stok_opname_rooms').insert({ room_code: roomCode, state, updated_by: CLIENT_ID });
+      if(insErr) throw insErr;
+      setSyncStatus('Tersambung • room baru dibuat, data saat ini dimigrasi', 'on');
+    }
+    subscribeRoom();
+  } catch(err){
+    console.error('Gagal join room:', err);
+    setSyncStatus('Gagal terhubung ke room. Pastikan tabel Supabase sudah dibuat.', 'warn');
+  }
+}
+
+function subscribeRoom(){
+  if(!sb || !roomCode) return;
+  realtimeChannel = sb.channel('room-' + roomCode)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'stok_opname_rooms',
+      filter: `room_code=eq.${roomCode}`
+    }, payload => {
+      if(!payload.new || payload.new.updated_by === CLIENT_ID) return;
+      applyRemoteState(payload.new.state);
+      setSyncStatus('Diperbarui oleh rekan tim baru saja', 'on');
+    })
+    .subscribe(status => {
+      if(status === 'SUBSCRIBED') setSyncStatus('Realtime aktif • kode room: ' + roomCode, 'on');
+      else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncStatus('Koneksi realtime bermasalah, coba muat ulang.', 'warn');
+    });
+}
+
+function pushToRoom(){
+  if(!roomCode || applyingRemote) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(async () => {
+    const client = initSupabaseClient();
+    if(!client) return;
+    const state = collectCurrentState();
+    try{
+      const { error } = await sb.from('stok_opname_rooms')
+        .upsert({ room_code: roomCode, state, updated_by: CLIENT_ID, updated_at: new Date().toISOString() }, { onConflict: 'room_code' });
+      if(error) throw error;
+      setSyncStatus('Realtime aktif • kode room: ' + roomCode, 'on');
+    } catch(err){
+      console.error('Gagal sinkron ke room:', err);
+      setSyncStatus('Gagal sinkron ke room, cek koneksi.', 'warn');
+    }
+  }, 500);
+}
+
+async function leaveRoom(){
+  if(!confirm('Keluar dari room ini? Perangkat ini tidak akan lagi tersinkron otomatis, tapi data di room tetap ada untuk rekan tim lain.')) return;
+  if(realtimeChannel && sb){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
+  roomCode = '';
+  try{ localStorage.removeItem(ROOM_KEY); }catch(e){}
+  updateRoomUI();
+  setSyncStatus('\u00A0');
+}
+
+function copyInviteLink(){
+  if(!roomCode){ return; }
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', roomCode);
+  const link = url.toString();
+  navigator.clipboard.writeText(link).then(() => {
+    alert('Link undangan disalin:\n' + link + '\n\nKirim ke rekan tim. Saat mereka buka link ini, mereka otomatis gabung ke room "' + roomCode + '".');
+  }).catch(() => {
+    prompt('Salin link undangan ini secara manual:', link);
+  });
+}
+
+async function autoJoinFromStartup(){
+  const params = new URLSearchParams(window.location.search);
+  const urlRoom = normalizeRoomCode(params.get('room'));
+  let savedRoom = '';
+  try{ savedRoom = localStorage.getItem(ROOM_KEY) || ''; }catch(e){}
+  const target = urlRoom || savedRoom;
+  if(target) await joinRoom(target);
+}
+
 let saveTimer = null;
 
 function setSaveStatus(text){
@@ -917,6 +1158,7 @@ function saveState(){
       console.error('Gagal menyimpan:', err);
       setSaveStatus('Gagal menyimpan');
     }
+    if(roomCode && !applyingRemote) pushToRoom();
   }, 400);
 }
 
@@ -967,6 +1209,9 @@ async function loadState(){
   } catch(e){
     // tidak ada snapshot tersimpan, abaikan
   }
+
+  updateRoomUI();
+  autoJoinFromStartup();
 }
 
 function todayISO(){
@@ -977,7 +1222,8 @@ function todayISO(){
 }
 
 async function resetAll(){
-  if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?')) return;
+  const warnRoom = roomCode ? `\n\nKamu sedang tersambung ke room "${roomCode}" — data kosong ini juga akan tersinkron ke semua rekan tim di room tersebut.` : '';
+  if(!confirm('Hapus semua data yang tersimpan dan mulai dari kosong?' + warnRoom)) return;
   try{
     await storageDelete(STORAGE_KEY);
     await storageDelete(PRE_HISTORY_KEY);
