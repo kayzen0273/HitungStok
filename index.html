@@ -6,6 +6,7 @@
 <title>Stok Opname — Pencatatan Barang</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -480,6 +481,10 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Muat barang master yang belum ada
       </button>
+      <button class="btn-add" onclick="exportExcel()" id="btnExportExcel" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14M9 9l3 3.5L15 9M12 12.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Export Excel
+      </button>
     </div>
   </div>
 
@@ -923,6 +928,221 @@ const STORAGE_KEY = 'stok-opname-state';
 const HISTORY_KEY = 'stok-opname-history';
 const PRE_HISTORY_KEY = 'stok-opname-pre-history';
 const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
+
+async function exportExcel(){
+  const btn = document.getElementById('btnExportExcel');
+  if(typeof ExcelJS === 'undefined'){
+    alert('Modul export Excel belum termuat. Cek koneksi internet lalu coba lagi.');
+    return;
+  }
+  const namaTerisi = rows.filter(r => r.nama.trim() !== '');
+  if(namaTerisi.length === 0){
+    alert('Belum ada barang untuk di-export.');
+    return;
+  }
+
+  if(btn) btn.disabled = true;
+  const originalLabel = btn ? btn.innerHTML : '';
+  if(btn) btn.textContent = 'Menyiapkan file…';
+
+  try{
+    // Urutkan sesuai abjad nama barang (case-insensitive, ramah Bahasa Indonesia)
+    const sorted = [...rows]
+      .filter(r => r.nama.trim() !== '')
+      .sort((a, b) => a.nama.trim().toLowerCase().localeCompare(b.nama.trim().toLowerCase(), 'id'));
+
+    const toko = document.getElementById('metaToko').value || '';
+    const waktu = document.getElementById('metaWaktu').value || '';
+    const tgl = document.getElementById('metaTgl').value || '';
+    const petugas = document.getElementById('metaPetugas').value || '';
+    const tglLabel = tgl ? new Date(tgl + 'T00:00:00').toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }) : '-';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Stok Opname';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Stok Opname', {
+      views: [{ state: 'frozen', ySplit: 5 }],
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1 }
+    });
+
+    const COLS = [
+      { key:'no', width:6 },
+      { key:'nama', width:42 },
+      { key:'t1', width:11 },
+      { key:'t2', width:11 },
+      { key:'fisik', width:11 },
+      { key:'apk', width:12 },
+      { key:'selisih', width:11 },
+      { key:'status', width:15 }
+    ];
+    ws.columns = COLS;
+
+    const FONT = 'Arial';
+    const TEAL = 'FF0D5C52';
+    const RED = 'FFC0392B';
+    const RED_BG = 'FFFBEBE6';
+    const BLUE = 'FF1B5FAE';
+    const BLUE_BG = 'FFE8F1FB';
+    const GREEN = 'FF3C8A5C';
+    const GREEN_BG = 'FFEAF6EF';
+    const GREY = 'FF8A8A8A';
+    const BORDER = { style:'thin', color:{argb:'FFE0E4E2'} };
+
+    // Judul
+    ws.mergeCells('A1:H1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = 'STOK OPNAME — ' + (toko ? toko.toUpperCase() : 'APOTEK RAFA');
+    titleCell.font = { name: FONT, size: 14, bold: true, color: { argb: TEAL } };
+    titleCell.alignment = { horizontal:'left', vertical:'middle' };
+    ws.getRow(1).height = 24;
+
+    // Baris info
+    ws.mergeCells('A2:H2');
+    const infoCell = ws.getCell('A2');
+    infoCell.value = `Tanggal: ${tglLabel}   |   Waktu: ${waktu || '-'}   |   Petugas: ${petugas || '-'}`;
+    infoCell.font = { name: FONT, size: 10.5, color: { argb: 'FF5A6460' } };
+    ws.getRow(2).height = 18;
+
+    ws.getRow(3).height = 6;
+
+    // Header tabel (baris 4)
+    const headerLabels = ['No','Nama Barang','Rafa 1','Rafa 2','Fisik','Web/Apk','Selisih','Status'];
+    const headerRow = ws.getRow(4);
+    headerLabels.forEach((label, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = label;
+      cell.font = { name: FONT, size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: TEAL} };
+      cell.alignment = { horizontal: idx === 1 ? 'left' : 'center', vertical:'middle' };
+      cell.border = { top:BORDER, left:BORDER, right:BORDER, bottom:BORDER };
+    });
+    headerRow.height = 20;
+
+    let statTotal = 0, statMinus = 0, statPlus = 0, statKlop = 0, statBelum = 0;
+
+    sorted.forEach((r, i) => {
+      statTotal++;
+      const rowIdx = 5 + i;
+      const row = ws.getRow(rowIdx);
+      const fisik = fisikOf(r);
+      const st = statusOf(r);
+      const checked = isChecked(r);
+
+      let statusLabel = 'Belum dicek';
+      let selisihVal = null;
+      let colorType = 'none';
+      if(checked){
+        if(!st){
+          statusLabel = 'Fisik terisi';
+          colorType = 'grey';
+        } else {
+          selisihVal = st.selisih;
+          if(st.type === 'minus'){ statusLabel = 'Minus'; colorType = 'minus'; statMinus++; }
+          else if(st.type === 'plus'){ statusLabel = 'Plus'; colorType = 'plus'; statPlus++; }
+          else { statusLabel = 'Klop'; colorType = 'klop'; statKlop++; }
+        }
+      } else {
+        statBelum++;
+      }
+
+      const values = [
+        i + 1,
+        r.nama.trim(),
+        r.t1 === '' ? null : Number(r.t1),
+        r.t2 === '' ? null : Number(r.t2),
+        checked || fisik ? fisik : null,
+        r.apk === '' ? null : Number(r.apk),
+        selisihVal,
+        statusLabel
+      ];
+
+      values.forEach((val, idx) => {
+        const cell = row.getCell(idx + 1);
+        cell.value = val;
+        cell.font = { name: FONT, size: 10 };
+        cell.alignment = { horizontal: idx === 1 ? 'left' : 'center', vertical:'middle' };
+        cell.border = { top:BORDER, left:BORDER, right:BORDER, bottom:BORDER };
+      });
+
+      // Selang-seling warna baris supaya rapi dan mudah dibaca
+      if(i % 2 === 1){
+        for(let c = 1; c <= 8; c++){
+          row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFF6F8F7'} };
+        }
+      }
+
+      // Warna khusus: minus merah, plus biru, klop hijau, belum dicek abu-abu
+      if(colorType === 'minus'){
+        [7,8].forEach(c => {
+          row.getCell(c).font = { name: FONT, size: 10, bold:true, color:{argb: RED} };
+          row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: RED_BG} };
+        });
+      } else if(colorType === 'plus'){
+        [7,8].forEach(c => {
+          row.getCell(c).font = { name: FONT, size: 10, bold:true, color:{argb: BLUE} };
+          row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: BLUE_BG} };
+        });
+      } else if(colorType === 'klop'){
+        row.getCell(8).font = { name: FONT, size: 10, bold:true, color:{argb: GREEN} };
+        row.getCell(8).fill = { type:'pattern', pattern:'solid', fgColor:{argb: GREEN_BG} };
+      } else if(colorType === 'grey' || colorType === 'none'){
+        row.getCell(8).font = { name: FONT, size: 10, italic:true, color:{argb: GREY} };
+      }
+
+      row.height = 16;
+    });
+
+    // Ringkasan di bawah tabel
+    const sumRowIdx = 5 + sorted.length + 1;
+    ws.mergeCells(`A${sumRowIdx}:H${sumRowIdx}`);
+    const sumHeadCell = ws.getCell(`A${sumRowIdx}`);
+    sumHeadCell.value = 'RINGKASAN';
+    sumHeadCell.font = { name: FONT, size: 11, bold: true, color:{argb: TEAL} };
+
+    const summaryLines = [
+      ['Total barang', statTotal],
+      ['Sudah dicek', statTotal - statBelum],
+      ['Belum dicek', statBelum],
+      ['Yang minus', statMinus],
+      ['Yang plus', statPlus],
+      ['Yang klop', statKlop]
+    ];
+    summaryLines.forEach((line, idx) => {
+      const r2 = sumRowIdx + 1 + idx;
+      ws.mergeCells(`A${r2}:C${r2}`);
+      const labelCell = ws.getCell(`A${r2}`);
+      labelCell.value = line[0];
+      labelCell.font = { name: FONT, size: 10, color:{argb:'FF5A6460'} };
+      const valCell = ws.getCell(`D${r2}`);
+      valCell.value = line[1];
+      valCell.font = { name: FONT, size: 10, bold:true };
+      if(line[0] === 'Yang minus'){ valCell.font = { name: FONT, size: 10, bold:true, color:{argb:RED} }; }
+      if(line[0] === 'Yang plus'){ valCell.font = { name: FONT, size: 10, bold:true, color:{argb:BLUE} }; }
+      if(line[0] === 'Yang klop'){ valCell.font = { name: FONT, size: 10, bold:true, color:{argb:GREEN} }; }
+    });
+
+    // Filter otomatis di header tabel
+    ws.autoFilter = { from: 'A4', to: 'H4' };
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileToko = (toko || 'stok-opname').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const fileTgl = tgl || todayISO();
+    a.href = url;
+    a.download = `stok-opname-${fileToko}-${fileTgl}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  } catch(err){
+    console.error('Gagal export Excel:', err);
+    alert('Gagal membuat file Excel. Coba lagi ya.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = originalLabel; }
+  }
+}
 
 async function storageGet(key){
   if(hasClaudeStorage){
