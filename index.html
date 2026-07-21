@@ -589,7 +589,9 @@ function newRow(){
 }
 
 function addRow(){
-  rows.push(newRow());
+  const r = newRow();
+  rows.push(r);
+  pendingEditIds.add(r.id);
   const visibleCount = getVisibleRows().length;
   currentPage = Math.max(1, Math.ceil(visibleCount / PAGE_SIZE));
   render();
@@ -601,6 +603,8 @@ function delRow(id){
   const label = (r && r.nama.trim()) ? `"${r.nama.trim()}"` : 'baris ini';
   if(!confirm(`Hapus ${label}?`)) return;
   rows = rows.filter(r => r.id !== id);
+  pendingEditIds.delete(id);
+  pendingDeleteIds.add(id);
   render();
   saveState();
 }
@@ -608,6 +612,7 @@ function delRow(id){
 function updateField(id, field, value){
   const r = rows.find(r => r.id === id);
   if(r) r[field] = value;
+  pendingEditIds.add(id);
   if(r && (field === 't1' || field === 't2' || field === 'apk')){
     const fisikEl = document.getElementById(`fisik-${id}`);
     if(fisikEl) fisikEl.textContent = fisikOf(r);
@@ -1071,20 +1076,24 @@ async function exportExcel(){
         }
       }
 
-      // Warna khusus: minus merah, plus biru, klop hijau, belum dicek abu-abu
+      // Warna khusus: minus merah, plus biru — mewarnai satu baris penuh dari Nama Barang sampai Status
       if(colorType === 'minus'){
-        [7,8].forEach(c => {
-          row.getCell(c).font = { name: FONT, size: 10, bold:true, color:{argb: RED} };
+        for(let c = 2; c <= 8; c++){
+          const isEmph = (c === 7 || c === 8);
+          row.getCell(c).font = { name: FONT, size: 10, bold: isEmph, color:{argb: RED} };
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: RED_BG} };
-        });
+        }
       } else if(colorType === 'plus'){
-        [7,8].forEach(c => {
-          row.getCell(c).font = { name: FONT, size: 10, bold:true, color:{argb: BLUE} };
+        for(let c = 2; c <= 8; c++){
+          const isEmph = (c === 7 || c === 8);
+          row.getCell(c).font = { name: FONT, size: 10, bold: isEmph, color:{argb: BLUE} };
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: BLUE_BG} };
-        });
+        }
       } else if(colorType === 'klop'){
-        row.getCell(8).font = { name: FONT, size: 10, bold:true, color:{argb: GREEN} };
-        row.getCell(8).fill = { type:'pattern', pattern:'solid', fgColor:{argb: GREEN_BG} };
+        for(let c = 2; c <= 8; c++){
+          row.getCell(c).font = { name: FONT, size: 10, bold: (c === 8), color:{argb: GREEN} };
+          row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: GREEN_BG} };
+        }
       } else if(colorType === 'grey' || colorType === 'none'){
         row.getCell(8).font = { name: FONT, size: 10, italic:true, color:{argb: GREY} };
       }
@@ -1193,6 +1202,12 @@ let syncPushTimer = null;
 let applyingRemote = false;
 let sessionActive = true;
 let hostClientId = null;
+// Menandai baris yang baru saja diubah/dihapus di perangkat ini tapi belum
+// dipastikan tersimpan ke server, supaya tidak tertimpa data lama saat
+// pembaruan dari rekan tim lain masuk lebih dulu (penyebab bug "tiba-tiba
+// balik jadi belum dicek").
+let pendingEditIds = new Set();
+let pendingDeleteIds = new Set();
 
 function getClientId(){
   try{
@@ -1277,8 +1292,31 @@ function collectCurrentState(){
 function applyRemoteState(state){
   if(!state) return;
   applyingRemote = true;
-  rows = state.rows || [];
-  idCounter = state.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+  const remoteRows = state.rows || [];
+
+  if(pendingEditIds.size === 0 && pendingDeleteIds.size === 0){
+    // Tidak ada perubahan lokal yang belum tersimpan -> aman untuk pakai data terbaru dari server apa adanya.
+    rows = remoteRows;
+  } else {
+    // Ada perubahan lokal yang belum sempat dikirim (masih dalam antrean/lagi dikirim).
+    // Supaya tidak tertimpa data lama dari rekan tim lain, pertahankan versi lokal
+    // untuk baris yang sedang diedit/dihapus, dan pakai versi server untuk sisanya.
+    const localById = new Map(rows.map(r => [r.id, r]));
+    const remoteIds = new Set(remoteRows.map(r => r.id));
+
+    rows = remoteRows
+      .filter(rr => !pendingDeleteIds.has(rr.id))
+      .map(rr => pendingEditIds.has(rr.id) && localById.has(rr.id) ? localById.get(rr.id) : rr);
+
+    // Baris baru yang ditambahkan lokal tapi belum ada di server, tetap dipertahankan.
+    localById.forEach((r, id) => {
+      if(pendingEditIds.has(id) && !remoteIds.has(id) && !pendingDeleteIds.has(id)){
+        rows.push(r);
+      }
+    });
+  }
+
+  idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
   if(state.meta){
     document.getElementById('metaToko').value = state.meta.toko || '';
     document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
@@ -1306,6 +1344,8 @@ async function joinRoom(rawCode){
   if(!client){ setSyncStatus('Gagal memuat modul sinkronisasi. Cek koneksi internet.', 'warn'); return; }
 
   if(realtimeChannel){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
+  pendingEditIds.clear();
+  pendingDeleteIds.clear();
 
   roomCode = code;
   try{ localStorage.setItem(ROOM_KEY, roomCode); }catch(e){}
@@ -1367,10 +1407,16 @@ async function doPushToRoomNow(){
   const client = initSupabaseClient();
   if(!client || !roomCode) return;
   const state = collectCurrentState();
+  const confirmingEditIds = new Set(pendingEditIds);
+  const confirmingDeleteIds = new Set(pendingDeleteIds);
   try{
     const { error } = await sb.from('stok_opname_rooms')
       .upsert({ room_code: roomCode, state, updated_by: CLIENT_ID, updated_at: new Date().toISOString() }, { onConflict: 'room_code' });
     if(error) throw error;
+    // Baris yang sudah berhasil dikirim boleh dilepas dari daftar "belum tersimpan",
+    // tapi jangan hapus id yang baru saja diedit lagi setelah snapshot ini diambil.
+    confirmingEditIds.forEach(id => pendingEditIds.delete(id));
+    confirmingDeleteIds.forEach(id => pendingDeleteIds.delete(id));
     setSyncStatus(sessionActive ? ('Realtime aktif • kode room: ' + roomCode) : 'Kode dihentikan • rekan tim tidak melihat data sampai dijalankan lagi', sessionActive ? 'on' : 'warn');
   } catch(err){
     console.error('Gagal sinkron ke room:', err);
@@ -1408,6 +1454,8 @@ async function leaveRoom(){
   roomCode = '';
   sessionActive = true;
   hostClientId = null;
+  pendingEditIds.clear();
+  pendingDeleteIds.clear();
   try{ localStorage.removeItem(ROOM_KEY); }catch(e){}
   updateRoomUI();
   setSyncStatus('\u00A0');
