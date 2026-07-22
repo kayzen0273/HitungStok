@@ -502,6 +502,11 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14M9 9l3 3.5L15 9M12 12.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Export Excel
       </button>
+      <button class="btn-add" onclick="document.getElementById('importExcelInput').click()" id="btnImportExcel" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 17V3M9 7l3-3.5L15 7M12 3.5V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Import Excel
+      </button>
+      <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(this.files[0]); this.value='';">
     </div>
   </div>
 
@@ -1178,6 +1183,103 @@ async function exportExcel(){
   }
 }
 
+function normalizeHeaderText(v){
+  return String(v == null ? '' : v).trim().toLowerCase();
+}
+
+function cellToNumberOrEmpty(v){
+  if(v === null || v === undefined || v === '') return '';
+  if(typeof v === 'object' && v.result !== undefined) v = v.result; // formula cell
+  const n = Number(v);
+  return isNaN(n) ? '' : n;
+}
+
+async function importExcel(file){
+  if(!file) return;
+  if(isViewOnlyForMe()){ alert('Kamu sedang dalam mode lihat saja, tidak bisa import data.'); return; }
+  const btn = document.getElementById('btnImportExcel');
+  if(typeof ExcelJS === 'undefined'){
+    alert('Modul Excel belum termuat. Cek koneksi internet lalu coba lagi.');
+    return;
+  }
+
+  const originalLabel = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Membaca file…'; }
+
+  try{
+    const buffer = await file.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const ws = wb.worksheets[0];
+    if(!ws){ alert('File Excel kosong atau tidak terbaca.'); return; }
+
+    // Cari baris header (baris yang punya kolom "Nama Barang" / "Nama")
+    let headerRowNum = null;
+    let colMap = {};
+    const maxScan = Math.min(ws.rowCount, 15);
+    for(let r = 1; r <= maxScan; r++){
+      const row = ws.getRow(r);
+      const found = {};
+      row.eachCell({ includeEmpty:false }, (cell, colNumber) => {
+        const t = normalizeHeaderText(cell.value);
+        if(t.includes('nama')) found.nama = colNumber;
+        else if(t === 'rafa 1' || t === 'rafa1' || t === 't1') found.t1 = colNumber;
+        else if(t === 'rafa 2' || t === 'rafa2' || t === 't2') found.t2 = colNumber;
+        else if(t.includes('web') || t.includes('apk')) found.apk = colNumber;
+      });
+      if(found.nama){ headerRowNum = r; colMap = found; break; }
+    }
+
+    if(!headerRowNum){
+      alert('Format file tidak dikenali. Pastikan ada kolom "Nama Barang" (bisa pakai file hasil Export Excel dari aplikasi ini).');
+      return;
+    }
+
+    const existingByName = new Map(rows.map(r => [r.nama.trim().toLowerCase(), r]));
+    let added = 0, updated = 0;
+
+    for(let r = headerRowNum + 1; r <= ws.rowCount; r++){
+      const row = ws.getRow(r);
+      const namaCell = colMap.nama ? row.getCell(colMap.nama).value : null;
+      const nama = (namaCell == null ? '' : String(namaCell)).trim();
+      if(!nama) continue;
+      // lewati baris ringkasan di bagian bawah file export
+      if(normalizeHeaderText(nama) === 'ringkasan') continue;
+
+      const t1 = colMap.t1 ? cellToNumberOrEmpty(row.getCell(colMap.t1).value) : '';
+      const t2 = colMap.t2 ? cellToNumberOrEmpty(row.getCell(colMap.t2).value) : '';
+      const apk = colMap.apk ? cellToNumberOrEmpty(row.getCell(colMap.apk).value) : '';
+
+      const key = nama.toLowerCase();
+      const existing = existingByName.get(key);
+      if(existing){
+        if(t1 !== '') existing.t1 = t1;
+        if(t2 !== '') existing.t2 = t2;
+        if(apk !== '') existing.apk = apk;
+        pendingEditIds.add(existing.id);
+        updated++;
+      } else {
+        const newId = idCounter++;
+        const newItem = { id:newId, nama, t1, t2, apk };
+        rows.push(newItem);
+        existingByName.set(key, newItem);
+        pendingEditIds.add(newId);
+        added++;
+      }
+    }
+
+    currentPage = 1;
+    render();
+    saveState();
+    alert(`Import selesai. ${added} barang baru ditambahkan, ${updated} barang diperbarui.`);
+  } catch(err){
+    console.error('Gagal import Excel:', err);
+    alert('Gagal membaca file Excel. Pastikan formatnya benar (.xlsx) lalu coba lagi.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = originalLabel; }
+  }
+}
+
 async function storageGet(key){
   if(hasClaudeStorage){
     return await window.storage.get(key, false);
@@ -1323,8 +1425,10 @@ function updateSessionUI(){
   if(metaPetugas) metaPetugas.style.pointerEvents = viewOnly ? 'none' : '';
   const addBtn = document.getElementById('btnAddRow');
   const masterBtn = document.getElementById('btnLoadMaster');
+  const importBtn = document.getElementById('btnImportExcel');
   if(addBtn) addBtn.disabled = viewOnly;
   if(masterBtn) masterBtn.disabled = viewOnly;
+  if(importBtn) importBtn.disabled = viewOnly;
   document.body.classList.toggle('view-only-mode', viewOnly);
 
   // render ulang baris supaya input/tombol hapus ikut terkunci/terbuka
