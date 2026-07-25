@@ -1754,12 +1754,11 @@ async function loadState(){
     const result = await storageGet(STORAGE_KEY);
     if(result && result.value){
       const state = JSON.parse(result.value);
-      if(state.rows && state.rows.length){
-        rows = state.rows;
-        idCounter = state.idCounter || (Math.max(...rows.map(r => r.id)) + 1);
-      } else {
-        rows = makeRowsFromMaster();
-      }
+      // Pakai apa adanya dari data tersimpan, termasuk kalau memang sengaja
+      // dikosongkan (misalnya lewat tombol reset) — jangan otomatis diisi
+      // ulang dari daftar master hanya karena baris-nya kosong.
+      rows = state.rows || [];
+      idCounter = state.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
       if(state.meta){
         document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
         document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
@@ -1822,8 +1821,12 @@ async function resetAll(){
   editingFromId = null;
   searchQuery = '';
   showOnlyUnchecked = false;
+  pendingEditIds.clear();
+  pendingDeleteIds.clear();
   hideRestoreBanner();
-  rows = makeRowsFromMaster();
+  // Sengaja TIDAK mengisi ulang dari daftar barang master di sini — reset
+  // harus benar-benar mengosongkan daftar (nama barang ikut hilang), sampai
+  // pengguna sendiri yang menekan "Tambah barang" atau "Muat barang master".
   document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
@@ -1838,7 +1841,9 @@ async function resetAll(){
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
   render();
-  setSaveStatus('\u00A0');
+  // Simpan kondisi kosong ini secara eksplisit (dan sinkron ke room kalau
+  // sedang aktif), supaya nanti saat dibuka lagi tidak otomatis terisi ulang.
+  saveState();
 }
 
 function openTokoModal(e){
