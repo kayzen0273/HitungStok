@@ -1576,9 +1576,33 @@ function subscribeRoom(){
     });
 }
 
+// Ambil state terbaru dari server dan gabungkan dengan perubahan lokal yang
+// belum terkirim (pendingEditIds/pendingDeleteIds). Dipanggil sebelum setiap
+// push supaya kita tidak pernah menimpa pekerjaan rekan tim dengan data lama —
+// ini penyebab utama bug "tiba-tiba balik jadi kosong" ketika sebuah HP
+// dibiarkan lama di background (koneksi realtime-nya sempat putus tanpa
+// disadari, jadi datanya jadi basi sebelum orang itu mengetik lagi).
+async function pullAndMergeRoom(){
+  if(!sb || !roomCode) return null;
+  try{
+    const { data, error } = await sb.from('stok_opname_rooms').select('*').eq('room_code', roomCode).maybeSingle();
+    if(error) throw error;
+    if(data && data.state) applyRemoteState(data.state);
+    return data;
+  } catch(e){
+    console.error('Gagal mengambil data terbaru room sebelum kirim:', e);
+    return null;
+  }
+}
+
 async function doPushToRoomNow(){
   const client = initSupabaseClient();
   if(!client || !roomCode) return;
+
+  // Sinkron dulu ke kondisi terbaru server, baru timpa dengan perubahan lokal
+  // yang memang sedang diedit di perangkat ini (lihat pullAndMergeRoom di atas).
+  await pullAndMergeRoom();
+
   const state = collectCurrentState();
   const confirmingEditIds = new Set(pendingEditIds);
   const confirmingDeleteIds = new Set(pendingDeleteIds);
@@ -1652,6 +1676,31 @@ async function autoJoinFromStartup(){
   const target = urlRoom || savedRoom;
   if(target) await joinRoom(target);
 }
+
+// Kalau tab ditinggal lama di background (pindah app lain di HP, dsb), koneksi
+// realtime Supabase bisa putus tanpa ada tanda apa pun di UI. Begitu tab aktif
+// lagi (atau koneksi internet kembali), tarik ulang data terbaru dari server
+// dan sambungkan ulang realtime-nya, supaya tidak ada yang ketinggalan/basi.
+let resyncInFlight = false;
+async function resyncRoomIfNeeded(){
+  if(!roomCode || resyncInFlight) return;
+  const client = initSupabaseClient();
+  if(!client) return;
+  resyncInFlight = true;
+  try{
+    await pullAndMergeRoom();
+    if(realtimeChannel){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
+    subscribeRoom();
+  } finally {
+    resyncInFlight = false;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') resyncRoomIfNeeded();
+});
+window.addEventListener('focus', resyncRoomIfNeeded);
+window.addEventListener('online', resyncRoomIfNeeded);
 
 let saveTimer = null;
 
