@@ -349,6 +349,14 @@
   .confirm-btn-cancel{background:var(--card); color:var(--ink-soft);}
   .confirm-btn-cancel:hover{background:var(--mint);}
 
+  .broadcast-overlay{
+    display:none; position:fixed; inset:0; z-index:600; background:#000;
+  }
+  .broadcast-overlay.show{display:block;}
+  .broadcast-overlay-inner{width:100%; height:100%;}
+  .broadcast-overlay-inner iframe{width:100%; height:100%; border:none; display:block;}
+  .broadcast-overlay-inner video{width:100%; height:100%; object-fit:contain; background:#000; display:block;}
+
   .restore-banner{
     display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
     background:var(--mint); border:1.5px solid #a9c9c0; border-radius:12px; padding:10px 14px;
@@ -1788,6 +1796,8 @@ let viewOnlyForTeam = false;
 let pendingEditIds = new Set();
 let pendingDeleteIds = new Set();
 
+let screenChannel = null;
+
 function getClientId(){
   try{
     let id = localStorage.getItem(CLIENT_ID_KEY);
@@ -2123,6 +2133,110 @@ function copyInviteLink(){
   });
 }
 
+// ====== Layar Tampilan dari Admin (broadcast HTML/video) ======
+// Halaman ini otomatis mendengarkan satu channel siaran global di Supabase
+// (tidak perlu kode apa pun) — begitu admin menampilkan sesuatu lewat
+// admin.html, SEMUA layar/perangkat yang sedang membuka halaman ini akan
+// otomatis menampilkannya, sampai dihentikan lagi dari panel admin.
+const BROADCAST_SCREEN_CODE = 'semua-layar';
+
+async function initBroadcastListener(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await sb.from('stok_opname_broadcast').select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(!error) applyBroadcastRow(data);
+  } catch(e){
+    console.error('Gagal memuat status layar admin:', e);
+  }
+  subscribeScreenBroadcast();
+}
+
+function subscribeScreenBroadcast(){
+  if(!sb) return;
+  if(screenChannel){ try{ sb.removeChannel(screenChannel); }catch(e){} screenChannel = null; }
+  screenChannel = sb.channel('broadcast-' + BROADCAST_SCREEN_CODE)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'stok_opname_broadcast', filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
+    }, payload => {
+      applyBroadcastRow(payload.new);
+    })
+    .subscribe();
+}
+
+function applyBroadcastRow(row){
+  const overlay = document.getElementById('broadcastOverlay');
+  const inner = document.getElementById('broadcastOverlayInner');
+  if(!overlay || !inner) return;
+  if(!row || !row.active || !row.type || row.type === 'none'){
+    overlay.classList.remove('show');
+    inner.innerHTML = '';
+    return;
+  }
+  inner.innerHTML = '';
+  if(row.type === 'html'){
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals');
+    iframe.srcdoc = row.html_content || '';
+    inner.appendChild(iframe);
+  } else if(row.type === 'video'){
+    const val = (row.video_value || '').trim();
+    if(!val){ overlay.classList.remove('show'); return; }
+    if(row.video_source === 'url' && isEmbeddableVideoUrl(val)){
+      const iframe = document.createElement('iframe');
+      iframe.src = toEmbedVideoUrl(val);
+      iframe.setAttribute('allow', 'autoplay; fullscreen');
+      iframe.setAttribute('allowfullscreen', '');
+      inner.appendChild(iframe);
+    } else {
+      const video = document.createElement('video');
+      // Untuk video lokal, video_value berupa nama file di folder yang sama
+      // dengan halaman ini (mis. "promo.mp4"), jadi path relatif langsung dipakai.
+      video.src = val;
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true;
+      video.controls = true;
+      video.playsInline = true;
+      inner.appendChild(video);
+    }
+  }
+  overlay.classList.add('show');
+}
+
+function isEmbeddableVideoUrl(url){
+  return /youtube\.com|youtu\.be|vimeo\.com/i.test(url);
+}
+
+function toEmbedVideoUrl(url){
+  try{
+    if(/youtu\.be\//.test(url)){
+      const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+    }
+    if(/youtube\.com\/watch/.test(url)){
+      const u = new URL(url);
+      const id = u.searchParams.get('v');
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+    }
+    if(/youtube\.com\/embed\//.test(url)){
+      return url + (url.includes('?') ? '&' : '?') + 'autoplay=1&mute=1';
+    }
+    if(/vimeo\.com\//.test(url)){
+      const id = url.split('vimeo.com/')[1].split(/[?&]/)[0];
+      return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1`;
+    }
+  }catch(e){}
+  return url;
+}
+
+function hideBroadcastOverlay(){
+  const overlay = document.getElementById('broadcastOverlay');
+  const inner = document.getElementById('broadcastOverlayInner');
+  if(overlay) overlay.classList.remove('show');
+  if(inner) inner.innerHTML = '';
+}
+
 async function autoJoinFromStartup(){
   const params = new URLSearchParams(window.location.search);
   const urlRoom = normalizeRoomCode(params.get('room'));
@@ -2152,10 +2266,25 @@ async function resyncRoomIfNeeded(){
 }
 
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible') resyncRoomIfNeeded();
+  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); }
 });
-window.addEventListener('focus', resyncRoomIfNeeded);
-window.addEventListener('online', resyncRoomIfNeeded);
+window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); });
+window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); });
+
+let screenResyncInFlight = false;
+async function resyncScreenIfNeeded(){
+  if(screenResyncInFlight) return;
+  const client = initSupabaseClient();
+  if(!client) return;
+  screenResyncInFlight = true;
+  try{
+    const { data, error } = await sb.from('stok_opname_broadcast').select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(!error) applyBroadcastRow(data);
+    subscribeScreenBroadcast();
+  } finally {
+    screenResyncInFlight = false;
+  }
+}
 
 let saveTimer = null;
 
@@ -2246,6 +2375,8 @@ async function loadState(){
 
   updateRoomUI();
   autoJoinFromStartup();
+
+  initBroadcastListener();
 }
 
 function todayISO(){
@@ -2559,5 +2690,9 @@ async function deleteHistoryEntry(id){
 loadState();
 
 </script>
+<div class="broadcast-overlay" id="broadcastOverlay">
+  <div class="broadcast-overlay-inner" id="broadcastOverlayInner"></div>
+</div>
+
 </body>
 </html>
