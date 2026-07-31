@@ -315,6 +315,40 @@
     max-height:220px; overflow-y:auto;
   }
 
+  .paste-stok-textarea{
+    width:100%; min-height:150px; margin-top:12px; padding:10px 12px; border:1.5px solid var(--line);
+    border-radius:10px; font-family:'JetBrains Mono', monospace; font-size:12.5px; line-height:1.6;
+    color:var(--ink); background:var(--card); resize:vertical;
+  }
+  .paste-stok-textarea:focus{outline:none; border-color:var(--teal);}
+  .paste-stok-actions{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;}
+  .paste-stok-actions .btn-main{padding:10px 16px; font-size:13px;}
+  .paste-stok-result{
+    display:none; margin-top:14px; font-size:12.5px; line-height:1.65; background:#fafaf6;
+    border:1.5px solid var(--line); border-radius:10px; padding:12px 14px; white-space:pre-wrap; color:var(--ink);
+  }
+  .paste-stok-result.show{display:block;}
+
+  .confirm-overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,30,27,0.5); z-index:300;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .confirm-overlay.show{display:flex;}
+  .confirm-modal{
+    background:var(--card); border-radius:16px; width:100%; max-width:420px;
+    padding:20px 20px 18px; box-shadow:0 20px 50px rgba(15,30,27,0.35);
+  }
+  .confirm-modal-msg{font-size:13.5px; line-height:1.65; color:var(--ink); white-space:pre-wrap;}
+  .confirm-modal-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .confirm-modal-actions button{
+    flex:1; min-width:110px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700;
+    cursor:pointer; font-family:inherit; border:1.5px solid var(--line);
+  }
+  .confirm-btn-ok{background:var(--teal); color:#fff; border-color:var(--teal) !important;}
+  .confirm-btn-ok:hover{background:var(--teal-deep);}
+  .confirm-btn-cancel{background:var(--card); color:var(--ink-soft);}
+  .confirm-btn-cancel:hover{background:var(--mint);}
+
   .restore-banner{
     display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
     background:var(--mint); border:1.5px solid #a9c9c0; border-radius:12px; padding:10px 14px;
@@ -547,6 +581,14 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 3v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         Salin nama barang saja
       </button>
+      <button class="btn-add" onclick="openPasteStokModal()" id="btnPasteStok" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 6h-.5A1.5 1.5 0 0 0 5 7.5v13A1.5 1.5 0 0 0 6.5 22h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 6H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Tempel &amp; isi stok
+      </button>
+      <button class="btn-add" onclick="openPasteNamaModal()" id="btnPasteNama" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 6h-.5A1.5 1.5 0 0 0 5 7.5v13A1.5 1.5 0 0 0 6.5 22h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 6H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Tempel nama barang saja
+      </button>
       <span class="copied-msg" id="copiedMsg">Tersalin ✓ siap ditempel di WhatsApp</span>
       <span class="copied-msg" id="copiedMsgNama">Tersalin ✓ nama barang siap ditempel</span>
     </div>
@@ -563,6 +605,67 @@
       <button class="history-close" onclick="closeHistoryModal()">✕</button>
     </div>
     <div class="history-modal-body" id="historyListBody"></div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <div class="confirm-modal-msg" id="confirmModalMsg"></div>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-btn-cancel" id="confirmBtnCancel">Batal</button>
+      <button type="button" class="confirm-btn-ok" id="confirmBtnOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="history-overlay" id="pasteStokOverlay" onclick="if(event.target===this) closePasteStokModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Tempel &amp; Isi Stok Otomatis</h3>
+      <button class="history-close" onclick="closePasteStokModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Tempel teks daftar barang di bawah, satu barang per baris, format <b>Nama barang : jumlah</b>
+        (nomor urut di depan seperti "1." boleh ada atau tidak). Kalau nama barang sudah ada di tabel,
+        angkanya akan diisi otomatis ke baris yang cocok. Kalau nama barang <b>belum ada</b> di tabel,
+        barang itu akan otomatis ditambahkan sebagai baris baru (nama + jumlahnya sekalian terisi) — jadi
+        tidak perlu ketik manual satu-satu. Kalau ada nama barang di nomor urut tertentu yang mirip tapi
+        <b>tidak persis sama</b> dengan nama di tabel (misal ada huruf yang diganti atau ditambahin sesuatu),
+        akan muncul konfirmasi dulu: mau nama barangnya <b>diubah</b> mengikuti teks yang ditempel, atau
+        <b>tetap</b> pakai nama yang sudah ada. Lalu pilih mau diisi ke kolom Rafa 1 atau Rafa 2 — akan diminta
+        konfirmasi dulu sebelum data lama di kolom itu ditimpa.
+      </div>
+      <textarea id="pasteStokText" class="paste-stok-textarea" placeholder="1. Plossa merah : 3&#10;2. Bodrex tab : 5&#10;3. Antangin jrg : 6&#10;4. Trisela : 0&#10;5. Flucadex tab : 0&#10;6. Panadol hijau : 0"></textarea>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-main" onclick="applyPasteStokConfirm('t1')">Isi ke Rafa 1</button>
+        <button type="button" class="btn-main" onclick="applyPasteStokConfirm('t2')">Isi ke Rafa 2</button>
+      </div>
+      <div class="paste-stok-result" id="pasteStokResult"></div>
+    </div>
+  </div>
+</div>
+
+<div class="history-overlay" id="pasteNamaOverlay" onclick="if(event.target===this) closePasteNamaModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Tempel Nama Barang Saja</h3>
+      <button class="history-close" onclick="closePasteNamaModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Tempel daftar nama barang di bawah, satu nama per baris. Nomor urut di depan
+        seperti "1." atau "1)" boleh ada atau tidak, otomatis menyesuaikan. Nama barang
+        yang <b>sudah ada</b> di tabel akan dilewati (tidak dobel). Nama yang <b>belum ada</b>
+        akan diisi ke baris kosong yang tersedia dulu, baru kalau sudah habis akan
+        ditambahkan sebagai baris baru — jumlah stoknya tetap kosong, tinggal diisi manual.
+      </div>
+      <textarea id="pasteNamaText" class="paste-stok-textarea" placeholder="1. Plossa merah&#10;2. Bodrex tab&#10;3. Antangin jrg&#10;4. Trisela&#10;5. Flucadex tab&#10;6. Panadol hijau"></textarea>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-main" onclick="applyPasteNamaConfirm()">Tambahkan ke daftar</button>
+      </div>
+      <div class="paste-stok-result" id="pasteNamaResult"></div>
+    </div>
   </div>
 </div>
 
@@ -862,9 +965,14 @@ function generate(doCopy){
   const petugas = document.getElementById('metaPetugas').value.trim() || '-';
 
   const named = rows.filter(r => r.nama.trim() !== '' && r.apk !== '');
+  // Barang yang nama + minimal salah satu fisik (Rafa 1 / Rafa 2) sudah diisi,
+  // tapi Web/Apk-nya belum, supaya tetap bisa disalin ke WhatsApp sebagai
+  // catatan fisik sementara (belum bisa dibandingkan/klop-kan).
+  const unchecked = rows.filter(r => r.nama.trim() !== '' && r.apk === '' && (r.t1 !== '' || r.t2 !== ''));
   const minusList = [];
   const plusList = [];
   const klopList = [];
+  const belumList = [];
 
   named.forEach(r => {
     const st = statusOf(r);
@@ -876,6 +984,13 @@ function generate(doCopy){
     if(st.type === 'minus') minusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
     else if(st.type === 'plus') plusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
     else klopList.push({nama:r.nama.trim(), t1, t2});
+  });
+
+  unchecked.forEach(r => {
+    const fisik = fisikOf(r);
+    const t1 = parseInt(r.t1) || 0;
+    const t2 = parseInt(r.t2) || 0;
+    belumList.push({nama:r.nama.trim(), fisik, t1, t2});
   });
 
   let out = `update buku penjualan stok - dan + di ${toko} ${waktu} tgl ${tgl} ( ${petugas} ) : \n`;
@@ -901,10 +1016,17 @@ function generate(doCopy){
     });
   }
 
+  if(belumList.length){
+    out += `\n *BELUM ADA DATA WEB/APK (fisik saja)*\n`;
+    belumList.forEach((it, i) => {
+      out += `${i+1}. ${it.nama} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
+    });
+  }
+
   const preview = document.getElementById('preview');
-  if(named.length === 0){
+  if(named.length === 0 && belumList.length === 0){
     preview.classList.add('empty');
-    preview.textContent = 'Belum ada barang dengan data Web/Apk terisi. Lengkapi tabel di atas dulu.';
+    preview.textContent = 'Belum ada barang yang diisi. Lengkapi tabel di atas dulu.';
     return;
   }
   preview.classList.remove('empty');
@@ -963,6 +1085,329 @@ function copyNamaBarang(){
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 2500);
   });
+}
+
+// ====== Tempel & Isi Stok Otomatis ======
+// Menempelkan teks seperti "1. Nama barang : 5" per baris lalu mengisi
+// otomatis kolom Rafa 1 / Rafa 2 pada baris tabel yang nama barangnya cocok.
+
+// Modal konfirmasi custom (pengganti confirm() bawaan browser), dipakai
+// khusus untuk alur "Tempel & isi stok". Mengembalikan Promise<boolean>.
+function customConfirm(message, okText, cancelText){
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirmOverlay');
+    const msgEl = document.getElementById('confirmModalMsg');
+    const okBtn = document.getElementById('confirmBtnOk');
+    const cancelBtn = document.getElementById('confirmBtnCancel');
+    msgEl.textContent = message;
+    okBtn.textContent = okText || 'OK';
+    cancelBtn.textContent = cancelText || 'Batal';
+    overlay.classList.add('show');
+
+    function cleanup(result){
+      overlay.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    function onOverlay(e){ if(e.target === overlay) cleanup(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+
+function openPasteStokModal(){
+  if(isViewOnlyForMe()) return;
+  const ta = document.getElementById('pasteStokText');
+  if(ta) ta.value = '';
+  const resultEl = document.getElementById('pasteStokResult');
+  if(resultEl){ resultEl.classList.remove('show'); resultEl.textContent = ''; }
+  document.getElementById('pasteStokOverlay').classList.add('show');
+  setTimeout(() => { if(ta) ta.focus(); }, 50);
+}
+
+function closePasteStokModal(){
+  document.getElementById('pasteStokOverlay').classList.remove('show');
+}
+
+// ====== Tempel Nama Barang Saja ======
+// Sama seperti "Tempel & isi stok" tapi cuma nama barang, tanpa angka stok.
+function openPasteNamaModal(){
+  if(isViewOnlyForMe()) return;
+  const ta = document.getElementById('pasteNamaText');
+  if(ta) ta.value = '';
+  const resultEl = document.getElementById('pasteNamaResult');
+  if(resultEl){ resultEl.classList.remove('show'); resultEl.textContent = ''; }
+  document.getElementById('pasteNamaOverlay').classList.add('show');
+  setTimeout(() => { if(ta) ta.focus(); }, 50);
+}
+
+function closePasteNamaModal(){
+  document.getElementById('pasteNamaOverlay').classList.remove('show');
+}
+
+// Menerima baris seperti "1. Plossa merah" atau "Plossa merah" — nomor urut
+// & tanda "." / ")" di depan opsional, otomatis menyesuaikan ada atau tidaknya.
+function parseNamaOnlyText(text){
+  const lines = (text || '').split(/\r?\n/);
+  const names = [];
+  const lineRe = /^\s*(?:\d+[.)]\s*)?(.+?)\s*$/;
+  lines.forEach(line => {
+    if(!line.trim()) return;
+    const m = line.match(lineRe);
+    const nama = m ? m[1].trim() : line.trim();
+    if(nama) names.push(nama);
+  });
+  return names;
+}
+
+async function applyPasteNamaConfirm(){
+  if(isViewOnlyForMe()) return;
+  const text = document.getElementById('pasteNamaText').value;
+  const names = parseNamaOnlyText(text);
+  const resultEl = document.getElementById('pasteNamaResult');
+  if(names.length === 0){
+    resultEl.classList.add('show');
+    resultEl.textContent = 'Belum ada baris nama barang yang bisa dibaca.';
+    return;
+  }
+  const ok = await customConfirm(
+    `Tambahkan ${names.length} nama barang yang ditempel ke daftar?\n\nNama yang sudah ada di tabel akan dilewati. Nama yang belum ada akan mengisi baris kosong dulu, baru kalau habis ditambahkan sebagai baris baru.`,
+    'Tambahkan sekarang', 'Batal'
+  );
+  if(!ok) return;
+  applyPasteNama(names);
+}
+
+function applyPasteNama(names){
+  const byName = new Set();
+  rows.forEach(r => {
+    const key = normalizeNamaForMatch(r.nama);
+    if(key) byName.add(key);
+  });
+
+  const emptyRows = rows.filter(r => !r.nama.trim());
+  let emptyIdx = 0;
+
+  let filledEmpty = 0;
+  let added = 0;
+  let dilewati = 0;
+  const newRowsToAppend = [];
+
+  names.forEach(nama => {
+    const key = normalizeNamaForMatch(nama);
+    if(byName.has(key)){
+      dilewati++;
+      return;
+    }
+    byName.add(key);
+
+    let row;
+    if(emptyIdx < emptyRows.length){
+      row = emptyRows[emptyIdx++];
+      row.nama = nama;
+      filledEmpty++;
+    } else {
+      row = newRow();
+      row.nama = nama;
+      newRowsToAppend.push(row);
+      added++;
+    }
+    pendingEditIds.add(row.id);
+  });
+
+  if(newRowsToAppend.length) rows.push(...newRowsToAppend);
+
+  render();
+  saveState();
+
+  let msg = `✓ ${filledEmpty + added} nama barang berhasil ditambahkan ke daftar.`;
+  if(filledEmpty) msg += `\n• ${filledEmpty} mengisi baris kosong yang sudah ada.`;
+  if(added) msg += `\n• ${added} ditambahkan sebagai baris baru.`;
+  if(dilewati) msg += `\n• ${dilewati} dilewati karena namanya sudah ada di daftar.`;
+  const resultEl = document.getElementById('pasteNamaResult');
+  resultEl.classList.add('show');
+  resultEl.textContent = msg;
+}
+
+// Menerima baris seperti "1. Plossa merah : 3" atau "Plossa merah : 3"
+// (nomor urut & tanda "." / ")" di depan opsional; pemisah boleh ":" atau "-").
+function parsePasteStokText(text){
+  const lines = (text || '').split(/\r?\n/);
+  const items = [];
+  const lineRe = /^\s*(?:\d+[.)]\s*)?(.+?)\s*[:\-]\s*(-?\d+)\s*$/;
+  lines.forEach(line => {
+    if(!line.trim()) return;
+    const m = line.match(lineRe);
+    if(m){
+      const nama = m[1].trim();
+      const qty = parseInt(m[2], 10);
+      if(nama && !isNaN(qty)) items.push({ nama, qty });
+    }
+  });
+  return items;
+}
+
+function normalizeNamaForMatch(s){
+  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// Jarak edit sederhana (Levenshtein) buat bandingin dua nama barang —
+// dipakai untuk menebak apakah suatu nama cuma "diubah dikit" (typo,
+// huruf diganti, atau ditambahin sesuatu) dari nama barang yang sudah ada,
+// bukan barang yang benar-benar baru.
+function levenshteinDistance(a, b){
+  const m = a.length, n = b.length;
+  if(m === 0) return n;
+  if(n === 0) return m;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for(let j = 0; j <= n; j++) prev[j] = j;
+  for(let i = 1; i <= m; i++){
+    curr[0] = i;
+    for(let j = 1; j <= n; j++){
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+// Nebak apakah "namaBaru" kemungkinan cuma versi ubahan dari "namaLama"
+// (ada huruf yang diganti / ditambahin sesuatu), bukan nama barang lain
+// yang beda sama sekali.
+function isKemungkinanNamaBerubah(namaLama, namaBaru){
+  const a = normalizeNamaForMatch(namaLama);
+  const b = normalizeNamaForMatch(namaBaru);
+  if(!a || !b || a === b) return false;
+  const maxLen = Math.max(a.length, b.length);
+  if(maxLen === 0) return false;
+  const dist = levenshteinDistance(a, b);
+  // Toleransi: maksimal ~35% dari panjang nama (minimal 2 karakter) boleh beda,
+  // supaya cuma nangkep perubahan kecil, bukan nama yang memang beda total.
+  const toleransi = Math.max(2, Math.ceil(maxLen * 0.35));
+  return dist > 0 && dist <= toleransi;
+}
+
+async function applyPasteStokConfirm(target){
+  if(isViewOnlyForMe()) return;
+  const text = document.getElementById('pasteStokText').value;
+  const items = parsePasteStokText(text);
+  const resultEl = document.getElementById('pasteStokResult');
+  if(items.length === 0){
+    resultEl.classList.add('show');
+    resultEl.textContent = 'Belum ada baris yang bisa dibaca. Pastikan formatnya "Nama barang : angka" per baris.';
+    return;
+  }
+  const labelToko = target === 't1' ? 'Rafa 1' : 'Rafa 2';
+  const ok = await customConfirm(
+    `Isi ${items.length} baris stok yang ditempel ke kolom ${labelToko}?\n\nData lama di kolom ${labelToko} untuk barang yang cocok akan ditimpa dengan angka dari teks ini. Barang yang namanya belum ada di daftar akan otomatis ditambahkan sebagai baris baru.`,
+    'Isi sekarang', 'Batal'
+  );
+  if(!ok) return;
+  await applyPasteStok(target, items);
+}
+
+async function applyPasteStok(target, items){
+  const byName = new Map();
+  rows.forEach(r => {
+    const key = normalizeNamaForMatch(r.nama);
+    if(key) byName.set(key, r);
+  });
+
+  // Urutan barang yang namanya sudah terisi di tabel, sesuai urutan baris
+  // (ini urutan yang sama dipakai waktu "Salin nama barang saja"), dipakai
+  // untuk menebak barang mana yang "sama" berdasarkan nomor urutnya kalau
+  // namanya tidak cocok persis.
+  const filledRows = rows.filter(r => r.nama.trim() !== '');
+  const sudahDiputuskan = new Set(); // id baris yang sudah ditanya, jangan ditanya dua kali
+
+  // Baris-baris yang nama-nya masih kosong — dipakai dulu sebelum bikin baris baru,
+  // supaya baris kosong yang sudah ada di tabel tidak mubazir.
+  const emptyRows = rows.filter(r => !r.nama.trim());
+  let emptyIdx = 0;
+
+  let updated = 0;
+  let filledEmpty = 0;
+  let added = 0;
+  let namaDiubah = 0;
+  const newRowsToAppend = [];
+
+  for(let idx = 0; idx < items.length; idx++){
+    const it = items[idx];
+    const key = normalizeNamaForMatch(it.nama);
+    let row = byName.get(key);
+
+    // Kalau nama tidak cocok persis, cek dulu apakah barang di nomor urut
+    // yang sama kemungkinan cuma "diubah dikit" (huruf diganti / ditambahin
+    // sesuatu), bukan barang baru yang sungguhan berbeda.
+    if(!row){
+      const kandidat = filledRows[idx];
+      if(
+        kandidat &&
+        !sudahDiputuskan.has(kandidat.id) &&
+        normalizeNamaForMatch(kandidat.nama) !== key &&
+        byName.get(normalizeNamaForMatch(kandidat.nama)) === kandidat &&
+        isKemungkinanNamaBerubah(kandidat.nama, it.nama)
+      ){
+        sudahDiputuskan.add(kandidat.id);
+        const mauUbah = await customConfirm(
+          `Baris ke-${idx + 1}: nama barang di daftar terisi "${kandidat.nama}", ` +
+          `tapi di teks yang ditempel tertulis "${it.nama}".\n\n` +
+          `Sepertinya ini nama barang yang sama tapi berubah (ada huruf diganti / ditambahin sesuatu).`,
+          `Ubah jadi "${it.nama}"`, `Tetap "${kandidat.nama}"`
+        );
+        if(mauUbah){
+          byName.delete(normalizeNamaForMatch(kandidat.nama));
+          kandidat.nama = it.nama;
+          byName.set(key, kandidat);
+          namaDiubah++;
+        }
+        row = kandidat;
+      }
+    }
+
+    if(!row && emptyIdx < emptyRows.length){
+      // Pakai baris kosong yang sudah ada dulu.
+      row = emptyRows[emptyIdx++];
+      row.nama = it.nama;
+      byName.set(key, row);
+      filledEmpty++;
+    }
+
+    if(!row){
+      // Tidak ada baris kosong tersisa — buat baris baru.
+      row = newRow();
+      row.nama = it.nama;
+      newRowsToAppend.push(row);
+      byName.set(key, row);
+      added++;
+    }
+
+    row[target] = it.qty;
+    pendingEditIds.add(row.id);
+    updated++;
+  }
+
+  if(newRowsToAppend.length) rows.push(...newRowsToAppend);
+
+  render();
+  saveState();
+
+  const labelToko = target === 't1' ? 'Rafa 1' : 'Rafa 2';
+  let msg = `✓ ${updated} dari ${items.length} barang berhasil diisi ke kolom ${labelToko}.`;
+  if(namaDiubah) msg += `\n• ${namaDiubah} nama barang diubah sesuai teks yang ditempel.`;
+  if(filledEmpty) msg += `\n• ${filledEmpty} mengisi baris kosong yang sudah ada.`;
+  if(added) msg += `\n• ${added} ditambahkan sebagai baris baru.`;
+  const resultEl = document.getElementById('pasteStokResult');
+  resultEl.classList.add('show');
+  resultEl.textContent = msg;
 }
 
 const STORAGE_KEY = 'stok-opname-state';
@@ -1432,9 +1877,13 @@ function updateSessionUI(){
   const addBtn = document.getElementById('btnAddRow');
   const masterBtn = document.getElementById('btnLoadMaster');
   const importBtn = document.getElementById('btnImportExcel');
+  const pasteStokBtn = document.getElementById('btnPasteStok');
+  const pasteNamaBtn = document.getElementById('btnPasteNama');
   if(addBtn) addBtn.disabled = viewOnly;
   if(masterBtn) masterBtn.disabled = viewOnly;
   if(importBtn) importBtn.disabled = viewOnly;
+  if(pasteStokBtn) pasteStokBtn.disabled = viewOnly;
+  if(pasteNamaBtn) pasteNamaBtn.disabled = viewOnly;
   document.body.classList.toggle('view-only-mode', viewOnly);
 
   // render ulang baris supaya input/tombol hapus ikut terkunci/terbuka
