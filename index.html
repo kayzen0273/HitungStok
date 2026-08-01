@@ -1086,7 +1086,7 @@ function copyNamaBarang(){
     return;
   }
 
-  const teks = namaList.map((nama, i) => `${i+1}. ${nama}`).join('\n');
+  const teks = namaList.map((nama, i) => `${i+1}. ${nama}:`).join('\n');
 
   navigator.clipboard.writeText(teks).then(() => {
     const msg = document.getElementById('copiedMsgNama');
