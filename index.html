@@ -2181,9 +2181,20 @@ let currentBroadcastAudioEl = null;
 function stopCurrentBroadcastAudio(){
   if(currentBroadcastAudioEl){
     try{ currentBroadcastAudioEl.pause(); }catch(e){}
+    try{ currentBroadcastAudioEl.remove(); }catch(e){}
     currentBroadcastAudioEl = null;
   }
 }
+
+// Musik broadcast (kalau ada & sedang dijeda karena diblokir autoplay browser)
+// akan otomatis mulai diputar begitu pengguna menyentuh/klik di mana saja di layar.
+['pointerdown','touchstart','click','keydown'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if(currentBroadcastAudioEl && currentBroadcastAudioEl.paused){
+      currentBroadcastAudioEl.play().catch(() => {});
+    }
+  }, { passive:true });
+});
 
 function applyBroadcastRow(row){
   const overlay = document.getElementById('broadcastOverlay');
@@ -2196,6 +2207,7 @@ function applyBroadcastRow(row){
     return;
   }
   inner.innerHTML = '';
+  let showOverlay = true;
   if(row.type === 'html'){
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals');
@@ -2223,65 +2235,64 @@ function applyBroadcastRow(row){
       inner.appendChild(video);
     }
   } else if(row.type === 'foto'){
-    renderFotoMusikBroadcast(row, inner);
+    // Kalau cuma musik (tanpa foto), layar TIDAK ditutupi overlay hitam —
+    // tetap tampilan stok opname biasa, musik saja yang main di belakang.
+    showOverlay = renderFotoMusikBroadcast(row, inner);
   }
-  overlay.classList.add('show');
+  if(showOverlay){
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
+  }
 }
 
 // Menampilkan foto dan/atau musik sekaligus (diisi dari tab "Foto & Musik" di admin).
 // Boleh isi foto saja, musik saja, atau keduanya bersamaan.
+// - Kalau ada foto: tampil layar penuh seperti biasa (overlay hitam).
+// - Kalau musik saja (tanpa foto): TIDAK ada overlay — layar tetap tampilan
+//   stok opname biasa, musik main di belakang layar.
+// Return true kalau overlay perlu ditampilkan (ada foto), false kalau tidak.
 function renderFotoMusikBroadcast(row, inner){
   const photoVal = (row.photo_value || '').trim();
   const musicVal = (row.music_value || '').trim();
-
-  const wrap = document.createElement('div');
-  wrap.className = 'broadcast-foto-wrap';
+  let showOverlay = false;
 
   if(photoVal){
-    // Untuk foto lokal, photo_value berupa nama file di folder yang sama
-    // dengan halaman ini, jadi path relatif langsung dipakai (sama seperti video lokal).
+    showOverlay = true;
+    const wrap = document.createElement('div');
+    wrap.className = 'broadcast-foto-wrap';
+    // photo_value bisa berupa URL hasil unggahan, link gambar langsung, atau
+    // nama file lokal di folder yang sama dengan halaman ini — ketiganya
+    // sama-sama dipakai langsung sebagai src gambar.
     const img = document.createElement('img');
     img.src = photoVal;
     img.alt = 'Foto dari admin';
     wrap.appendChild(img);
-  } else if(musicVal){
-    // Tidak ada foto, hanya musik — tampilkan placeholder supaya layar tidak kosong.
-    const placeholder = document.createElement('div');
-    placeholder.className = 'broadcast-music-placeholder';
-    placeholder.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" width="56" height="56"><path d="M9 18V5l12-2v13" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="#fff" stroke-width="1.6"/><circle cx="18" cy="16" r="3" stroke="#fff" stroke-width="1.6"/></svg>
-      <div>Musik sedang diputar</div>
-    `;
-    wrap.appendChild(placeholder);
+    inner.appendChild(wrap);
   }
-  inner.appendChild(wrap);
 
   if(musicVal){
     // Untuk musik lokal, music_value berupa nama file di folder yang sama dengan halaman ini.
+    // Audio dipasang langsung ke <body> (bukan ke overlay) supaya tetap bisa
+    // main walau overlay tidak ditampilkan (kasus musik saja).
     const audio = document.createElement('audio');
     audio.src = musicVal;
     audio.loop = true;
     audio.autoplay = true;
     audio.style.display = 'none';
-    wrap.appendChild(audio);
+    document.body.appendChild(audio);
     currentBroadcastAudioEl = audio;
 
-    const tapBtn = document.createElement('button');
-    tapBtn.type = 'button';
-    tapBtn.className = 'broadcast-tap-audio';
-    tapBtn.innerHTML = '🔊 Ketuk untuk memutar musik';
-    tapBtn.onclick = () => {
-      audio.play().then(() => { tapBtn.style.display = 'none'; }).catch(() => {});
-    };
-    wrap.appendChild(tapBtn);
-
-    // Browser sering memblokir autoplay audio yang ada suaranya sebelum ada
-    // interaksi pengguna — kalau itu terjadi, tampilkan tombol untuk memutar manual.
+    // Coba putar otomatis. Kalau diblokir aturan browser, musik akan otomatis
+    // mulai begitu pengguna menyentuh/klik di mana saja di layar (lihat
+    // listener global di dekat stopCurrentBroadcastAudio()).
     const playPromise = audio.play();
     if(playPromise && typeof playPromise.catch === 'function'){
-      playPromise.catch(() => { tapBtn.style.display = 'flex'; });
+      playPromise.catch(() => {});
     }
   }
+
+  return showOverlay;
 }
 
 function isEmbeddableVideoUrl(url){
