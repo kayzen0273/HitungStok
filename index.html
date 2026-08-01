@@ -356,6 +356,13 @@
   .broadcast-overlay-inner{width:100%; height:100%;}
   .broadcast-overlay-inner iframe{width:100%; height:100%; border:none; display:block;}
   .broadcast-overlay-inner video{width:100%; height:100%; object-fit:contain; background:#000; display:block;}
+  .broadcast-sound-btn{
+    position:fixed; right:18px; bottom:18px; z-index:610; background:var(--teal); color:#fff;
+    border:none; padding:12px 18px; border-radius:30px; font-size:14px; font-weight:700;
+    font-family:'Plus Jakarta Sans', system-ui, sans-serif; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+  }
+  .broadcast-sound-btn:hover{background:var(--teal-deep);}
 
   .restore-banner{
     display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
@@ -2182,26 +2189,67 @@ function applyBroadcastRow(row){
   } else if(row.type === 'video'){
     const val = (row.video_value || '').trim();
     if(!val){ overlay.classList.remove('show'); return; }
-    if(row.video_source === 'url' && isEmbeddableVideoUrl(val)){
-      const iframe = document.createElement('iframe');
-      iframe.src = toEmbedVideoUrl(val);
-      iframe.setAttribute('allow', 'autoplay; fullscreen');
-      iframe.setAttribute('allowfullscreen', '');
-      inner.appendChild(iframe);
-    } else {
-      const video = document.createElement('video');
-      // Untuk video lokal, video_value berupa nama file di folder yang sama
-      // dengan halaman ini (mis. "promo.mp4"), jadi path relatif langsung dipakai.
-      video.src = val;
-      video.autoplay = true;
-      video.loop = true;
-      video.muted = true;
-      video.controls = true;
-      video.playsInline = true;
-      inner.appendChild(video);
-    }
+    renderBroadcastVideo(inner, row, val);
   }
   overlay.classList.add('show');
+}
+
+// Merender video siaran dengan suara langsung menyala. Kalau browser tetap
+// memblokir autoplay bersuara (kebijakan browser, biasanya kalau belum
+// pernah ada interaksi di layar ini), muncul satu tombol kecil di pojok
+// yang begitu ditekan sekali langsung menyalakan suaranya.
+function renderBroadcastVideo(inner, row, val){
+  const showSoundBtn = () => {
+    if(inner.querySelector('.broadcast-sound-btn')) return;
+    const soundBtn = document.createElement('button');
+    soundBtn.type = 'button';
+    soundBtn.className = 'broadcast-sound-btn';
+    soundBtn.textContent = '🔊 Aktifkan suara';
+    soundBtn.onclick = () => {
+      const videoEl = inner.querySelector('video');
+      if(videoEl){
+        videoEl.muted = false;
+        videoEl.play().catch(() => {});
+      } else {
+        const iframeEl = inner.querySelector('iframe');
+        if(iframeEl) iframeEl.src = toEmbedVideoUrl(val);
+      }
+      soundBtn.remove();
+    };
+    inner.appendChild(soundBtn);
+  };
+
+  if(row.video_source === 'url' && isEmbeddableVideoUrl(val)){
+    const iframe = document.createElement('iframe');
+    iframe.src = toEmbedVideoUrl(val);
+    iframe.setAttribute('allow', 'autoplay; fullscreen');
+    iframe.setAttribute('allowfullscreen', '');
+    inner.appendChild(iframe);
+    // Tidak bisa mendeteksi dari sini apakah YouTube/Vimeo berhasil autoplay
+    // bersuara (beda origin), jadi tombol cadangan tetap disiapkan supaya
+    // tinggal satu klik kalau ternyata browsernya memblokir suara.
+    showSoundBtn();
+  } else {
+    const video = document.createElement('video');
+    // Untuk video lokal, video_value berupa nama file di folder yang sama
+    // dengan halaman ini (mis. "promo.mp4"), jadi path relatif langsung dipakai.
+    video.src = val;
+    video.autoplay = true;
+    video.loop = true;
+    video.controls = true;
+    video.playsInline = true;
+    inner.appendChild(video);
+    const playPromise = video.play();
+    if(playPromise && playPromise.catch){
+      playPromise.catch(() => {
+        // Autoplay bersuara diblokir browser -> tetap jalankan videonya (dibisukan
+        // dulu) supaya tidak macet, sambil munculkan tombol untuk aktifkan suara.
+        video.muted = true;
+        video.play().catch(() => {});
+        showSoundBtn();
+      });
+    }
+  }
 }
 
 function isEmbeddableVideoUrl(url){
@@ -2212,19 +2260,19 @@ function toEmbedVideoUrl(url){
   try{
     if(/youtu\.be\//.test(url)){
       const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+      return `https://www.youtube.com/embed/${id}?autoplay=1`;
     }
     if(/youtube\.com\/watch/.test(url)){
       const u = new URL(url);
       const id = u.searchParams.get('v');
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+      return `https://www.youtube.com/embed/${id}?autoplay=1`;
     }
     if(/youtube\.com\/embed\//.test(url)){
-      return url + (url.includes('?') ? '&' : '?') + 'autoplay=1&mute=1';
+      return url + (url.includes('?') ? '&' : '?') + 'autoplay=1';
     }
     if(/vimeo\.com\//.test(url)){
       const id = url.split('vimeo.com/')[1].split(/[?&]/)[0];
-      return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1`;
+      return `https://player.vimeo.com/video/${id}?autoplay=1`;
     }
   }catch(e){}
   return url;
