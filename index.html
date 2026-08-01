@@ -356,6 +356,18 @@
   .broadcast-overlay-inner{width:100%; height:100%;}
   .broadcast-overlay-inner iframe{width:100%; height:100%; border:none; display:block;}
   .broadcast-overlay-inner video{width:100%; height:100%; object-fit:contain; background:#000; display:block;}
+  .broadcast-foto-wrap{width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; background:#000;}
+  .broadcast-foto-wrap img{width:100%; height:100%; object-fit:contain; display:block;}
+  .broadcast-music-placeholder{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    color:#fff; font-family:'Plus Jakarta Sans', system-ui, sans-serif; font-size:15px; font-weight:600;
+  }
+  .broadcast-tap-audio{
+    position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,0.65); color:#fff; border:1.5px solid rgba(255,255,255,0.45);
+    padding:10px 18px; border-radius:999px; font-size:13px; font-weight:700;
+    display:none; align-items:center; gap:7px; cursor:pointer; font-family:inherit;
+  }
 
   .restore-banner{
     display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
@@ -2164,10 +2176,20 @@ function subscribeScreenBroadcast(){
     .subscribe();
 }
 
+let currentBroadcastAudioEl = null;
+
+function stopCurrentBroadcastAudio(){
+  if(currentBroadcastAudioEl){
+    try{ currentBroadcastAudioEl.pause(); }catch(e){}
+    currentBroadcastAudioEl = null;
+  }
+}
+
 function applyBroadcastRow(row){
   const overlay = document.getElementById('broadcastOverlay');
   const inner = document.getElementById('broadcastOverlayInner');
   if(!overlay || !inner) return;
+  stopCurrentBroadcastAudio();
   if(!row || !row.active || !row.type || row.type === 'none'){
     overlay.classList.remove('show');
     inner.innerHTML = '';
@@ -2200,8 +2222,66 @@ function applyBroadcastRow(row){
       video.playsInline = true;
       inner.appendChild(video);
     }
+  } else if(row.type === 'foto'){
+    renderFotoMusikBroadcast(row, inner);
   }
   overlay.classList.add('show');
+}
+
+// Menampilkan foto dan/atau musik sekaligus (diisi dari tab "Foto & Musik" di admin).
+// Boleh isi foto saja, musik saja, atau keduanya bersamaan.
+function renderFotoMusikBroadcast(row, inner){
+  const photoVal = (row.photo_value || '').trim();
+  const musicVal = (row.music_value || '').trim();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'broadcast-foto-wrap';
+
+  if(photoVal){
+    // Untuk foto lokal, photo_value berupa nama file di folder yang sama
+    // dengan halaman ini, jadi path relatif langsung dipakai (sama seperti video lokal).
+    const img = document.createElement('img');
+    img.src = photoVal;
+    img.alt = 'Foto dari admin';
+    wrap.appendChild(img);
+  } else if(musicVal){
+    // Tidak ada foto, hanya musik — tampilkan placeholder supaya layar tidak kosong.
+    const placeholder = document.createElement('div');
+    placeholder.className = 'broadcast-music-placeholder';
+    placeholder.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="56" height="56"><path d="M9 18V5l12-2v13" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="#fff" stroke-width="1.6"/><circle cx="18" cy="16" r="3" stroke="#fff" stroke-width="1.6"/></svg>
+      <div>Musik sedang diputar</div>
+    `;
+    wrap.appendChild(placeholder);
+  }
+  inner.appendChild(wrap);
+
+  if(musicVal){
+    // Untuk musik lokal, music_value berupa nama file di folder yang sama dengan halaman ini.
+    const audio = document.createElement('audio');
+    audio.src = musicVal;
+    audio.loop = true;
+    audio.autoplay = true;
+    audio.style.display = 'none';
+    wrap.appendChild(audio);
+    currentBroadcastAudioEl = audio;
+
+    const tapBtn = document.createElement('button');
+    tapBtn.type = 'button';
+    tapBtn.className = 'broadcast-tap-audio';
+    tapBtn.innerHTML = '🔊 Ketuk untuk memutar musik';
+    tapBtn.onclick = () => {
+      audio.play().then(() => { tapBtn.style.display = 'none'; }).catch(() => {});
+    };
+    wrap.appendChild(tapBtn);
+
+    // Browser sering memblokir autoplay audio yang ada suaranya sebelum ada
+    // interaksi pengguna — kalau itu terjadi, tampilkan tombol untuk memutar manual.
+    const playPromise = audio.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(() => { tapBtn.style.display = 'flex'; });
+    }
+  }
 }
 
 function isEmbeddableVideoUrl(url){
@@ -2212,19 +2292,19 @@ function toEmbedVideoUrl(url){
   try{
     if(/youtu\.be\//.test(url)){
       const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
-      return `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`;
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
     }
     if(/youtube\.com\/watch/.test(url)){
       const u = new URL(url);
       const id = u.searchParams.get('v');
-      return `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`;
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
     }
     if(/youtube\.com\/embed\//.test(url)){
-      return url + (url.includes('?') ? '&' : '?') + 'autoplay=1&playsinline=1';
+      return url + (url.includes('?') ? '&' : '?') + 'autoplay=1&mute=1';
     }
     if(/vimeo\.com\//.test(url)){
       const id = url.split('vimeo.com/')[1].split(/[?&]/)[0];
-      return `https://player.vimeo.com/video/${id}?autoplay=1`;
+      return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1`;
     }
   }catch(e){}
   return url;
@@ -2233,6 +2313,7 @@ function toEmbedVideoUrl(url){
 function hideBroadcastOverlay(){
   const overlay = document.getElementById('broadcastOverlay');
   const inner = document.getElementById('broadcastOverlayInner');
+  stopCurrentBroadcastAudio();
   if(overlay) overlay.classList.remove('show');
   if(inner) inner.innerHTML = '';
 }
