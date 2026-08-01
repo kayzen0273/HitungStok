@@ -908,38 +908,95 @@ function render(){
 }
 
 // Sambil ketik nama barang, tampilkan dropdown pencarian berisi barang yang
-// sudah ada di daftar dan namanya mengandung teks yang sedang diketik —
-// supaya langsung kelihatan kalau barang itu sudah pernah diinput.
+// sudah ada di daftar dan namanya "mirip" dengan yang sedang diketik.
+// Pencocokan dilakukan per kata dan toleran typo/salah ketik ringan serta
+// urutan/tambahan kata (mis. "Kassa Husada" tetap ketemu "kasa kotak Husada").
+
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if(m === 0) return n;
+  if(n === 0) return m;
+  const dp = Array.from({length: m + 1}, (_, i) => [i, ...Array(n).fill(0)]);
+  for(let j = 0; j <= n; j++) dp[0][j] = j;
+  for(let i = 1; i <= m; i++){
+    for(let j = 1; j <= n; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i-1][j] + 1,
+        dp[i][j-1] + 1,
+        dp[i-1][j-1] + cost
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+// Jarak kemiripan 2 kata: 0 kalau salah satu substring dari yang lain,
+// selain itu pakai jarak edit (dengan ambang batas yang menyesuaikan panjang
+// kata supaya kata pendek tidak terlalu longgar). Return null kalau dianggap
+// tidak mirip sama sekali.
+function wordSimilarity(a, b){
+  if(a === b) return 0;
+  if(a.includes(b) || b.includes(a)) return 0;
+  const dist = levenshtein(a, b);
+  const maxLen = Math.max(a.length, b.length);
+  const threshold = maxLen <= 4 ? 1 : (maxLen <= 7 ? 2 : 3);
+  return dist <= threshold ? dist : null;
+}
+
+function tokenize(s){
+  return s.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+
 function showNamaSuggest(id){
   const input = document.getElementById(`nama-${id}`);
   const box = document.getElementById(`namaSuggest-${id}`);
   if(!input || !box) return;
-  const q = input.value.trim().toLowerCase();
-  if(q === ''){ box.classList.remove('show'); box.innerHTML=''; return; }
+  const qTokens = tokenize(input.value);
+  if(qTokens.length === 0){ box.classList.remove('show'); box.innerHTML=''; return; }
 
   const seen = new Set();
-  const matches = [];
+  const scored = [];
   rows.forEach(r => {
     if(r.id === id) return;
     const nama = r.nama.trim();
     if(nama === '') return;
     const key = nama.toLowerCase();
-    if(!key.includes(q) || seen.has(key)) return;
+    if(seen.has(key)) return;
+
+    const cTokens = tokenize(nama);
+    let score = 0;
+    let allMatched = true;
+    for(const qt of qTokens){
+      let best = null;
+      for(const ct of cTokens){
+        const sim = wordSimilarity(qt, ct);
+        if(sim !== null && (best === null || sim < best)) best = sim;
+      }
+      if(best === null){ allMatched = false; break; }
+      score += best;
+    }
+    if(!allMatched) return;
+
     seen.add(key);
-    matches.push(nama);
+    scored.push({ nama, cTokens, score });
   });
 
-  if(matches.length === 0){ box.classList.remove('show'); box.innerHTML=''; return; }
+  if(scored.length === 0){ box.classList.remove('show'); box.innerHTML=''; return; }
 
-  const esc = s => escapeHtml(s);
-  const highlight = nama => {
-    const idx = nama.toLowerCase().indexOf(q);
-    if(idx === -1) return esc(nama);
-    return esc(nama.slice(0, idx)) + '<b>' + esc(nama.slice(idx, idx + q.length)) + '</b>' + esc(nama.slice(idx + q.length));
+  scored.sort((x, y) => x.score - y.score || x.nama.length - y.nama.length);
+
+  const highlight = (nama, cTokens) => {
+    return nama.split(/(\s+)/).map(part => {
+      if(/^\s+$/.test(part) || part === '') return escapeHtml(part);
+      const norm = part.toLowerCase();
+      const isMatch = qTokens.some(qt => wordSimilarity(qt, norm) !== null);
+      return isMatch ? '<b>' + escapeHtml(part) + '</b>' : escapeHtml(part);
+    }).join('');
   };
 
   box.innerHTML = `<div class="nama-suggest-title">Sudah ada di daftar</div>` +
-    matches.slice(0, 6).map(nama => `<div class="nama-suggest-item">${highlight(nama)}</div>`).join('');
+    scored.slice(0, 6).map(m => `<div class="nama-suggest-item">${highlight(m.nama, m.cTokens)}</div>`).join('');
   box.classList.add('show');
 }
 
