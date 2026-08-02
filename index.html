@@ -383,6 +383,13 @@
     display:none; align-items:center; gap:7px; cursor:pointer; font-family:inherit;
   }
 
+  /* Coretan (gambar tangan) dari panel admin — tampil di atas segalanya,
+     cuma tampil saja (read-only), tidak bisa disentuh/diinteraksi di sini. */
+  #drawOverlayCanvas{
+    position:fixed; inset:0; width:100vw; height:100vh;
+    z-index:700; pointer-events:none; touch-action:none; display:block;
+  }
+
   .restore-banner{
     display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
     background:var(--mint); border:1.5px solid #a9c9c0; border-radius:12px; padding:10px 14px;
@@ -2445,6 +2452,113 @@ function hideBroadcastOverlay(){
   if(inner) inner.innerHTML = '';
 }
 
+// ====== Coret-coret dari Admin (tampil saja, tidak bisa diedit di sini) ======
+// Sama seperti siaran HTML/video/foto di atas, halaman ini otomatis
+// mendengarkan satu baris "coretan" global di Supabase. Begitu admin
+// mencoret-coret dari admin.html, semua layar yang sedang membuka halaman
+// ini langsung menampilkan coretannya (posisi & ketebalan disesuaikan
+// proporsional ke ukuran layar masing-masing).
+const DRAW_TABLE = 'stok_opname_draw';
+let drawChannel = null;
+let currentDrawStrokes = [];
+
+function getDrawCanvasCtx(){
+  const canvas = document.getElementById('drawOverlayCanvas');
+  if(!canvas) return null;
+  return canvas;
+}
+
+function resizeDrawCanvas(){
+  const canvas = getDrawCanvasCtx();
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// strokes: array of { color, width (fraksi lebar kanvas), points:[[x,y],...] (0..1) }
+function renderDrawStrokes(strokes){
+  currentDrawStrokes = Array.isArray(strokes) ? strokes : [];
+  const canvas = getDrawCanvasCtx();
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  ctx.clearRect(0, 0, w, h);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  currentDrawStrokes.forEach(stroke => {
+    const pts = stroke.points || [];
+    if(pts.length < 1) return;
+    ctx.strokeStyle = stroke.color || '#e0393e';
+    ctx.lineWidth = Math.max(1, (stroke.width || 0.01) * w);
+    if(pts.length === 1){
+      // titik tunggal (tap tanpa geser) — gambar sebagai bulatan kecil
+      const [x, y] = pts[0];
+      ctx.beginPath();
+      ctx.arc(x * w, y * h, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fillStyle = stroke.color || '#e0393e';
+      ctx.fill();
+      return;
+    }
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const px = p[0] * w, py = p[1] * h;
+      if(i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  });
+}
+
+async function initDrawListener(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  resizeDrawCanvas();
+  try{
+    const { data, error } = await sb.from(DRAW_TABLE).select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(!error && data) renderDrawStrokes(data.strokes || []);
+  } catch(e){
+    console.error('Gagal memuat coretan admin:', e);
+  }
+  subscribeDrawChannel();
+}
+
+function subscribeDrawChannel(){
+  if(!sb) return;
+  if(drawChannel){ try{ sb.removeChannel(drawChannel); }catch(e){} drawChannel = null; }
+  drawChannel = sb.channel('draw-' + BROADCAST_SCREEN_CODE)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: DRAW_TABLE, filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
+    }, payload => {
+      renderDrawStrokes((payload.new && payload.new.strokes) || []);
+    })
+    .subscribe();
+}
+
+let drawResyncInFlight = false;
+async function resyncDrawIfNeeded(){
+  if(drawResyncInFlight) return;
+  const client = initSupabaseClient();
+  if(!client) return;
+  drawResyncInFlight = true;
+  try{
+    const { data, error } = await sb.from(DRAW_TABLE).select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(!error) renderDrawStrokes((data && data.strokes) || []);
+    subscribeDrawChannel();
+  } finally {
+    drawResyncInFlight = false;
+  }
+}
+
+window.addEventListener('resize', () => {
+  resizeDrawCanvas();
+  renderDrawStrokes(currentDrawStrokes);
+});
+
 async function autoJoinFromStartup(){
   const params = new URLSearchParams(window.location.search);
   const urlRoom = normalizeRoomCode(params.get('room'));
@@ -2474,10 +2588,10 @@ async function resyncRoomIfNeeded(){
 }
 
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); }
+  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); }
 });
-window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); });
-window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); });
+window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); });
+window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); });
 
 let screenResyncInFlight = false;
 async function resyncScreenIfNeeded(){
@@ -2585,6 +2699,7 @@ async function loadState(){
   autoJoinFromStartup();
 
   initBroadcastListener();
+  initDrawListener();
 }
 
 function todayISO(){
@@ -2901,6 +3016,8 @@ loadState();
 <div class="broadcast-overlay" id="broadcastOverlay">
   <div class="broadcast-overlay-inner" id="broadcastOverlayInner"></div>
 </div>
+
+<canvas id="drawOverlayCanvas"></canvas>
 
 </body>
 </html>
