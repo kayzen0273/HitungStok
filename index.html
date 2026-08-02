@@ -2468,12 +2468,23 @@ function getDrawCanvasCtx(){
   return canvas;
 }
 
+// Dipakai untuk mengukur ukuran layar yang sebenarnya terlihat. window.innerWidth/
+// innerHeight kadang belum akurat di browser HP — terutama pas halaman baru saja
+// dimuat (address bar belum "settle") — sehingga kanvas coretan sempat terukur
+// dengan ukuran yang salah dan hasilnya terlihat seperti "di-zoom". visualViewport
+// jauh lebih akurat & selalu mengikuti area yang benar-benar terlihat di layar.
+function getViewportSize(){
+  if(window.visualViewport){
+    return { w: window.visualViewport.width, h: window.visualViewport.height };
+  }
+  return { w: window.innerWidth, h: window.innerHeight };
+}
+
 function resizeDrawCanvas(){
   const canvas = getDrawCanvasCtx();
   if(!canvas) return;
   const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const { w, h } = getViewportSize();
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   const ctx = canvas.getContext('2d');
@@ -2486,8 +2497,7 @@ function renderDrawStrokes(strokes){
   const canvas = getDrawCanvasCtx();
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const { w, h } = getViewportSize();
   ctx.clearRect(0, 0, w, h);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -2514,6 +2524,15 @@ function renderDrawStrokes(strokes){
   });
 }
 
+// Ukur ulang & gambar ulang kanvas coretan. Dipanggil dari banyak titik (lihat
+// di bawah) supaya begitu ukuran layar yang sebenarnya "settle" — misalnya
+// setelah address bar HP hilang/muncul, rotasi layar, atau reflow halaman
+// selesai — coretan langsung menyesuaikan dan tidak nyangkut di ukuran yang salah.
+function refreshDrawCanvasSize(){
+  resizeDrawCanvas();
+  renderDrawStrokes(currentDrawStrokes);
+}
+
 async function initDrawListener(){
   const client = initSupabaseClient();
   if(!client) return;
@@ -2525,6 +2544,15 @@ async function initDrawListener(){
     console.error('Gagal memuat coretan admin:', e);
   }
   subscribeDrawChannel();
+
+  // Ukur ulang beberapa kali di awal (bukan cuma sekali) sebagai jaring pengaman —
+  // pada sebagian browser HP, ukuran layar yang benar baru "settle" beberapa saat
+  // setelah halaman selesai dimuat (address bar, font, dsb baru menyesuaikan belakangan).
+  setTimeout(refreshDrawCanvasSize, 300);
+  setTimeout(refreshDrawCanvasSize, 1000);
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(refreshDrawCanvasSize).catch(() => {});
+  }
 }
 
 function subscribeDrawChannel(){
@@ -2554,10 +2582,13 @@ async function resyncDrawIfNeeded(){
   }
 }
 
-window.addEventListener('resize', () => {
-  resizeDrawCanvas();
-  renderDrawStrokes(currentDrawStrokes);
-});
+window.addEventListener('resize', refreshDrawCanvasSize);
+window.addEventListener('orientationchange', () => setTimeout(refreshDrawCanvasSize, 200));
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', refreshDrawCanvasSize);
+  window.visualViewport.addEventListener('scroll', refreshDrawCanvasSize);
+}
+window.addEventListener('load', () => setTimeout(refreshDrawCanvasSize, 250));
 
 async function autoJoinFromStartup(){
   const params = new URLSearchParams(window.location.search);
