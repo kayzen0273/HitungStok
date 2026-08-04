@@ -352,10 +352,6 @@
   }
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
-  .cashier-popup-note{
-    font-size:10.5px; color:var(--ink-soft); text-align:center; padding:5px 10px 9px;
-  }
-  .cashier-popup-note a{color:var(--teal); font-weight:700; text-decoration:none;}
   .history-overlay.show{display:flex;}
   .history-modal{
     background:var(--card); border-radius:16px; width:100%; max-width:560px; max-height:82vh;
@@ -3139,12 +3135,11 @@ loadState();
     <div class="cashier-popup-body">
       <iframe id="cashierPopupFrame" src="about:blank" loading="lazy"></iframe>
     </div>
-    <div class="cashier-popup-note">Sebagian situs (termasuk Google) menolak dibuka dalam jendela kecil ini. Jika layar kosong, <a href="#" id="cashierOpenTabLink" target="_blank" rel="noopener noreferrer">buka di tab baru</a>.</div>
     <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
   </div>
 </div>
 <script>
-  var CASHIER_HOME = 'https://www.google.com/webhp?igu=1';
+  var CASHIER_HOME = 'https://app.farmacare.id/4833/cashier';
   var cashierHistory = [];
 
   function cashierUrlFromInput(raw){
@@ -3161,7 +3156,6 @@ loadState();
     var f = document.getElementById('cashierPopupFrame');
     f.src = url;
     document.getElementById('cashierAddrBar').value = url;
-    document.getElementById('cashierOpenTabLink').href = url;
     if(pushHistory !== false){
       cashierHistory.push(url);
     }
@@ -3189,6 +3183,9 @@ loadState();
   }
 
   function cashierGoBack(){
+    // Catatan: browser tidak mengizinkan kita membaca/mengontrol riwayat
+    // navigasi di dalam iframe beda domain. Jadi ini hanya bisa mundur ke
+    // alamat yang tercatat lewat address bar kita sendiri.
     if(cashierHistory.length > 1){
       cashierHistory.pop();
       var prev = cashierHistory[cashierHistory.length - 1];
