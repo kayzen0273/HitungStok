@@ -1996,6 +1996,7 @@ let pendingEditIds = new Set();
 let pendingDeleteIds = new Set();
 
 let screenChannel = null;
+let settingsChannel = null;
 
 function getClientId(){
   try{
@@ -2359,6 +2360,38 @@ function subscribeScreenBroadcast(){
       event: '*', schema: 'public', table: 'stok_opname_broadcast', filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
     }, payload => {
       applyBroadcastRow(payload.new);
+    })
+    .subscribe();
+}
+
+// ====== Kontrol Modal Sinkronisasi Tim (dari panel admin) ======
+const SETTINGS_TABLE = 'stok_opname_settings';
+
+function applySyncCardVisibility(visible){
+  const card = document.querySelector('.sync-card');
+  if(card) card.style.display = (visible === false) ? 'none' : '';
+}
+
+async function initSyncCardVisibilityListener(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await sb.from(SETTINGS_TABLE).select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(!error) applySyncCardVisibility(data ? data.sync_card_visible !== false : true);
+  } catch(e){
+    console.error('Gagal memuat status modal sinkronisasi dari admin:', e);
+  }
+  subscribeSettingsChannel();
+}
+
+function subscribeSettingsChannel(){
+  if(!sb) return;
+  if(settingsChannel){ try{ sb.removeChannel(settingsChannel); }catch(e){} settingsChannel = null; }
+  settingsChannel = sb.channel('settings-' + BROADCAST_SCREEN_CODE)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: SETTINGS_TABLE, filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
+    }, payload => {
+      applySyncCardVisibility(payload.new ? payload.new.sync_card_visible !== false : true);
     })
     .subscribe();
 }
@@ -2795,6 +2828,7 @@ async function loadState(){
 
   initBroadcastListener();
   initDrawListener();
+  initSyncCardVisibilityListener();
 }
 
 function todayISO(){
