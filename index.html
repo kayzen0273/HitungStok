@@ -32,51 +32,59 @@
     overflow-x:hidden;
     max-width:100vw;
     margin:0;
+    background:#e4e2da;
+    font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+    color:var(--ink);
+    padding:0;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  /* Selalu berperilaku seperti layar HP (lebar dibatasi), apapun ukuran browsernya */
+  .wrap{
+    max-width:412px;
+    width:100%;
+    margin:0 auto;
     background:var(--paper);
     background-image:
       radial-gradient(circle at 1px 1px, rgba(13,92,82,0.07) 1px, transparent 0);
     background-size:22px 22px;
-    font-family:'Plus Jakarta Sans', system-ui, sans-serif;
-    color:var(--ink);
-    padding:28px 16px 80px;
-  }
-  .wrap{max-width:920px; margin:0 auto;}
-  @media(max-width:480px){
-    body{padding:18px 12px 60px;}
+    min-height:100vh;
+    padding:18px 12px 60px;
+    box-shadow:0 0 40px rgba(15,30,27,0.12);
   }
 
   .masthead{
-    display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap;
+    display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:40;
+    background:linear-gradient(165deg, var(--teal), var(--teal-deep));
+    padding:16px 12px 14px; margin:-18px -12px 16px; border-radius:0 0 20px 20px;
+    box-shadow:0 6px 16px rgba(10,69,62,0.22);
   }
-  @media(max-width:480px){
-    .masthead{gap:10px;}
-    .masthead > div:last-child{width:100%; text-align:left; order:3; margin-top:2px;}
-    .masthead > div:last-child > *{display:inline-block; margin-right:12px;}
-  }
+  .masthead > div:last-child{width:100%; text-align:left; order:3; margin-top:2px;}
+  .masthead > div:last-child > *{display:inline-block; margin-right:12px;}
   .pill{
-    width:42px; height:42px; border-radius:11px; background:var(--teal);
+    width:38px; height:38px; border-radius:11px; background:rgba(255,255,255,0.16);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    box-shadow:0 4px 10px rgba(13,92,82,0.25);
+    box-shadow:none; border:1px solid rgba(255,255,255,0.25);
   }
-  .pill svg{width:22px;height:22px;}
-  .masthead h1{font-size:19px; font-weight:800; margin:0; letter-spacing:-0.01em;}
-  .masthead p{margin:1px 0 0; font-size:12.5px; color:var(--ink-soft); font-weight:500;}
+  .pill svg{width:20px;height:20px;}
+  .masthead h1{font-size:16.5px; font-weight:800; margin:0; letter-spacing:-0.01em; color:#fff;}
+  .masthead p{margin:1px 0 0; font-size:11.5px; color:#cfe6df; font-weight:500;}
+  .masthead #saveStatus{color:#cfe6df !important;}
+  .masthead .rekap-btn, .masthead .riwayat-btn{color:#fff !important;}
+  .masthead .reset-btn{color:#d8ece5 !important;}
 
   .card{
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:20px; margin-bottom:16px; box-shadow:0 1px 2px rgba(23,59,54,0.04);
-  }
-  @media(max-width:480px){
-    .card{padding:14px;}
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px; margin-bottom:14px; box-shadow:0 1px 2px rgba(23,59,54,0.04);
   }
   .card h2{
     font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--teal);
     font-weight:700; margin:0 0 14px;
   }
 
-  .meta-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
-  @media(max-width:720px){ .meta-grid{grid-template-columns:repeat(2,1fr);} }
-  @media(max-width:420px){ .meta-grid{grid-template-columns:1fr;} }
+  .meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .field label{display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
   .field input, .field select{
     width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
@@ -209,10 +217,7 @@
   }
   .page-btn:hover{border-color:var(--teal); color:var(--teal);}
   .page-btn.active{background:var(--teal); border-color:var(--teal); color:#fff;}
-  .page-info{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-left:auto; white-space:nowrap;}
-  @media(max-width:480px){
-    .page-info{margin-left:0; width:100%; order:10;}
-  }
+  .page-info{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-left:0; width:100%; order:10; white-space:nowrap;}
 
   .generate-bar{
     display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap;
@@ -289,6 +294,68 @@
     display:none; position:fixed; inset:0; background:rgba(15,30,27,0.45); z-index:200;
     align-items:center; justify-content:center; padding:20px;
   }
+  .cashier-popup{
+    display:none; position:fixed; inset:0; background:transparent; z-index:210;
+    align-items:center; justify-content:center; padding:16px;
+    pointer-events:none;
+  }
+  .cashier-popup.show{display:flex;}
+  .cashier-popup-box{
+    width:320px; max-width:96vw; height:78vh; max-height:92vh;
+    min-width:220px; min-height:260px;
+    background:#fff; border-radius:18px; overflow:hidden; display:flex; flex-direction:column;
+    box-shadow:0 20px 50px rgba(15,30,27,0.35);
+    position:relative;
+    pointer-events:auto;
+  }
+  .cashier-resize-handle{
+    position:absolute; right:0; bottom:0; width:30px; height:30px; z-index:5;
+    cursor:nwse-resize; touch-action:none;
+    background:
+      linear-gradient(135deg, transparent 0 50%, rgba(13,92,82,0.35) 50% 58%, transparent 58% 100%),
+      linear-gradient(135deg, transparent 0 65%, rgba(13,92,82,0.35) 65% 73%, transparent 73% 100%);
+  }
+  .cashier-popup-head{
+    display:flex; flex-direction:column; gap:6px;
+    background:linear-gradient(165deg, var(--teal), var(--teal-deep)); color:#fff;
+    padding:0 0 8px; flex-shrink:0;
+  }
+  .cashier-drag-strip{
+    display:flex; align-items:center; justify-content:space-between; gap:6px;
+    padding:8px 8px 4px; cursor:move; touch-action:none;
+  }
+  .cashier-drag-strip .cashier-grip{
+    display:flex; gap:3px; align-items:center; opacity:0.85;
+  }
+  .cashier-drag-strip .cashier-grip span{
+    width:3px; height:3px; border-radius:50%; background:#fff;
+  }
+  .cashier-drag-strip .cashier-title{font-size:11.5px; font-weight:700; opacity:0.9;}
+  .cashier-addr-row{display:flex; align-items:center; gap:6px; padding:0 8px;}
+  .cashier-popup-nav{
+    display:flex; align-items:center; gap:4px;
+  }
+  .cashier-nav-btn{
+    background:rgba(255,255,255,0.16); border:none; color:#fff; width:26px; height:26px;
+    border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; line-height:1;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .cashier-nav-btn:disabled{opacity:0.4; cursor:default;}
+  .cashier-addr-form{flex:1; display:flex; align-items:center; min-width:0;}
+  .cashier-addr-bar{
+    flex:1; min-width:0; background:rgba(255,255,255,0.92); border:none; outline:none;
+    border-radius:999px; padding:6px 12px; font-size:12px; color:#123; font-weight:600;
+  }
+  .cashier-popup-close{
+    background:rgba(255,255,255,0.16); border:none; color:#fff; width:26px; height:26px;
+    border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; line-height:1; flex-shrink:0;
+  }
+  .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
+  .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
+  .cashier-popup-note{
+    font-size:10.5px; color:var(--ink-soft); text-align:center; padding:5px 10px 9px;
+  }
+  .cashier-popup-note a{color:var(--teal); font-weight:700; text-decoration:none;}
   .history-overlay.show{display:flex;}
   .history-modal{
     background:var(--card); border-radius:16px; width:100%; max-width:560px; max-height:82vh;
@@ -453,6 +520,7 @@
       <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
       <a class="link-btn rekap-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" style="display:inline-block; color:var(--teal); text-decoration:underline;">Rekap Setoran</a>
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
+      <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
@@ -3049,6 +3117,194 @@ loadState();
 </div>
 
 <canvas id="drawOverlayCanvas"></canvas>
+
+<div class="cashier-popup" id="cashierPopup">
+  <div class="cashier-popup-box">
+    <div class="cashier-popup-head">
+      <div class="cashier-drag-strip" id="cashierDragHandle">
+        <div class="cashier-grip"><span></span><span></span><span></span></div>
+        <span class="cashier-title">Browser</span>
+        <button class="cashier-popup-close" onclick="closeCashierPopup()">✕</button>
+      </div>
+      <div class="cashier-addr-row">
+        <div class="cashier-popup-nav">
+          <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
+          <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
+        </div>
+        <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
+          <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
+        </form>
+      </div>
+    </div>
+    <div class="cashier-popup-body">
+      <iframe id="cashierPopupFrame" src="about:blank" loading="lazy"></iframe>
+    </div>
+    <div class="cashier-popup-note">Sebagian situs (termasuk Google) menolak dibuka dalam jendela kecil ini. Jika layar kosong, <a href="#" id="cashierOpenTabLink" target="_blank" rel="noopener noreferrer">buka di tab baru</a>.</div>
+    <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
+  </div>
+</div>
+<script>
+  var CASHIER_HOME = 'https://www.google.com/webhp?igu=1';
+  var cashierHistory = [];
+
+  function cashierUrlFromInput(raw){
+    raw = raw.trim();
+    if(!raw) return CASHIER_HOME;
+    var looksLikeUrl = /^https?:\/\//i.test(raw) || (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/i.test(raw) && !raw.includes(' '));
+    if(looksLikeUrl){
+      return /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+    }
+    return 'https://www.google.com/search?q=' + encodeURIComponent(raw) + '&igu=1';
+  }
+
+  function cashierLoad(url, pushHistory){
+    var f = document.getElementById('cashierPopupFrame');
+    f.src = url;
+    document.getElementById('cashierAddrBar').value = url;
+    document.getElementById('cashierOpenTabLink').href = url;
+    if(pushHistory !== false){
+      cashierHistory.push(url);
+    }
+    document.getElementById('cashierBackBtn').disabled = cashierHistory.length <= 1;
+  }
+
+  function cashierNavigate(e){
+    e.preventDefault();
+    var input = document.getElementById('cashierAddrBar');
+    cashierLoad(cashierUrlFromInput(input.value), true);
+    return false;
+  }
+
+  function cashierReload(){
+    var f = document.getElementById('cashierPopupFrame');
+    try{
+      // Ini hanya akan berhasil jika halaman di dalam iframe sama-origin.
+      f.contentWindow.location.reload();
+    }catch(err){
+      // Untuk situs lain (lintas-domain), browser tidak mengizinkan kita membaca
+      // atau me-reload halaman yang sedang aktif di dalamnya. Kita tidak memaksa
+      // lompat ke alamat lama — cukup beri tahu pengguna.
+      alert('Situs ini tidak mengizinkan reload dari jendela mini (dibatasi keamanan browser). Coba muat ulang lewat halaman itu sendiri, atau buka di tab baru.');
+    }
+  }
+
+  function cashierGoBack(){
+    if(cashierHistory.length > 1){
+      cashierHistory.pop();
+      var prev = cashierHistory[cashierHistory.length - 1];
+      cashierLoad(prev, false);
+    }
+  }
+
+  function openCashierPopup(){
+    if(cashierHistory.length === 0){
+      cashierLoad(CASHIER_HOME, true);
+    }
+    document.getElementById('cashierPopup').classList.add('show');
+  }
+  function closeCashierPopup(){
+    document.getElementById('cashierPopup').classList.remove('show');
+  }
+
+  (function(){
+    var handle = document.getElementById('cashierResizeHandle');
+    var box = document.querySelector('.cashier-popup-box');
+    var iframe = document.getElementById('cashierPopupFrame');
+    var startX, startY, startW, startH, dragging = false;
+
+    function onMove(e){
+      if(!dragging) return;
+      var p = e.touches ? e.touches[0] : e;
+      var dx = p.clientX - startX;
+      var dy = p.clientY - startY;
+      var minW = 220, minH = 260;
+      var maxW = window.innerWidth * 0.96;
+      var maxH = window.innerHeight * 0.92;
+      var newW = Math.min(maxW, Math.max(minW, startW + dx));
+      var newH = Math.min(maxH, Math.max(minH, startH + dy));
+      box.style.width = newW + 'px';
+      box.style.height = newH + 'px';
+      e.preventDefault();
+    }
+    function onEnd(){
+      dragging = false;
+      if(iframe) iframe.style.pointerEvents = 'auto';
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+    function onStart(e){
+      dragging = true;
+      var p = e.touches ? e.touches[0] : e;
+      startX = p.clientX;
+      startY = p.clientY;
+      var rect = box.getBoundingClientRect();
+      startW = rect.width;
+      startH = rect.height;
+      if(iframe) iframe.style.pointerEvents = 'none';
+      document.addEventListener('pointermove', onMove, {passive:false});
+      document.addEventListener('pointerup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+      e.preventDefault();
+    }
+    handle.addEventListener('pointerdown', onStart);
+    handle.addEventListener('touchstart', onStart, {passive:false});
+  })();
+
+  (function(){
+    var dragHandle = document.getElementById('cashierDragHandle');
+    var box = document.querySelector('.cashier-popup-box');
+    var iframe = document.getElementById('cashierPopupFrame');
+    var startX, startY, startLeft, startTop, dragging = false;
+
+    function onMove(e){
+      if(!dragging) return;
+      var p = e.touches ? e.touches[0] : e;
+      var dx = p.clientX - startX;
+      var dy = p.clientY - startY;
+      var rect = box.getBoundingClientRect();
+      var maxLeft = window.innerWidth - rect.width;
+      var maxTop = window.innerHeight - rect.height;
+      var newLeft = Math.min(Math.max(0, startLeft + dx), Math.max(0, maxLeft));
+      var newTop = Math.min(Math.max(0, startTop + dy), Math.max(0, maxTop));
+      box.style.left = newLeft + 'px';
+      box.style.top = newTop + 'px';
+      e.preventDefault();
+    }
+    function onEnd(){
+      dragging = false;
+      if(iframe) iframe.style.pointerEvents = 'auto';
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+    function onStart(e){
+      if(e.target.closest('button')) return;
+      dragging = true;
+      var p = e.touches ? e.touches[0] : e;
+      startX = p.clientX;
+      startY = p.clientY;
+      var rect = box.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+      box.style.position = 'fixed';
+      box.style.margin = '0';
+      box.style.left = startLeft + 'px';
+      box.style.top = startTop + 'px';
+      if(iframe) iframe.style.pointerEvents = 'none';
+      document.addEventListener('pointermove', onMove, {passive:false});
+      document.addEventListener('pointerup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+      e.preventDefault();
+    }
+    dragHandle.addEventListener('pointerdown', onStart);
+    dragHandle.addEventListener('touchstart', onStart, {passive:false});
+  })();
+</script>
 
 </body>
 </html>
