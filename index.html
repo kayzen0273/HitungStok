@@ -390,14 +390,79 @@
   .history-close:hover{background:#d7ece2;}
   .history-modal-body{overflow-y:auto; padding:14px 18px 18px;}
   .history-empty{font-size:12.5px; color:var(--ink-soft); text-align:center; padding:34px 10px; line-height:1.6;}
-  .history-item{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
-  .history-item-title{font-weight:700; font-size:13.5px;}
+
+  .hist-toko-group{margin-bottom:20px;}
+  .hist-toko-group:last-child{margin-bottom:0;}
+  .hist-toko-head{
+    display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800;
+    padding:9px 12px 9px 9px; border-radius:13px; margin:0 -4px 10px; position:sticky; top:0; z-index:5;
+    color:#fff; box-shadow:0 5px 14px rgba(15,30,27,0.18);
+  }
+  .hist-toko-head.tk-r1{background:linear-gradient(120deg, var(--teal), var(--teal-deep));}
+  .hist-toko-head.tk-r2{background:linear-gradient(120deg, #3f8fd4, #1c5487);}
+  .hist-toko-head.tk-other{background:linear-gradient(120deg, #909ba3, #5f6b72);}
+  .hist-toko-ico{
+    width:27px; height:27px; border-radius:9px; background:rgba(255,255,255,0.2);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    border:1px solid rgba(255,255,255,0.28);
+  }
+  .hist-toko-ico svg{width:15px; height:15px;}
+  .hist-toko-head .cnt{
+    margin-left:auto; font-size:10.5px; font-weight:700; background:rgba(255,255,255,0.22);
+    padding:3.5px 10px; border-radius:20px; white-space:nowrap; letter-spacing:.01em;
+  }
+
+  .hist-date-group{margin-bottom:4px;}
+  .hist-date-head{
+    display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.045em; color:var(--ink-soft);
+    margin:14px 2px 7px;
+  }
+  .hist-date-group:first-of-type .hist-date-head{margin-top:0;}
+  .hist-date-head svg{width:12px; height:12px; flex-shrink:0; opacity:0.65; color:var(--teal);}
+  .hist-date-head::after{content:''; flex:1; height:1px; background:linear-gradient(90deg, var(--line), transparent);}
+
+  .history-item{
+    border:1.5px solid var(--line); border-left:3.5px solid var(--line); border-radius:12px;
+    padding:11px 13px; margin-bottom:8px; background:var(--card);
+    transition:box-shadow .15s ease, transform .1s ease, border-color .15s ease;
+  }
+  .history-item:last-child{margin-bottom:0;}
+  .history-item:hover{box-shadow:0 4px 12px rgba(23,59,54,0.09);}
+  .history-item:active{transform:scale(0.99);}
+  .history-item.tk-r1{border-left-color:var(--teal);}
+  .history-item.tk-r2{border-left-color:var(--plus);}
+  .history-item.tk-other{border-left-color:#9aada6;}
+  .history-item-title{font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .hist-waktu-chip{
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--teal-deep);
+    background:var(--mint); padding:4px 10px 4px 8px; border-radius:20px; text-transform:capitalize;
+  }
+  .hist-waktu-chip svg{width:13px; height:13px; flex-shrink:0;}
   .toko-tap{cursor:default; user-select:none;}
   .edited-badge{
-    display:inline-block; font-size:10px; font-weight:700; color:var(--amber);
-    background:#fbf1e0; padding:2px 7px; border-radius:20px; vertical-align:middle;
+    display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:var(--amber);
+    background:#fbf1e0; padding:3.5px 9px 3.5px 7px; border-radius:20px; vertical-align:middle;
   }
-  .history-item-sub{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .edited-badge svg{width:10px; height:10px;}
+  .history-item-sub{
+    font-size:11.5px; color:var(--ink-soft); margin-top:8px;
+    display:flex; align-items:center; flex-wrap:wrap; gap:7px;
+  }
+  .history-item-sub .sep{color:var(--line);}
+  .hist-avatar{
+    display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px;
+    border-radius:50%; color:#fff; font-size:8.5px; font-weight:800; flex-shrink:0;
+  }
+  .hist-avatar.tk-r1{background:var(--teal);}
+  .hist-avatar.tk-r2{background:var(--plus);}
+  .hist-avatar.tk-other{background:#9aada6;}
+  .hist-petugas{display:inline-flex; align-items:center; gap:5px;}
+  .hist-saved{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--ink-soft);
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .hist-saved svg{width:11px; height:11px; opacity:0.7;}
   .history-item-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
   .history-btn{
     font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; border:1.5px solid var(--line);
@@ -429,34 +494,55 @@
 
   .review-modal{max-width:600px;}
   .review-filter-note{
-    background:#fbf1e0; color:#8a6420; border:1.5px solid #e9d3a6; border-radius:10px;
-    padding:9px 12px; font-size:11.5px; line-height:1.55; margin-top:12px;
+    background:#fbf1e0; color:#8a6420; border:1.5px solid #e9d3a6; border-radius:9px;
+    padding:7px 10px; font-size:11px; line-height:1.45; margin-top:10px;
   }
   .review-summary-bar{
-    display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; margin-bottom:2px;
-    font-size:11.5px; font-weight:700; color:var(--ink-soft);
+    display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 8px;
+    font-size:11px; font-weight:700; color:var(--ink-soft);
+    position:sticky; top:-1px; z-index:2; background:var(--card); padding:6px 0 2px;
   }
-  .review-list{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
-  .review-item{border:1.5px solid var(--line); border-radius:12px; padding:11px 13px;}
+  .review-summary-bar span{
+    display:inline-flex; align-items:center; gap:3px; background:#f4f4ee; border:1px solid var(--line);
+    border-radius:20px; padding:3px 9px 3px 7px;
+  }
+  .review-summary-bar span.s-exact{color:var(--klop); background:var(--klop-bg); border-color:#bcdfc9;}
+  .review-summary-bar span.s-fuzzy{color:var(--amber); background:#fbf1e0; border-color:#e9d3a6;}
+  .review-summary-bar span.s-none{color:var(--ink-soft); background:#f0efe8; border-color:var(--line);}
+  .review-list{display:flex; flex-direction:column; gap:5px;}
+  .review-item{
+    border:1.5px solid var(--line); border-radius:10px; padding:7px 9px;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
   .review-item.m-exact{border-color:#bcdfc9; background:#f5fbf7;}
   .review-item.m-fuzzy{border-color:#e9d3a6; background:#fffaf0;}
   .review-item.m-none{border-color:var(--line); background:#fafaf6;}
-  .review-item-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
-  .review-item-nama{font-weight:700; font-size:13px; color:var(--ink);}
-  .review-item-qty{font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--ink-soft); white-space:nowrap;}
-  .review-badge{
-    display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; padding:2px 8px;
-    border-radius:20px; white-space:nowrap; margin-top:6px;
+  .review-item-top{
+    display:flex; align-items:center; gap:7px; flex:1 1 100%; min-width:0;
   }
-  .review-badge.exact{background:var(--klop-bg); color:var(--klop);}
-  .review-badge.fuzzy{background:#fbf1e0; color:var(--amber);}
-  .review-badge.none{background:#f0efe8; color:#9aada6;}
-  .review-item-hint{font-size:11px; color:var(--ink-soft); margin-top:6px; line-height:1.5;}
-  .review-item-select-row{margin-top:9px;}
-  .review-item-select-row label{display:block; font-size:10.5px; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
+  .review-badge-ico{
+    width:19px; height:19px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; line-height:1;
+  }
+  .review-badge-ico.exact{background:var(--klop-bg); color:var(--klop);}
+  .review-badge-ico.fuzzy{background:#fbf1e0; color:var(--amber);}
+  .review-badge-ico.none{background:#f0efe8; color:#9aada6;}
+  .review-item-nama{
+    font-weight:700; font-size:12.5px; color:var(--ink); flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .review-item-qty{
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--ink-soft);
+    white-space:nowrap; flex-shrink:0;
+  }
+  .review-item-hint{
+    font-size:10.5px; color:var(--ink-soft); line-height:1.4; flex:1 1 100%; margin:-2px 0 0 26px;
+  }
+  .review-item-hint b{color:var(--ink); font-weight:700;}
   .review-item-select{
-    width:100%; padding:7px 8px; border:1.5px solid var(--line); border-radius:8px;
-    font-family:inherit; font-size:12.5px; background:var(--card); color:var(--ink);
+    flex:1 1 100%; margin-left:26px; width:calc(100% - 26px);
+    padding:6px 8px; border:1.5px solid var(--line); border-radius:7px;
+    font-family:inherit; font-size:11.5px; background:var(--card); color:var(--ink);
   }
   .review-item-select:focus{outline:none; border-color:var(--teal);}
 
@@ -821,11 +907,7 @@
     </div>
     <div class="history-modal-body">
       <div class="footnote" style="margin-top:0;">
-        Barang yang <b>cocok persis</b> otomatis akan diisi. Barang yang <b>mirip tapi ada
-        typo ringan</b> disarankan pencocokannya — cek dulu, benar atau tidak, sebelum
-        diterapkan. Barang yang <b>tidak ditemukan</b> akan ditambahkan sebagai barang baru —
-        kalau ternyata itu salah (barang sebenarnya sudah ada tapi namanya beda jauh), cari dan
-        pilih sendiri namanya di dropdown, atau buang / lewati baris itu kalau memang tidak perlu.
+        ✅ <b>Cocok persis</b> langsung diisi. 🟠 <b>Mirip (typo)</b> perlu dicek dulu. ➕ <b>Tidak ditemukan</b> jadi barang baru — kalau salah, ganti sendiri di dropdown atau lewati.
       </div>
       <div class="review-filter-note" id="reviewFilterNote" style="display:none;"></div>
       <div id="pasteStokReviewList"></div>
@@ -1727,14 +1809,15 @@ function renderPasteStokReview(){
   const countNone = items.filter(it => it.matchType === 'none').length;
 
   let html = `<div class="review-summary-bar">
-      <span>✅ ${countExact} cocok persis</span>
-      <span>🟠 ${countFuzzy} mirip, perlu dicek</span>
-      <span>➕ ${countNone} barang baru</span>
+      <span class="s-exact">✅ ${countExact} cocok</span>
+      <span class="s-fuzzy">🟠 ${countFuzzy} cek dulu</span>
+      <span class="s-none">➕ ${countNone} baru</span>
     </div><div class="review-list">`;
 
   html += items.map(it => {
     const badgeClass = it.matchType === 'exact' ? 'exact' : it.matchType === 'fuzzy' ? 'fuzzy' : 'none';
-    const badgeText = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Barang baru';
+    const badgeIco = it.matchType === 'exact' ? '✓' : it.matchType === 'fuzzy' ? '?' : '+';
+    const badgeTitle = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Barang baru';
     const itemClass = it.matchType === 'exact' ? 'm-exact' : it.matchType === 'fuzzy' ? 'm-fuzzy' : 'm-none';
 
     let optionsHtml = `<option value="__new__" ${it.choice === '__new__' ? 'selected' : ''}>➕ Tambahkan sebagai barang baru</option>`;
@@ -1747,24 +1830,21 @@ function renderPasteStokReview(){
 
     let hint = '';
     if(it.matchType === 'fuzzy' && it.row){
-      hint = `<div class="review-item-hint">Disarankan cocok dengan "<b>${escapeHtml(it.row.nama.trim())}</b>" (beda dikit, kemungkinan typo). Benar atau bukan? Kalau salah, ganti pilihannya di bawah.</div>`;
+      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.row.nama.trim())}</b> (mirip, mungkin typo) — cek benar/salah di bawah.</div>`;
     } else if(it.matchType === 'none'){
-      hint = `<div class="review-item-hint">Tidak ada barang yang mirip. Kalau sebenarnya barang ini sudah ada di daftar (nama beda jauh), cari & pilih namanya di bawah — atau buang baris ini kalau memang tidak perlu ditambahkan.</div>`;
+      hint = `<div class="review-item-hint">Tidak ada yang mirip → jadi barang baru. Kalau sebenarnya sudah ada, pilih manual di bawah.</div>`;
     }
 
     return `<div class="review-item ${itemClass}">
         <div class="review-item-top">
-          <div class="review-item-nama">${escapeHtml(it.nama)}</div>
-          <div class="review-item-qty">jumlah: ${it.qty}</div>
+          <span class="review-badge-ico ${badgeClass}" title="${badgeTitle}">${badgeIco}</span>
+          <span class="review-item-nama">${escapeHtml(it.nama)}</span>
+          <span class="review-item-qty">jml: ${it.qty}</span>
         </div>
-        <span class="review-badge ${badgeClass}">${badgeText}</span>
         ${hint}
-        <div class="review-item-select-row">
-          <label>Cocokkan ke:</label>
-          <select class="review-item-select" onchange="onReviewChoiceChange(${it.idx}, this.value)">
-            ${optionsHtml}
-          </select>
-        </div>
+        <select class="review-item-select" onchange="onReviewChoiceChange(${it.idx}, this.value)">
+          ${optionsHtml}
+        </select>
       </div>`;
   }).join('');
 
@@ -3219,26 +3299,119 @@ function closeHistoryModal(){
   document.getElementById('historyOverlay').classList.remove('show');
 }
 
+// Ikon-ikon kecil (gaya stroke, konsisten sama ikon lain di app) buat mempercantik
+// tampilan riwayat: jam (waktu update), kalender (header tanggal), pensil (badge
+// diedit), dan toko/kios (header grup toko).
+const HIST_ICO_CLOCK = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const HIST_ICO_CAL = '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const HIST_ICO_PENCIL = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 20l1-4.2L15.5 5.3l3.2 3.2L8.2 19 4 20Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+const HIST_ICO_STORE = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5V20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9.5" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 10.5 4.6 4h14.8L21 10.5" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.3 21v-6h5.4v6" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+
+function waktuIcon(w){
+  const icons = {
+    pagi: '<path d="M12 4v3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.2 13.5a5.8 5.8 0 0 1 11.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.3 6.7 12 4l2.7 2.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 13.5h19M4.5 17h15M7 20.3h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    siang: '<circle cx="12" cy="12" r="4.1" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.3v2M12 18.7v2M20.7 12h-2M5.3 12h-2M17.4 6.6l-1.4 1.4M8 16l-1.4 1.4M17.4 17.4 16 16M8 8 6.6 6.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    sore: '<path d="M12 8V4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.2 13.5a5.8 5.8 0 0 1 11.6 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.3 5.8 12 8.5l2.7-2.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 13.5h19M4.5 17h15M7 20.3h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    malam: '<path d="M20.2 14.8A8.6 8.6 0 1 1 9.2 3.8a7.1 7.1 0 0 0 11 11Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none">${icons[(w || '').toLowerCase()] || icons.siang}</svg>`;
+}
+
+// Mengelompokkan riwayat: pertama per nama toko (Rafa 1 / Rafa 2, sesuai urutan
+// TOKO_LIST — nama lain yang diketik manual ditaruh belakangan), lalu di dalam
+// tiap kelompok toko dipecah lagi per tanggal, supaya gampang dicari.
+function groupHistoryList(list){
+  const byToko = new Map();
+  const tokoOrder = [];
+  list.forEach(entry => {
+    const t = entry.toko || '-';
+    if(!byToko.has(t)){ byToko.set(t, []); tokoOrder.push(t); }
+    byToko.get(t).push(entry);
+  });
+  tokoOrder.sort((a, b) => {
+    const ia = TOKO_LIST.indexOf(a), ib = TOKO_LIST.indexOf(b);
+    const ra = ia === -1 ? 999 : ia, rb = ib === -1 ? 999 : ib;
+    if(ra !== rb) return ra - rb;
+    return a.localeCompare(b, 'id');
+  });
+  return tokoOrder.map(toko => {
+    const entries = byToko.get(toko);
+    const byDate = new Map();
+    const dateOrder = [];
+    entries.forEach(entry => {
+      const d = entry.tgl || '';
+      if(!byDate.has(d)){ byDate.set(d, []); dateOrder.push(d); }
+      byDate.get(d).push(entry);
+    });
+    return {
+      toko, total: entries.length,
+      dateGroups: dateOrder.map(tgl => ({ tgl, entries: byDate.get(tgl) }))
+    };
+  });
+}
+
+function formatTanggalPanjang(isoDate){
+  if(!isoDate) return 'Tanpa tanggal';
+  const d = new Date(isoDate + 'T00:00:00');
+  if(isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+}
+
+function tokoClassOf(toko){
+  return toko === 'Rafa 1' ? 'tk-r1' : toko === 'Rafa 2' ? 'tk-r2' : 'tk-other';
+}
+
 function renderHistoryList(list){
   const body = document.getElementById('historyListBody');
   if(!list.length){
     body.innerHTML = '<div class="history-empty">Belum ada riwayat.<br>Setiap kali kamu menekan "Salin ke WhatsApp", laporannya otomatis tersimpan di sini dan bisa dimuat ulang untuk diedit kapan saja.</div>';
     return;
   }
-  body.innerHTML = list.map(entry => {
-    const savedDate = new Date(entry.savedAt);
-    const savedFormatted = isNaN(savedDate.getTime()) ? '-' : savedDate.toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
-    const tglFormatted = formatTanggal(entry.tgl);
-    return `
-      <div class="history-item">
-        <div class="history-item-title"><span class="toko-tap" onclick="handleTokoTap(${entry.id})">${escapeHtml(entry.toko || '-')}</span> · ${escapeHtml(entry.waktu || '-')} · ${tglFormatted}${entry.editedFrom ? ' <span class="edited-badge">✎ Diedit</span>' : ''}</div>
-        <div class="history-item-sub">Petugas: ${escapeHtml(entry.petugas || '-')} • Disimpan ${savedFormatted}</div>
-        <div class="history-item-actions">
-          <button class="history-btn load" onclick="loadHistoryEntry(${entry.id})">Muat &amp; edit</button>
-          <button class="history-btn" onclick="toggleHistoryText(${entry.id})">Lihat teks</button>
-          <button class="history-btn del" id="delBtn-${entry.id}" style="display:none;" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
+  const groups = groupHistoryList(list);
+
+  body.innerHTML = groups.map(g => {
+    const tokoClass = tokoClassOf(g.toko);
+    const dateGroupsHtml = g.dateGroups.map(dg => {
+      const itemsHtml = dg.entries.map(entry => {
+        const savedDate = new Date(entry.savedAt);
+        const savedFormatted = isNaN(savedDate.getTime()) ? '-' : savedDate.toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+        const petugasNama = (entry.petugas || '-').trim() || '-';
+        const inisial = petugasNama !== '-' ? petugasNama.charAt(0).toUpperCase() : '?';
+        return `
+          <div class="history-item ${tokoClass}">
+            <div class="history-item-title">
+              <span class="hist-waktu-chip">${waktuIcon(entry.waktu)}${escapeHtml(entry.waktu || '-')}</span>
+              ${entry.editedFrom ? `<span class="edited-badge">${HIST_ICO_PENCIL}Diedit</span>` : ''}
+            </div>
+            <div class="history-item-sub">
+              <span class="hist-petugas"><span class="hist-avatar ${tokoClass}">${escapeHtml(inisial)}</span>${escapeHtml(petugasNama)}</span>
+              <span class="sep">•</span>
+              <span class="hist-saved toko-tap" onclick="handleTokoTap(${entry.id})">${HIST_ICO_CLOCK}${savedFormatted}</span>
+            </div>
+            <div class="history-item-actions">
+              <button class="history-btn load" onclick="loadHistoryEntry(${entry.id})">Muat &amp; edit</button>
+              <button class="history-btn" onclick="toggleHistoryText(${entry.id})">Lihat teks</button>
+              <button class="history-btn del" id="delBtn-${entry.id}" style="display:none;" onclick="deleteHistoryEntry(${entry.id})">Hapus</button>
+            </div>
+            <div class="history-item-text" id="histText-${entry.id}" style="display:none;">${escapeHtml(entry.text || '')}</div>
+          </div>
+        `;
+      }).join('');
+      return `
+        <div class="hist-date-group">
+          <div class="hist-date-head">${HIST_ICO_CAL}${formatTanggalPanjang(dg.tgl)}</div>
+          ${itemsHtml}
         </div>
-        <div class="history-item-text" id="histText-${entry.id}" style="display:none;">${escapeHtml(entry.text || '')}</div>
+      `;
+    }).join('');
+
+    return `
+      <div class="hist-toko-group">
+        <div class="hist-toko-head ${tokoClass}">
+          <span class="hist-toko-ico">${HIST_ICO_STORE}</span>${escapeHtml(g.toko)}
+          <span class="cnt">${g.total} laporan</span>
+        </div>
+        ${dateGroupsHtml}
       </div>
     `;
   }).join('');
