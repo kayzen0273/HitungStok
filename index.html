@@ -427,6 +427,39 @@
   }
   .paste-stok-result.show{display:block;}
 
+  .review-modal{max-width:600px;}
+  .review-filter-note{
+    background:#fbf1e0; color:#8a6420; border:1.5px solid #e9d3a6; border-radius:10px;
+    padding:9px 12px; font-size:11.5px; line-height:1.55; margin-top:12px;
+  }
+  .review-summary-bar{
+    display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; margin-bottom:2px;
+    font-size:11.5px; font-weight:700; color:var(--ink-soft);
+  }
+  .review-list{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
+  .review-item{border:1.5px solid var(--line); border-radius:12px; padding:11px 13px;}
+  .review-item.m-exact{border-color:#bcdfc9; background:#f5fbf7;}
+  .review-item.m-fuzzy{border-color:#e9d3a6; background:#fffaf0;}
+  .review-item.m-none{border-color:var(--line); background:#fafaf6;}
+  .review-item-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+  .review-item-nama{font-weight:700; font-size:13px; color:var(--ink);}
+  .review-item-qty{font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--ink-soft); white-space:nowrap;}
+  .review-badge{
+    display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; padding:2px 8px;
+    border-radius:20px; white-space:nowrap; margin-top:6px;
+  }
+  .review-badge.exact{background:var(--klop-bg); color:var(--klop);}
+  .review-badge.fuzzy{background:#fbf1e0; color:var(--amber);}
+  .review-badge.none{background:#f0efe8; color:#9aada6;}
+  .review-item-hint{font-size:11px; color:var(--ink-soft); margin-top:6px; line-height:1.5;}
+  .review-item-select-row{margin-top:9px;}
+  .review-item-select-row label{display:block; font-size:10.5px; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
+  .review-item-select{
+    width:100%; padding:7px 8px; border:1.5px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:12.5px; background:var(--card); color:var(--ink);
+  }
+  .review-item-select:focus{outline:none; border-color:var(--teal);}
+
   .confirm-overlay{
     display:none; position:fixed; inset:0; background:rgba(15,30,27,0.5); z-index:300;
     align-items:center; justify-content:center; padding:20px;
@@ -764,14 +797,11 @@
     <div class="history-modal-body">
       <div class="footnote" style="margin-top:0;">
         Tempel teks daftar barang di bawah, satu barang per baris, format <b>Nama barang : jumlah</b>
-        (nomor urut di depan seperti "1." boleh ada atau tidak). Kalau nama barang sudah ada di tabel,
-        angkanya akan diisi otomatis ke baris yang cocok. Kalau nama barang <b>belum ada</b> di tabel,
-        barang itu akan otomatis ditambahkan sebagai baris baru (nama + jumlahnya sekalian terisi) — jadi
-        tidak perlu ketik manual satu-satu. Kalau ada nama barang di nomor urut tertentu yang mirip tapi
-        <b>tidak persis sama</b> dengan nama di tabel (misal ada huruf yang diganti atau ditambahin sesuatu),
-        akan muncul konfirmasi dulu: mau nama barangnya <b>diubah</b> mengikuti teks yang ditempel, atau
-        <b>tetap</b> pakai nama yang sudah ada. Lalu pilih mau diisi ke kolom Rafa 1 atau Rafa 2 — akan diminta
-        konfirmasi dulu sebelum data lama di kolom itu ditimpa.
+        (nomor urut di depan seperti "1." boleh ada atau tidak). Setelah klik "Isi ke Rafa 1/2", nama
+        barang akan otomatis dicocokkan ke barang yang sudah ada di tabel — <b>termasuk kalau ada
+        typo ringan</b> (huruf diganti/kurang/lebih) — lalu muncul halaman <b>review</b> untuk mengecek
+        satu per satu: cocok atau tidak, boleh diganti manual (cari barang lain), atau dibuang kalau
+        memang tidak perlu, sebelum benar-benar diterapkan ke tabel.
       </div>
       <textarea id="pasteStokText" class="paste-stok-textarea" placeholder="1. Plossa merah : 3&#10;2. Bodrex tab : 5&#10;3. Antangin jrg : 6&#10;4. Trisela : 0&#10;5. Flucadex tab : 0&#10;6. Panadol hijau : 0"></textarea>
       <div class="paste-stok-actions">
@@ -779,6 +809,30 @@
         <button type="button" class="btn-main" onclick="applyPasteStokConfirm('t2')">Isi ke Rafa 2</button>
       </div>
       <div class="paste-stok-result" id="pasteStokResult"></div>
+    </div>
+  </div>
+</div>
+
+<div class="history-overlay" id="pasteStokReviewOverlay" onclick="if(event.target===this) closePasteStokReviewModal()" style="z-index:250;">
+  <div class="history-modal review-modal">
+    <div class="history-modal-head">
+      <h3>Review Sebelum Diisi</h3>
+      <button class="history-close" onclick="closePasteStokReviewModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Barang yang <b>cocok persis</b> otomatis akan diisi. Barang yang <b>mirip tapi ada
+        typo ringan</b> disarankan pencocokannya — cek dulu, benar atau tidak, sebelum
+        diterapkan. Barang yang <b>tidak ditemukan</b> akan ditambahkan sebagai barang baru —
+        kalau ternyata itu salah (barang sebenarnya sudah ada tapi namanya beda jauh), cari dan
+        pilih sendiri namanya di dropdown, atau buang / lewati baris itu kalau memang tidak perlu.
+      </div>
+      <div class="review-filter-note" id="reviewFilterNote" style="display:none;"></div>
+      <div id="pasteStokReviewList"></div>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-add" style="border-style:solid;" onclick="closePasteStokReviewModal()">Batal</button>
+        <button type="button" class="btn-main" onclick="confirmPasteStokReview()">Terapkan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -939,6 +993,19 @@ function getVisibleRows(){
     if(searchQuery && !r.nama.toLowerCase().includes(searchQuery)) return false;
     return true;
   });
+}
+
+// Dipakai oleh "Salin nama barang saja" dan "Tempel & isi stok": kalau ada
+// filter yang sedang aktif (pencarian / status minus-plus / belum dicek),
+// kedua fitur itu cuma bekerja pada barang yang sedang tampil di filter
+// tersebut. Kalau tidak ada filter aktif, tetap bekerja ke semua barang
+// seperti biasa. "Salin ke WhatsApp" sengaja TIDAK memakai ini — itu selalu
+// memakai semua barang apa pun filternya.
+function isAnyFilterActive(){
+  return !!searchQuery || showOnlyUnchecked || statusFilter !== 'all';
+}
+function getWorkingRows(){
+  return isAnyFilterActive() ? getVisibleRows() : rows;
 }
 
 function onSearchInput(val){
@@ -1310,12 +1377,13 @@ function generate(doCopy){
 }
 
 function copyNamaBarang(){
-  const namaList = rows
+  const filterAktif = isAnyFilterActive();
+  const namaList = getWorkingRows()
     .map(r => r.nama.trim())
     .filter(nama => nama !== '');
 
   if(namaList.length === 0){
-    alert('Belum ada nama barang yang diisi.');
+    alert(filterAktif ? 'Tidak ada nama barang yang cocok dengan filter saat ini.' : 'Belum ada nama barang yang diisi.');
     return;
   }
 
@@ -1323,6 +1391,7 @@ function copyNamaBarang(){
 
   navigator.clipboard.writeText(teks).then(() => {
     const msg = document.getElementById('copiedMsgNama');
+    msg.textContent = filterAktif ? `Tersalin ✓ ${namaList.length} nama barang (sesuai filter aktif)` : 'Tersalin ✓ nama barang siap ditempel';
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 2500);
   }).catch(() => {
@@ -1335,6 +1404,7 @@ function copyNamaBarang(){
     try{ document.execCommand('copy'); }catch(e){}
     document.body.removeChild(ta);
     const msg = document.getElementById('copiedMsgNama');
+    msg.textContent = filterAktif ? `Tersalin ✓ ${namaList.length} nama barang (sesuai filter aktif)` : 'Tersalin ✓ nama barang siap ditempel';
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 2500);
   });
@@ -1386,6 +1456,8 @@ function openPasteStokModal(){
 
 function closePasteStokModal(){
   document.getElementById('pasteStokOverlay').classList.remove('show');
+  closePasteStokReviewModal();
+  pasteStokReviewState = null;
 }
 
 // ====== Tempel Nama Barang Saja ======
@@ -1532,132 +1604,239 @@ function levenshteinDistance(a, b){
   return prev[n];
 }
 
-// Nebak apakah "namaBaru" kemungkinan cuma versi ubahan dari "namaLama"
-// (ada huruf yang diganti / ditambahin sesuatu), bukan nama barang lain
-// yang beda sama sekali.
-function isKemungkinanNamaBerubah(namaLama, namaBaru){
-  const a = normalizeNamaForMatch(namaLama);
-  const b = normalizeNamaForMatch(namaBaru);
-  if(!a || !b || a === b) return false;
-  const maxLen = Math.max(a.length, b.length);
-  if(maxLen === 0) return false;
-  const dist = levenshteinDistance(a, b);
-  // Toleransi: maksimal ~35% dari panjang nama (minimal 2 karakter) boleh beda,
-  // supaya cuma nangkep perubahan kecil, bukan nama yang memang beda total.
-  const toleransi = Math.max(2, Math.ceil(maxLen * 0.35));
-  return dist > 0 && dist <= toleransi;
-}
-
 async function applyPasteStokConfirm(target){
   if(isViewOnlyForMe()) return;
   const text = document.getElementById('pasteStokText').value;
   const items = parsePasteStokText(text);
   const resultEl = document.getElementById('pasteStokResult');
+  resultEl.classList.remove('show');
   if(items.length === 0){
     resultEl.classList.add('show');
     resultEl.textContent = 'Belum ada baris yang bisa dibaca. Pastikan formatnya "Nama barang : angka" per baris.';
     return;
   }
-  const labelToko = target === 't1' ? 'Rafa 1' : 'Rafa 2';
-  const ok = await customConfirm(
-    `Isi ${items.length} baris stok yang ditempel ke kolom ${labelToko}?\n\nData lama di kolom ${labelToko} untuk barang yang cocok akan ditimpa dengan angka dari teks ini. Barang yang namanya belum ada di daftar akan otomatis ditambahkan sebagai baris baru.`,
-    'Isi sekarang', 'Batal'
-  );
-  if(!ok) return;
-  await applyPasteStok(target, items);
+  openPasteStokReview(target, items);
 }
 
-async function applyPasteStok(target, items){
-  const byName = new Map();
-  rows.forEach(r => {
-    const key = normalizeNamaForMatch(r.nama);
-    if(key) byName.set(key, r);
+// Cari barang di "scopeRows" yang namanya paling mendekati namaBaru — dipakai
+// untuk menyarankan pencocokan otomatis kalau ada typo ringan (huruf diganti /
+// ditambahin / kurang), tapi bukan barang yang memang beda sama sekali.
+function computeBestMatch(namaBaru, scopeRows, usedIds){
+  const bKey = normalizeNamaForMatch(namaBaru);
+  if(!bKey) return null;
+  let best = null;
+  for(const r of scopeRows){
+    if(!r.nama.trim() || usedIds.has(r.id)) continue;
+    const aKey = normalizeNamaForMatch(r.nama);
+    if(!aKey) continue;
+    const dist = levenshteinDistance(aKey, bKey);
+    if(dist === 0) return { row:r, dist:0, exact:true };
+    const maxLen = Math.max(aKey.length, bKey.length);
+    const toleransi = Math.max(2, Math.ceil(maxLen * 0.35));
+    if(dist <= toleransi && (!best || dist < best.dist)){
+      best = { row:r, dist, exact:false };
+    }
+  }
+  return best;
+}
+
+// Mencocokkan tiap barang yang ditempel ke barang yang sudah ada di daftar
+// (dalam cakupan filter yang aktif kalau ada):
+// - 'exact' kalau namanya sama persis (setelah huruf besar/kecil & spasi dirapikan)
+// - 'fuzzy' kalau mirip tapi ada beda dikit (typo ringan) — akan disarankan, tapi
+//   tetap perlu dicek/dikonfirmasi dulu oleh pengguna sebelum diterapkan
+// - 'none' kalau tidak ada yang mirip — akan dianggap barang baru (bisa diganti manual)
+function analyzePasteStokItems(items, scopeRows){
+  const usedIds = new Set();
+  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', row:null, dist:null }));
+
+  // Tahap 1: cocokkan dulu yang namanya sama persis, supaya tidak "direbut"
+  // duluan oleh pencocokan mirip punya barang lain.
+  results.forEach(res => {
+    const bKey = normalizeNamaForMatch(res.nama);
+    if(!bKey) return;
+    const row = scopeRows.find(r => !usedIds.has(r.id) && r.nama.trim() && normalizeNamaForMatch(r.nama) === bKey);
+    if(row){
+      res.matchType = 'exact';
+      res.row = row;
+      res.dist = 0;
+      usedIds.add(row.id);
+    }
   });
 
-  // Urutan barang yang namanya sudah terisi di tabel, sesuai urutan baris
-  // (ini urutan yang sama dipakai waktu "Salin nama barang saja"), dipakai
-  // untuk menebak barang mana yang "sama" berdasarkan nomor urutnya kalau
-  // namanya tidak cocok persis.
-  const filledRows = rows.filter(r => r.nama.trim() !== '');
-  const sudahDiputuskan = new Set(); // id baris yang sudah ditanya, jangan ditanya dua kali
+  // Tahap 2: sisanya dicari barang yang paling mirip (typo ringan).
+  results.forEach(res => {
+    if(res.matchType === 'exact') return;
+    const best = computeBestMatch(res.nama, scopeRows, usedIds);
+    if(best){
+      res.matchType = best.exact ? 'exact' : 'fuzzy';
+      res.row = best.row;
+      res.dist = best.dist;
+      usedIds.add(best.row.id);
+    }
+  });
 
-  // Baris-baris yang nama-nya masih kosong — dipakai dulu sebelum bikin baris baru,
-  // supaya baris kosong yang sudah ada di tabel tidak mubazir.
-  const emptyRows = rows.filter(r => !r.nama.trim());
-  let emptyIdx = 0;
+  return results;
+}
 
-  let updated = 0;
-  let filledEmpty = 0;
-  let added = 0;
-  let namaDiubah = 0;
+let pasteStokReviewState = null;
+
+function openPasteStokReview(target, items){
+  // Pencocokan otomatis dibatasi ke barang yang sesuai filter aktif (kalau ada),
+  // tapi dropdown pilihan manual tetap menampilkan SEMUA barang di daftar, supaya
+  // barang yang benar tetap bisa dicari & dipilih meski di luar filter saat ini.
+  const filterAktif = isAnyFilterActive();
+  const matchScope = (filterAktif ? getVisibleRows() : rows).filter(r => r.nama.trim() !== '');
+  const allNamedRows = rows.filter(r => r.nama.trim() !== '');
+  const results = analyzePasteStokItems(items, matchScope);
+
+  pasteStokReviewState = {
+    target,
+    filterAktif,
+    optionRows: [...allNamedRows].sort((a, b) => a.nama.trim().toLowerCase().localeCompare(b.nama.trim().toLowerCase(), 'id')),
+    items: results.map(res => ({
+      ...res,
+      choice: res.matchType === 'none' ? '__new__' : String(res.row.id)
+    }))
+  };
+  renderPasteStokReview();
+  document.getElementById('pasteStokReviewOverlay').classList.add('show');
+}
+
+function closePasteStokReviewModal(){
+  const el = document.getElementById('pasteStokReviewOverlay');
+  if(el) el.classList.remove('show');
+}
+
+function renderPasteStokReview(){
+  if(!pasteStokReviewState) return;
+  const { items, optionRows, filterAktif } = pasteStokReviewState;
+
+  const noteEl = document.getElementById('reviewFilterNote');
+  if(noteEl){
+    if(filterAktif){
+      noteEl.style.display = 'block';
+      noteEl.textContent = 'Filter sedang aktif — saran pencocokan otomatis di bawah cuma dicari dari barang yang sesuai filter saat ini. Kalau barang yang dimaksud ada di luar filter, tetap bisa dicari & dipilih manual lewat dropdown-nya.';
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+
+  const countExact = items.filter(it => it.matchType === 'exact').length;
+  const countFuzzy = items.filter(it => it.matchType === 'fuzzy').length;
+  const countNone = items.filter(it => it.matchType === 'none').length;
+
+  let html = `<div class="review-summary-bar">
+      <span>✅ ${countExact} cocok persis</span>
+      <span>🟠 ${countFuzzy} mirip, perlu dicek</span>
+      <span>➕ ${countNone} barang baru</span>
+    </div><div class="review-list">`;
+
+  html += items.map(it => {
+    const badgeClass = it.matchType === 'exact' ? 'exact' : it.matchType === 'fuzzy' ? 'fuzzy' : 'none';
+    const badgeText = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Barang baru';
+    const itemClass = it.matchType === 'exact' ? 'm-exact' : it.matchType === 'fuzzy' ? 'm-fuzzy' : 'm-none';
+
+    let optionsHtml = `<option value="__new__" ${it.choice === '__new__' ? 'selected' : ''}>➕ Tambahkan sebagai barang baru</option>`;
+    optionsHtml += `<option value="__skip__" ${it.choice === '__skip__' ? 'selected' : ''}>🗑 Lewati / buang baris ini</option>`;
+    optionsHtml += optionRows.map(r => {
+      const isSuggested = it.matchType !== 'none' && it.row && r.id === it.row.id;
+      const label = isSuggested ? `${r.nama.trim()} (disarankan)` : r.nama.trim();
+      return `<option value="${r.id}" ${it.choice === String(r.id) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+    }).join('');
+
+    let hint = '';
+    if(it.matchType === 'fuzzy' && it.row){
+      hint = `<div class="review-item-hint">Disarankan cocok dengan "<b>${escapeHtml(it.row.nama.trim())}</b>" (beda dikit, kemungkinan typo). Benar atau bukan? Kalau salah, ganti pilihannya di bawah.</div>`;
+    } else if(it.matchType === 'none'){
+      hint = `<div class="review-item-hint">Tidak ada barang yang mirip. Kalau sebenarnya barang ini sudah ada di daftar (nama beda jauh), cari & pilih namanya di bawah — atau buang baris ini kalau memang tidak perlu ditambahkan.</div>`;
+    }
+
+    return `<div class="review-item ${itemClass}">
+        <div class="review-item-top">
+          <div class="review-item-nama">${escapeHtml(it.nama)}</div>
+          <div class="review-item-qty">jumlah: ${it.qty}</div>
+        </div>
+        <span class="review-badge ${badgeClass}">${badgeText}</span>
+        ${hint}
+        <div class="review-item-select-row">
+          <label>Cocokkan ke:</label>
+          <select class="review-item-select" onchange="onReviewChoiceChange(${it.idx}, this.value)">
+            ${optionsHtml}
+          </select>
+        </div>
+      </div>`;
+  }).join('');
+
+  html += `</div>`;
+  document.getElementById('pasteStokReviewList').innerHTML = html;
+}
+
+function onReviewChoiceChange(idx, value){
+  if(!pasteStokReviewState) return;
+  const it = pasteStokReviewState.items.find(x => x.idx === idx);
+  if(it) it.choice = value;
+}
+
+async function confirmPasteStokReview(){
+  if(!pasteStokReviewState) return;
+  const { target, items } = pasteStokReviewState;
+
+  // Kalau ada lebih dari satu baris yang dicocokkan ke barang yang sama,
+  // ingatkan dulu supaya tidak salah timpa data tanpa sadar.
+  const pickCount = new Map();
+  items.forEach(it => {
+    if(it.choice !== '__new__' && it.choice !== '__skip__'){
+      pickCount.set(it.choice, (pickCount.get(it.choice) || 0) + 1);
+    }
+  });
+  const adaDuplikat = [...pickCount.values()].some(c => c > 1);
+  if(adaDuplikat){
+    const lanjut = await customConfirm(
+      'Ada lebih dari satu baris yang dicocokkan ke barang yang sama. Kalau dilanjutkan, cuma angka dari baris terakhir yang akan tersimpan untuk barang tersebut.\n\nLanjutkan?',
+      'Lanjutkan', 'Batal'
+    );
+    if(!lanjut) return;
+  }
+
+  let updated = 0, added = 0, skipped = 0;
   const newRowsToAppend = [];
+  const byId = new Map(rows.map(r => [r.id, r]));
 
-  for(let idx = 0; idx < items.length; idx++){
-    const it = items[idx];
-    const key = normalizeNamaForMatch(it.nama);
-    let row = byName.get(key);
-
-    // Kalau nama tidak cocok persis, cek dulu apakah barang di nomor urut
-    // yang sama kemungkinan cuma "diubah dikit" (huruf diganti / ditambahin
-    // sesuatu), bukan barang baru yang sungguhan berbeda.
-    if(!row){
-      const kandidat = filledRows[idx];
-      if(
-        kandidat &&
-        !sudahDiputuskan.has(kandidat.id) &&
-        normalizeNamaForMatch(kandidat.nama) !== key &&
-        byName.get(normalizeNamaForMatch(kandidat.nama)) === kandidat &&
-        isKemungkinanNamaBerubah(kandidat.nama, it.nama)
-      ){
-        sudahDiputuskan.add(kandidat.id);
-        const mauUbah = await customConfirm(
-          `Baris ke-${idx + 1}: nama barang di daftar terisi "${kandidat.nama}", ` +
-          `tapi di teks yang ditempel tertulis "${it.nama}".\n\n` +
-          `Sepertinya ini nama barang yang sama tapi berubah (ada huruf diganti / ditambahin sesuatu).`,
-          `Ubah jadi "${it.nama}"`, `Tetap "${kandidat.nama}"`
-        );
-        if(mauUbah){
-          byName.delete(normalizeNamaForMatch(kandidat.nama));
-          kandidat.nama = it.nama;
-          byName.set(key, kandidat);
-          namaDiubah++;
-        }
-        row = kandidat;
-      }
+  items.forEach(it => {
+    if(it.choice === '__skip__'){
+      skipped++;
+      return;
     }
-
-    if(!row && emptyIdx < emptyRows.length){
-      // Pakai baris kosong yang sudah ada dulu.
-      row = emptyRows[emptyIdx++];
-      row.nama = it.nama;
-      byName.set(key, row);
-      filledEmpty++;
-    }
-
-    if(!row){
-      // Tidak ada baris kosong tersisa — buat baris baru.
+    let row;
+    if(it.choice === '__new__'){
       row = newRow();
       row.nama = it.nama;
       newRowsToAppend.push(row);
-      byName.set(key, row);
+      byId.set(row.id, row);
       added++;
+    } else {
+      row = byId.get(parseInt(it.choice, 10));
+      if(!row) return;
+      updated++;
     }
-
     row[target] = it.qty;
     pendingEditIds.add(row.id);
-    updated++;
-  }
+  });
 
   if(newRowsToAppend.length) rows.push(...newRowsToAppend);
 
   render();
   saveState();
 
+  closePasteStokReviewModal();
+  pasteStokReviewState = null;
+
   const labelToko = target === 't1' ? 'Rafa 1' : 'Rafa 2';
-  let msg = `✓ ${updated} dari ${items.length} barang berhasil diisi ke kolom ${labelToko}.`;
-  if(namaDiubah) msg += `\n• ${namaDiubah} nama barang diubah sesuai teks yang ditempel.`;
-  if(filledEmpty) msg += `\n• ${filledEmpty} mengisi baris kosong yang sudah ada.`;
-  if(added) msg += `\n• ${added} ditambahkan sebagai baris baru.`;
+  let msg = `✓ ${updated + added} dari ${items.length} barang berhasil diisi ke kolom ${labelToko}.`;
+  if(updated) msg += `\n• ${updated} mengisi barang yang sudah ada.`;
+  if(added) msg += `\n• ${added} ditambahkan sebagai barang baru.`;
+  if(skipped) msg += `\n• ${skipped} baris dilewati / dibuang.`;
   const resultEl = document.getElementById('pasteStokResult');
   resultEl.classList.add('show');
   resultEl.textContent = msg;
