@@ -177,26 +177,47 @@
   .stat.checked .n{color:var(--klop);}
   .stat.unchecked .n{color:var(--amber);}
 
-  .search-row{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
-  .search-box-wrap{position:relative; flex:1; min-width:200px;}
+  .search-row{display:flex; gap:10px; align-items:center; margin-bottom:10px;}
+  .search-box-wrap{position:relative; flex:1; min-width:0;}
   .search-box-wrap svg{
     position:absolute; left:11px; top:50%; transform:translateY(-50%);
     width:15px; height:15px; color:#9aada6; pointer-events:none;
   }
   #searchBox{
-    width:100%; padding:9px 12px 9px 33px; border:1.5px solid var(--line); border-radius:9px;
+    width:100%; padding:9px 32px 9px 33px; border:1.5px solid var(--line); border-radius:9px;
     font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
   }
   #searchBox:focus{outline:none; border-color:var(--teal);}
   .clear-search{
-    position:absolute; right:8px; top:50%; transform:translateY(-50%);
-    background:none; border:none; cursor:pointer; color:#9aada6; padding:3px;
+    position:absolute; right:4px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; color:#b3c0b9; padding:5px;
+    width:24px; height:24px; border-radius:7px;
     display:none; align-items:center; justify-content:center;
   }
   .clear-search.show{display:flex;}
-  .clear-search:hover{color:var(--minus);}
-  .clear-search svg{width:14px;height:14px;}
+  .clear-search:hover{color:var(--minus); background:var(--minus-bg);}
+  .clear-search svg{width:13px;height:13px;}
+  .filter-row{display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+  .filter-row .visible-count{margin-left:auto;}
   .visible-count{font-size:11.5px; color:var(--ink-soft); font-weight:600; white-space:nowrap;}
+  .status-filter-wrap{position:relative; display:inline-flex; align-items:center;}
+  .status-filter-wrap svg{
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    width:13px; height:13px; color:var(--ink-soft); pointer-events:none;
+  }
+  #statusFilter{
+    appearance:none; -webkit-appearance:none; background:var(--card); color:var(--ink-soft);
+    border:1.5px solid var(--line); border-radius:20px; padding:6px 26px 6px 30px;
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+  }
+  #statusFilter:focus{outline:none; border-color:var(--teal);}
+  .status-filter-wrap::after{
+    content:''; position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:5px solid #9aada6; pointer-events:none;
+  }
+  #statusFilter.f-minus{border-color:#e4b8ab; background:var(--minus-bg); color:var(--minus);}
+  #statusFilter.f-plus{border-color:#c3d9ee; background:var(--plus-bg); color:var(--plus);}
   .empty-row-msg{text-align:center; padding:28px 10px; color:var(--ink-soft); font-size:13px;}
 
   .pagination-bar{
@@ -611,10 +632,20 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
+    </div>
+    <div class="filter-row">
       <button type="button" class="chip-toggle" id="uncheckedToggleBtn" onclick="toggleUncheckedFilter()">
         <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
         Belum dicek saja
       </button>
+      <div class="status-filter-wrap">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <select id="statusFilter" onchange="onStatusFilterChange(this.value)">
+          <option value="all">Filter: semua</option>
+          <option value="minus">Filter: minus</option>
+          <option value="plus">Filter: plus</option>
+        </select>
+      </div>
       <span class="visible-count" id="visibleCountLabel"></span>
     </div>
     <div class="table-scroll">
@@ -789,6 +820,7 @@ let hideToko = { t1:false, t2:false };
 let editingFromId = null;
 let searchQuery = '';
 let showOnlyUnchecked = false;
+let statusFilter = 'all';
 let currentPage = 1;
 const PAGE_SIZE = 50;
 
@@ -900,6 +932,10 @@ function statusOf(r){
 function getVisibleRows(){
   return rows.filter(r => {
     if(showOnlyUnchecked && isChecked(r)) return false;
+    if(statusFilter !== 'all'){
+      const st = statusOf(r);
+      if(!st || st.type !== statusFilter) return false;
+    }
     if(searchQuery && !r.nama.toLowerCase().includes(searchQuery)) return false;
     return true;
   });
@@ -923,6 +959,16 @@ function clearSearch(){
 function toggleUncheckedFilter(){
   showOnlyUnchecked = !showOnlyUnchecked;
   document.getElementById('uncheckedToggleBtn').classList.toggle('active', showOnlyUnchecked);
+  currentPage = 1;
+  render();
+}
+
+function onStatusFilterChange(val){
+  statusFilter = val;
+  const sel = document.getElementById('statusFilter');
+  sel.classList.remove('f-minus', 'f-plus');
+  if(val === 'minus') sel.classList.add('f-minus');
+  if(val === 'plus') sel.classList.add('f-plus');
   currentPage = 1;
   render();
 }
@@ -2853,6 +2899,7 @@ async function resetAll(){
   editingFromId = null;
   searchQuery = '';
   showOnlyUnchecked = false;
+  statusFilter = 'all';
   pendingEditIds.clear();
   pendingDeleteIds.clear();
   hideRestoreBanner();
@@ -2869,6 +2916,8 @@ async function resetAll(){
   if(clearBtn) clearBtn.classList.remove('show');
   const uncheckedBtn = document.getElementById('uncheckedToggleBtn');
   if(uncheckedBtn) uncheckedBtn.classList.remove('active');
+  const statusFilterSel = document.getElementById('statusFilter');
+  if(statusFilterSel){ statusFilterSel.value = 'all'; statusFilterSel.classList.remove('f-minus', 'f-plus'); }
   updateHideTokoUI();
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
