@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 <style>
   :root{
     --ink:#173b36;
@@ -3736,6 +3737,1708 @@ loadState();
     dragHandle.addEventListener('pointerdown', onStart);
     dragHandle.addEventListener('touchstart', onStart, {passive:false});
   })();
+</script>
+
+
+<!-- ============================================================================
+     AI Agent (Blackbox AI) — asisten mengambang yang bisa membaca & MENGUBAH
+     data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
+     perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
+     variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
+     sudah didefinisikan di atas — jadi perubahan lewat AI Agent otomatis
+     tampil di layar & ikut tersinkron ke room tim seperti edit manual biasa.
+     Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
+============================================================================ -->
+<style>
+  /* ================= AI Agent (Blackbox AI) — widget styles =================
+     Namespaced with "bba-" so it never collides with the app's own CSS.
+     Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
+     so it feels native instead of bolted-on. */
+  .bba-fab{
+    position:fixed; right:16px; bottom:16px; z-index:9999;
+    width:64px; height:64px; border-radius:50%;
+    background:none; border:none; box-shadow:none;
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:22px; cursor:pointer; transition:transform .15s ease;
+  }
+  .bba-fab:active{ transform:scale(0.93); }
+  .bba-fab .bba-dot{
+    position:absolute; top:4px; right:4px; width:10px; height:10px; border-radius:50%;
+    background:#e06a4c; border:2px solid var(--paper); display:none;
+  }
+  .bba-fab .bba-dot.show{ display:block; }
+
+  /* Bubble chat "kata semangat" — muncul di atas ikon robot, isinya
+     berganti-ganti (kata motivasi / lucu / bijak) tiap beberapa detik. */
+  .bba-hint{
+    position:fixed; right:14px; bottom:90px; z-index:9998;
+    max-width:196px; background:#fff; color:var(--ink);
+    font-size:12.5px; font-weight:600; line-height:1.4;
+    padding:10px 13px; border-radius:16px 16px 4px 16px;
+    box-shadow:0 10px 24px rgba(10,69,62,0.2), 0 2px 6px rgba(10,69,62,0.08);
+    border:1px solid var(--line);
+    opacity:0; transform:translateY(8px) scale(.94);
+    transition:opacity .35s ease, transform .35s ease;
+    pointer-events:none; cursor:pointer;
+  }
+  .bba-hint.show{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .bba-hint.fading{ opacity:0; transform:translateY(2px) scale(.97); }
+  .bba-hint:after{
+    content:''; position:absolute; right:20px; bottom:-6px; width:13px; height:13px;
+    background:#fff; border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+    transform:rotate(45deg); border-radius:0 0 3px 0;
+  }
+  @media (max-width:412px){
+    .bba-hint{ right:12px; max-width:56vw; }
+  }
+
+  .bba-fab-icon{
+    display:flex; align-items:center; justify-content:center;
+    width:56px; height:56px;
+    animation:bbaFloat 3.1s ease-in-out infinite;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+    transform-origin:center;
+    filter:drop-shadow(0 6px 14px rgba(10,69,62,0.35));
+  }
+  .bba-fab-icon svg{ width:56px; height:56px; display:block; }
+  .bba-fab:hover .bba-fab-icon{ transform:scale(1.1) rotate(-5deg); }
+  .bba-fab:active .bba-fab-icon{ transform:scale(0.9) rotate(3deg); }
+
+  /* Status "sedang berpikir" — dipicu lewat class .thinking saat AI Agent
+     memproses jawaban. Ikon maskot pakai animasi Lottie "Phoenix" (lihat
+     mountBotLottie/setBotThinking di script bawah) yang dipercepat sendiri,
+     jadi di sini cukup percepat floatnya saja. */
+  .bba-fab.thinking .bba-fab-icon{ animation:bbaFloat 1.1s ease-in-out infinite; }
+
+  @keyframes bbaFloat{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-3px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bba-fab-icon{
+      animation:none !important;
+    }
+  }
+
+  .bba-panel{
+    position:fixed; z-index:9999; display:none; flex-direction:column;
+    right:14px; bottom:82px; width:378px; max-width:calc(100vw - 20px);
+    height:min(640px, calc(100vh - 110px));
+    background:var(--paper); border:1px solid var(--line); border-radius:18px;
+    box-shadow:0 18px 50px rgba(15,30,27,0.28); overflow:hidden;
+  }
+  .bba-panel.show{ display:flex; }
+  @media (max-width:460px){
+    .bba-panel{ right:8px; left:8px; bottom:78px; width:auto; max-width:none; height:min(620px, calc(100vh - 100px)); }
+  }
+
+  .bba-head{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    gap:8px; padding:12px 12px 12px 14px;
+    background:linear-gradient(120deg, var(--teal), var(--teal-deep)); color:#fff;
+  }
+  .bba-head-left{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .bba-head-ico{ font-size:19px; line-height:1; flex:0 0 auto; width:26px; height:26px; display:flex; align-items:center; justify-content:center; }
+  .bba-head-ico svg{ width:26px; height:26px; }
+  .bba-head-txt{ min-width:0; }
+  .bba-head-txt .t1{ font-size:13.5px; font-weight:800; line-height:1.15; }
+  .bba-head-txt .t2{ font-size:10.5px; opacity:.85; font-weight:600; margin-top:1px; }
+  .bba-head-txt .t3{ font-size:9.5px; opacity:.7; font-weight:500; margin-top:1px; font-style:italic; }
+  .bba-head-right{ display:flex; align-items:center; gap:2px; flex:0 0 auto; }
+  .bba-icon-btn{
+    width:30px; height:30px; border-radius:9px; border:none; background:transparent;
+    color:#fff; font-size:14.5px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:.92;
+  }
+  .bba-icon-btn:hover{ background:rgba(255,255,255,0.16); }
+
+  .bba-body{
+    flex:1 1 auto; overflow-y:auto; padding:12px 10px; display:flex; flex-direction:column; gap:8px;
+    background-image:radial-gradient(circle at 1px 1px, rgba(13,92,82,0.06) 1px, transparent 0);
+    background-size:20px 20px;
+  }
+  .bba-row{ display:flex; width:100%; }
+  .bba-row.u{ justify-content:flex-end; }
+  .bba-row.a{ justify-content:flex-start; }
+  .bba-bubble{
+    max-width:86%; border-radius:15px; padding:9px 12px; font-size:12.8px; line-height:1.48;
+    white-space:pre-wrap; word-break:break-word; box-shadow:0 1px 2px rgba(15,30,27,0.06);
+  }
+  .bba-bubble.u{ background:var(--teal); color:#fff; border-bottom-right-radius:4px; }
+  .bba-bubble.a{ background:var(--card); color:var(--ink); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .bba-bubble.err{ background:var(--minus-bg); color:var(--minus); border:1px solid rgba(192,80,58,0.25); border-bottom-left-radius:4px; }
+
+  .bba-infocard{
+    align-self:flex-start; max-width:88%; display:flex; align-items:center; gap:7px;
+    background:var(--mint); color:var(--ink-soft); border-radius:11px; padding:6px 10px;
+    font-size:11px; font-weight:600;
+  }
+
+  .bba-confirm{
+    align-self:flex-start; max-width:94%; width:100%; border-radius:13px;
+    background:#fbf1e0; border:1px solid #ecd6a9; padding:10px 11px;
+  }
+  .bba-confirm .cf-title{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:12.5px; color:var(--amber); margin-bottom:4px; }
+  .bba-confirm .cf-desc{ font-size:12px; font-weight:600; color:#7a5a24; margin-bottom:6px; }
+  .bba-confirm pre{
+    background:rgba(255,255,255,0.65); border:1px solid #ecd6a9; border-radius:9px; padding:8px;
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#5b4419; overflow-x:auto;
+    white-space:pre-wrap; word-break:break-word; margin:0 0 8px;
+  }
+  .bba-confirm .cf-btns{ display:flex; gap:7px; }
+  .bba-confirm button{
+    flex:1; border-radius:9px; padding:7px 8px; font-size:11.8px; font-weight:800; border:none; cursor:pointer;
+  }
+  .bba-confirm .cf-ok{ background:var(--teal); color:#fff; }
+  .bba-confirm .cf-ok:hover{ background:var(--teal-deep); }
+  .bba-confirm .cf-no{ background:#fff; color:#7a5a24; border:1px solid #ecd6a9 !important; }
+  .bba-confirm .cf-status{ margin-top:7px; font-size:10.5px; font-weight:700; }
+
+  .bba-typing{ align-self:flex-start; display:flex; gap:4px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 13px; }
+  .bba-typing span{ width:6px; height:6px; border-radius:50%; background:#b9c6c0; animation:bba-blink 1.1s infinite ease-in-out; }
+  .bba-typing span:nth-child(2){ animation-delay:.15s; }
+  .bba-typing span:nth-child(3){ animation-delay:.3s; }
+  @keyframes bba-blink{ 0%,80%,100%{ opacity:.3; } 40%{ opacity:1; } }
+
+  .bba-foot{
+    flex:0 0 auto; display:flex; align-items:flex-end; gap:7px; padding:9px; border-top:1px solid var(--line); background:var(--card);
+  }
+  .bba-foot textarea{
+    flex:1; resize:none; border:1px solid var(--line); border-radius:12px; padding:8px 11px;
+    font-family:inherit; font-size:12.8px; color:var(--ink); background:var(--paper); max-height:90px; line-height:1.4;
+  }
+  .bba-foot textarea:focus{ outline:none; border-color:var(--teal); }
+  .bba-send{
+    flex:0 0 auto; width:38px; height:38px; border-radius:11px; border:none; background:var(--teal); color:#fff;
+    font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .bba-send:hover{ background:var(--teal-deep); }
+  .bba-send:disabled{ opacity:.4; cursor:default; }
+
+  /* Settings / API key modal */
+  .bba-modal-ov{ position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center; background:rgba(10,25,22,0.5); padding:14px; }
+  .bba-modal-ov.show{ display:flex; }
+  .bba-modal{ background:var(--card); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.35); width:100%; max-width:360px; padding:18px; max-height:90vh; overflow-y:auto; }
+  .bba-modal h3{ display:flex; align-items:center; gap:7px; margin:0 0 3px; font-size:14.5px; font-weight:800; color:var(--ink); }
+  .bba-modal .sub{ font-size:11px; color:var(--ink-soft); margin:0 0 13px; line-height:1.45; }
+  .bba-modal label{ display:block; font-size:11px; font-weight:700; color:var(--ink-soft); margin:0 0 4px; }
+  .bba-field-row{ position:relative; margin-bottom:10px; }
+  .bba-modal input[type=text], .bba-modal input[type=password]{
+    width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:8px 34px 8px 10px;
+    font-family:inherit; font-size:12.8px; background:var(--paper); color:var(--ink);
+  }
+  .bba-modal input:focus{ outline:none; border-color:var(--teal); }
+  .bba-eye{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .bba-model-row{ display:flex; gap:6px; margin-bottom:4px; }
+  .bba-model-row input{ flex:1; }
+  .bba-model-row button{
+    flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
+    border-radius:9px; padding:0 10px; font-size:10.8px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .bba-model-row button:hover{ background:var(--mint); }
+  select.bba-model-select{
+    width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:7px 9px;
+    font-size:11.5px; margin-bottom:6px; background:var(--card); color:var(--ink); display:none;
+  }
+  .bba-model-status{ font-size:10px; margin-bottom:6px; display:none; }
+  .bba-model-status.ok{ color:var(--klop); }
+  .bba-model-status.err{ color:var(--minus); }
+  .bba-model-hint{ font-size:10px; color:#9aada6; margin:0 0 12px; line-height:1.4; }
+  .bba-confirm-toggle{ display:flex; align-items:center; gap:8px; margin-bottom:16px; cursor:pointer; user-select:none; }
+  .bba-confirm-toggle span{ font-size:11.5px; color:var(--ink-soft); font-weight:600; line-height:1.4; }
+  .bba-modal-btns{ display:flex; gap:7px; }
+  .bba-modal-btns button{ border:none; border-radius:10px; padding:9px 8px; font-size:12px; font-weight:800; cursor:pointer; }
+  .bba-btn-save{ flex:1; background:var(--teal); color:#fff; }
+  .bba-btn-save:hover{ background:var(--teal-deep); }
+  .bba-btn-clear{ background:#fff; color:var(--minus); border:1px solid var(--minus-bg) !important; padding:9px 12px !important; }
+  .bba-btn-close{ background:#fff; color:var(--ink-soft); border:1px solid var(--line) !important; padding:9px 12px !important; }
+
+  /* --- Lampiran gambar (deteksi barang dari foto) --- */
+  .bba-foot{ flex-direction:column; align-items:stretch; gap:7px; }
+  .bba-foot-row{ display:flex; align-items:flex-end; gap:7px; }
+  .bba-attach{
+    flex:0 0 auto; width:38px; height:38px; border-radius:11px; border:1.5px solid var(--line);
+    background:var(--paper); color:var(--ink-soft); font-size:16px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .bba-attach:hover{ background:var(--mint); border-color:#a9c9c0; }
+  .bba-attach:disabled{ opacity:.4; cursor:default; }
+
+  .bba-img-chip{
+    display:none; align-items:center; gap:8px; background:var(--mint); border:1px solid #a9c9c0;
+    border-radius:10px; padding:6px 8px;
+  }
+  .bba-img-chip.show{ display:flex; }
+  .bba-img-chip-thumb{ width:34px; height:34px; border-radius:7px; object-fit:cover; flex:0 0 auto; display:block; }
+  .bba-img-chip-label{ flex:1; font-size:11px; font-weight:700; color:var(--teal-deep); }
+  .bba-img-chip-remove{
+    flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:none; background:rgba(192,80,58,0.12);
+    color:var(--minus); font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+
+  .bba-img-bubble{ max-width:78%; border-radius:15px; overflow:hidden; box-shadow:0 1px 2px rgba(15,30,27,0.06); }
+  .bba-img-bubble.u{ background:var(--teal); border-bottom-right-radius:4px; }
+  .bba-img-bubble.a{ background:var(--card); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .bba-msg-img{ display:block; width:100%; max-height:220px; object-fit:cover; }
+  .bba-msg-caption{ padding:7px 10px; font-size:12.2px; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+  .bba-img-bubble.u .bba-msg-caption{ color:#fff; }
+  .bba-img-bubble.a .bba-msg-caption{ color:var(--ink); }
+
+  /* --- Kartu checklist: daftar barang hasil deteksi gambar, sebelum masuk tabel --- */
+  .bba-itemlist{
+    align-self:flex-start; max-width:96%; width:100%; border-radius:13px;
+    background:var(--mint); border:1px solid #a9c9c0; padding:10px 11px;
+  }
+  .bba-itemlist .il-title{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:12.5px; color:var(--teal-deep); margin-bottom:2px; }
+  .bba-itemlist .il-desc{ font-size:11px; color:var(--ink-soft); margin-bottom:8px; line-height:1.4; }
+  .bba-itemlist .il-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .bba-itemlist .il-toolbar button{ background:none; border:none; color:var(--teal); font-size:10.8px; font-weight:700; cursor:pointer; padding:2px 4px; }
+  .bba-itemlist .il-count{ font-size:10.5px; color:var(--ink-soft); font-weight:700; }
+  .bba-itemlist .il-list{ max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:5px; margin-bottom:9px; }
+  .bba-itemlist .il-row{ display:flex; align-items:center; gap:7px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:5px 7px; }
+  .bba-itemlist .il-row input[type=checkbox]{ flex:0 0 auto; width:15px; height:15px; accent-color:var(--teal); }
+  .bba-itemlist .il-row input[type=text]{
+    flex:1; border:none; background:transparent; font-size:12.5px; font-family:inherit; color:var(--ink); padding:2px 0; min-width:0;
+  }
+  .bba-itemlist .il-row input[type=text]:focus{ outline:none; }
+  .bba-itemlist .il-row.off{ opacity:.5; }
+  .bba-itemlist .il-btns{ display:flex; gap:7px; }
+  .bba-itemlist button.il-ok, .bba-itemlist button.il-no{ flex:1; border-radius:9px; padding:7px 8px; font-size:11.8px; font-weight:800; border:none; cursor:pointer; }
+  .bba-itemlist button.il-ok{ background:var(--teal); color:#fff; }
+  .bba-itemlist button.il-ok:hover{ background:var(--teal-deep); }
+  .bba-itemlist button.il-ok:disabled{ opacity:.45; cursor:default; }
+  .bba-itemlist button.il-no{ background:#fff; color:var(--ink-soft); border:1px solid var(--line) !important; }
+  .bba-itemlist .il-status{ margin-top:7px; font-size:10.5px; font-weight:700; color:var(--teal-deep); }
+</style>
+<script>
+// Data animasi maskot "Phoenix" (Lottie) untuk AI Agent — disematkan langsung
+// di file ini (bukan file terpisah) supaya halaman tetap satu file utuh.
+window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.0000026475043,"w":1200,"h":1200,"nm":"robot","ddd":0,"assets":[],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"eyes Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[171.486,154.986,0],"ix":2,"l":2},"a":{"a":0,"k":[90.809,43.493,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[16.232,0],[0,0],[0,16.232],[0,0],[-16.232,0],[0,0],[0,-16.232],[0,0]],"o":[[0,0],[-16.232,0],[0,0],[0,-16.232],[0,0],[16.232,0],[0,0],[0,16.232]],"v":[[0.145,43.243],[-0.144,43.243],[-29.536,13.852],[-29.536,-13.852],[-0.144,-43.243],[0.145,-43.243],[29.536,-13.852],[29.536,13.852]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.262745098039,0.262745098039,0.262745098039,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[151.832,43.493],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":9,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":14,"s":[100,20]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":19,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":45,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":50,"s":[100,20]},{"t":55.0000022401959,"s":[100,100]}],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[16.232,0],[0,0],[0,16.232],[0,0],[-16.232,0],[0,0],[0,-16.232],[0,0]],"o":[[0,0],[-16.232,0],[0,0],[0,-16.232],[0,0],[16.232,0],[0,0],[0,16.232]],"v":[[0.145,43.243],[-0.144,43.243],[-29.536,13.852],[-29.536,-13.852],[-0.144,-43.243],[0.145,-43.243],[29.536,-13.852],[29.536,13.852]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.262745098039,0.262745098039,0.262745098039,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[29.786,43.493],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":9,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":14,"s":[100,20]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":19,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":45,"s":[100,100]},{"i":{"x":[0.667,0.667],"y":[1,1]},"o":{"x":[0.333,0.333],"y":[0,0]},"t":50,"s":[100,20]},{"t":55.0000022401959,"s":[100,100]}],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":2,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"smile Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[175.814,243.347,0],"ix":2,"l":2},"a":{"a":0,"k":[63.294,40.93,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":26,"s":[{"i":[[0,0],[-46.307,41.86]],"o":[[0,0],[0,0]],"v":[[-43.293,-20.93],[43.293,-20.93]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":30,"s":[{"i":[[0,0],[-47.297,63.122]],"o":[[0,0],[0,0]],"v":[[-50.834,-28.422],[49.324,-27.868]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":55,"s":[{"i":[[0,0],[-47.297,63.122]],"o":[[0,0],[0,0]],"v":[[-50.834,-28.422],[49.324,-27.868]],"c":false}]},{"t":59.0000024031193,"s":[{"i":[[0,0],[-46.307,41.86]],"o":[[0,0],[0,0]],"v":[[-43.293,-20.93],[43.293,-20.93]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0.262745098039,0.262745098039,0.262745098039,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":8,"ix":5},"lc":2,"lj":1,"ml":10,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[63.293,40.93],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"head Outlines","parent":8,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":30,"s":[4]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":50,"s":[4]},{"t":53.0000021587343,"s":[0]}],"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[84.226,-105.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[84.226,-95.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[84.226,-112.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[84.226,-95.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[84.226,-95.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":30,"s":[95.226,-95.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[95.226,-95.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":41,"s":[95.226,-84.377,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":46,"s":[95.226,-101.377,0],"to":[0,0,0],"ti":[0,0,0]},{"t":59.0000024031193,"s":[84.226,-105.377,0]}],"ix":2,"l":2},"a":{"a":0,"k":[171.552,159.999,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,-70.738],[78.386,0],[0,70.738],[-78.386,0]],"o":[[0,70.738],[-78.386,0],[0,-70.738],[78.386,0]],"v":[[141.93,0],[0,128.083],[-141.93,0],[0,-128.083]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[1,1,1,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[171.813,164.526],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,-74.355],[82.393,0],[0,74.355],[-82.394,0]],"o":[[0,74.355],[-82.394,0],[0,-74.355],[82.393,0]],"v":[[149.186,0],[0,134.631],[-149.187,0],[0,-134.631]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[171.813,164.526],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":2,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,-88.227],[94.607,0],[0,88.227],[-94.607,0]],"o":[[0,88.227],[-94.607,0],[0,-88.227],[94.607,0]],"v":[[171.302,0],[0,159.749],[-171.302,0],[0,-159.749]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.823529471603,0.760784373564,0.56862745098,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[171.552,159.999],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 3","np":2,"cix":2,"bm":0,"ix":3,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":"1 Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[-10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[16]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[-10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[-5]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":27,"s":[2]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":36,"s":[-20]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":41,"s":[-29]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[-10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":57,"s":[-5]},{"t":64.0000026067734,"s":[0]}],"ix":10},"p":{"a":0,"k":[95.291,26.666,0],"ix":2,"l":2},"a":{"a":0,"k":[48.774,88.721,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[-4.437,-12.77],[12.771,-4.436],[4.437,12.77],[-12.771,4.437]],"o":[[4.437,12.771],[-12.77,4.437],[-4.437,-12.771],[12.77,-4.436]],"v":[[23.123,-8.034],[8.033,23.122],[-23.123,8.033],[-8.033,-23.124]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[27.81,27.81],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[-9.74,-28.035],[9.74,28.035]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0.698039215686,0.698039215686,0.690196078431,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":23,"ix":5},"lc":1,"lj":1,"ml":10,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[39.309,60.906],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":2,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"2 Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":0,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[-20]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[5]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":27,"s":[-2]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":36,"s":[20]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":41,"s":[29]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":57,"s":[5]},{"t":64.0000026067734,"s":[0]}],"ix":10},"p":{"a":0,"k":[258.114,32.164,0],"ix":2,"l":2},"a":{"a":0,"k":[11.807,87.23,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[5.636,-12.289],[12.289,5.636],[-5.636,12.288],[-12.289,-5.635]],"o":[[-5.636,12.289],[-12.288,-5.635],[5.636,-12.289],[12.288,5.636]],"v":[[22.251,10.204],[-10.204,22.25],[-22.251,-10.204],[10.204,-22.251]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[38.478,28.136],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[12.372,-26.977],[-12.372,26.977]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0.698039215686,0.698039215686,0.690196078431,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":23,"ix":5},"lc":1,"lj":1,"ml":10,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[23.872,59.984],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":2,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"right ear Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[4.259,128.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[-3.741,124.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[16.259,129.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[24.259,129.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[24.259,129.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":30,"s":[16.788,122.966,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":46,"s":[16.788,122.966,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[-3.741,124.461,0],"to":[0,0,0],"ti":[0,0,0]},{"t":59.0000024031193,"s":[4.259,128.461,0]}],"ix":2,"l":2},"a":{"a":0,"k":[43.622,69.327,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[-15.543,-2.85],[0,0],[0,0],[0,0],[9.341,-12.853],[2.463,-10.216],[0,0],[-1.051,-11.199]],"o":[[0,0],[0,0],[0,0],[-16.889,-3.097],[-6.177,8.5],[0,0],[-1.825,11.099],[2.072,22.071]],"v":[[-17.522,62.261],[19.644,69.078],[43.372,-60.312],[12.467,-65.981],[-24.883,-49.203],[-37.813,-20.766],[-41.008,-7.51],[-42.321,26.078]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[43.622,69.327],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":7,"ty":4,"nm":"left ear Outlines","parent":3,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[343.113,128.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[348.113,122.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[329.113,130.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[319.113,131.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[319.113,131.461,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":30,"s":[316.47,136.658,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":46,"s":[316.47,136.658,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[348.113,122.461,0],"to":[0,0,0],"ti":[0,0,0]},{"t":59.0000024031193,"s":[343.113,128.461,0]}],"ix":2,"l":2},"a":{"a":0,"k":[43.622,69.327,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[15.543,-2.85],[0,0],[0,0],[0,0],[-9.341,-12.853],[-2.463,-10.216],[0,0],[1.051,-11.199]],"o":[[0,0],[0,0],[0,0],[16.889,-3.097],[6.177,8.5],[0,0],[1.825,11.099],[-2.072,22.071]],"v":[[17.522,62.261],[-19.644,69.078],[-43.372,-60.312],[-12.467,-65.981],[24.883,-49.203],[37.813,-20.766],[41.008,-7.51],[42.321,26.078]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[43.622,69.327],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":8,"ty":4,"nm":"body Outlines","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[599.459,822.423,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[599.459,851.493,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[599.459,758.163,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[599.459,831.603,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[599.459,831.603,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":27,"s":[599.459,814.773,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[599.459,814.773,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":41,"s":[599.459,851.493,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[599.459,761.223,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":54,"s":[599.459,831.602,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":57,"s":[599.459,836.193,0],"to":[0,0,0],"ti":[0,0,0]},{"t":64.0000026067734,"s":[599.459,814.773,0]}],"ix":2,"l":2},"a":{"a":0,"k":[83.872,81.249,0],"ix":1,"l":2},"s":{"a":0,"k":[153,153,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,-15.721],[15.721,0],[0,15.721],[-15.721,0]],"o":[[0,15.721],[-15.721,0],[0,-15.721],[15.721,0]],"v":[[28.465,0],[0,28.465],[-28.465,0],[0,-28.465]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.85882358925,0.078431372549,0.125490196078,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[84.226,94.622],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,-20.049],[20.049,0],[0,20.049],[-20.049,0]],"o":[[0,20.049],[-20.049,0],[0,-20.049],[20.049,0]],"v":[[36.302,0],[0,36.302],[-36.302,0],[0,-36.302]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.61568627451,0.047058827269,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[84.226,94.622],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":2,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[2.728,0],[0,0],[-0.551,2.715],[0,0],[-4.487,-0.014],[0,0],[-0.797,-4.48],[0,0]],"o":[[0,0],[-2.77,0],[0,0],[0.892,-4.397],[0,0],[4.55,0.014],[0,0],[0.478,2.686]],"v":[[75.815,44.1],[-75.762,44.1],[-80.057,38.846],[-64.766,-36.547],[-55.515,-44.086],[57.561,-43.738],[66.796,-35.977],[80.13,38.949]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.823529471603,0.760784373564,0.56862745098,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[83.796,44.35],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 3","np":2,"cix":2,"bm":0,"ix":3,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[-2.182,-18.595],[0,0],[4.172,19.102]],"o":[[0,0],[0,0],[0,0],[0,0]],"v":[[-78.613,-19.439],[-81.44,16.015],[80.588,19.439],[79.45,-15.234]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[83.872,95.14],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 4","np":2,"cix":2,"bm":0,"ix":4,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[31.386,0],[0,0],[0,31.386],[-2.354,0],[0,0],[0,-2.355]],"o":[[0,0],[-31.386,0],[0,-2.355],[0,0],[2.354,0],[0,31.386]],"v":[[24.696,30.546],[-24.695,30.546],[-81.525,-26.283],[-77.262,-30.546],[77.263,-30.546],[81.525,-26.283]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.823529471603,0.760784373564,0.56862745098,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[83.67,131.702],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 5","np":2,"cix":2,"bm":0,"ix":5,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":9,"ty":4,"nm":"left leg Outlines","parent":8,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[4]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[-7]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[-7]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":36,"s":[-7]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":41,"s":[-8]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[-3]},{"t":57.0000023216576,"s":[0]}],"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[122.923,127.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[122.923,103.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[122.923,127.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[122.923,116.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[122.923,116.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":27,"s":[122.923,125.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[122.923,125.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":41,"s":[122.923,103.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[122.923,127.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":57,"s":[122.923,112.822,0],"to":[0,0,0],"ti":[0,0,0]},{"t":64.0000026067734,"s":[122.923,127.822,0]}],"ix":2,"l":2},"a":{"a":0,"k":[31.615,15.157,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[-7.847,0],[0,0],[-0.292,7.576],[0,0]],"o":[[0,0],[-0.076,7.847],[0,0],[7.582,0],[0,0],[0,0]],"v":[[-30.309,-57.907],[-31.288,43.659],[-17.177,57.907],[13.322,57.907],[27.423,44.339],[31.365,-57.907]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[31.614,58.157],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":10,"ty":4,"nm":"right leg Outlines","parent":8,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[0]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[-3]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[4]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[4]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":36,"s":[4]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":41,"s":[5]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[3]},{"t":57.0000023216576,"s":[0]}],"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[46.231,126.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[46.231,102.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[46.231,126.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":18,"s":[46.231,115.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[46.231,115.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":0.667},"o":{"x":0.333,"y":0.333},"t":27,"s":[46.231,124.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[46.231,124.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":41,"s":[46.231,102.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[46.231,126.822,0],"to":[0,0,0],"ti":[0,0,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":57,"s":[46.231,111.822,0],"to":[0,0,0],"ti":[0,0,0]},{"t":64.0000026067734,"s":[46.231,124.822,0]}],"ix":2,"l":2},"a":{"a":0,"k":[32.614,14.157,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[7.847,0],[0,0],[0.292,7.576],[0,0]],"o":[[0,0],[0.076,7.847],[0,0],[-7.582,0],[0,0],[0,0]],"v":[[30.31,-57.907],[31.288,43.659],[17.177,57.907],[-13.322,57.907],[-27.423,44.339],[-31.365,-57.907]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[31.614,58.157],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":11,"ty":4,"nm":"right hand Outlines","parent":8,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":0,"s":[2]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[-11]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[52]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[19]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[52]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":27,"s":[19]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":32,"s":[52]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":36,"s":[19]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":41,"s":[52]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":45,"s":[19]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[52]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":54,"s":[10]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":57,"s":[-9]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":61,"s":[-6.857]},{"t":64.0000026067734,"s":[0]}],"ix":10},"p":{"a":0,"k":[62.184,5.922,0],"ix":2,"l":2},"a":{"a":0,"k":[232.951,148.088,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":6,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-42.451,48.588],[-2.096,2.398],[42.451,-48.588]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":13,"s":[{"i":[[0,0],[-30.382,25.145],[0,0]],"o":[[0,0],[30.382,-25.145],[0,0]],"v":[[-55.724,62.329],[30.606,48.252],[65.869,-8.718]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":18,"s":[{"i":[[0,0],[-38.219,9.728],[3.707,0.181]],"o":[[0,0],[35.101,-8.935],[0,0]],"v":[[-51.104,81.89],[25.29,54.313],[85.604,36.31]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":23,"s":[{"i":[[0,0],[-30.382,25.145],[0,0]],"o":[[0,0],[30.382,-25.145],[0,0]],"v":[[-55.724,62.329],[30.606,48.252],[65.869,-8.718]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":27,"s":[{"i":[[0,0],[-38.219,9.728],[3.707,0.181]],"o":[[0,0],[35.101,-8.935],[0,0]],"v":[[-51.104,81.89],[25.29,54.313],[85.604,36.31]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":32,"s":[{"i":[[0,0],[-30.382,25.145],[0,0]],"o":[[0,0],[30.382,-25.145],[0,0]],"v":[[-55.724,62.329],[30.606,48.252],[65.869,-8.718]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[{"i":[[0,0],[-38.219,9.728],[3.707,0.181]],"o":[[0,0],[35.101,-8.935],[0,0]],"v":[[-51.104,81.89],[25.29,54.313],[85.604,36.31]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":41,"s":[{"i":[[0,0],[-30.382,25.145],[0,0]],"o":[[0,0],[30.382,-25.145],[0,0]],"v":[[-55.724,62.329],[30.606,48.252],[65.869,-8.718]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":45,"s":[{"i":[[0,0],[-38.219,9.728],[3.707,0.181]],"o":[[0,0],[35.101,-8.935],[0,0]],"v":[[-51.104,81.89],[25.29,54.313],[85.604,36.31]],"c":false}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[{"i":[[0,0],[-30.382,25.145],[0,0]],"o":[[0,0],[30.382,-25.145],[0,0]],"v":[[-55.724,62.329],[30.606,48.252],[65.869,-8.718]],"c":false}]},{"t":54.0000021994651,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-42.451,48.588],[-2.096,2.398],[42.451,-48.588]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":59,"ix":5},"lc":2,"lj":1,"ml":10,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[189.95,196.088],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":12,"ty":4,"nm":"left hand Outlines","parent":8,"sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":0,"s":[-12]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":6,"s":[-1]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":13,"s":[-17]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":18,"s":[-1]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":23,"s":[1]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":43,"s":[1]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":45,"s":[-33]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":48,"s":[-45.2]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50,"s":[-40]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":54,"s":[-22.286]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":57,"s":[-2]},{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":61,"s":[-5.286]},{"t":64.0000026067734,"s":[-13]}],"ix":10},"p":{"a":0,"k":[107.783,6.927,0],"ix":2,"l":2},"a":{"a":0,"k":[146.503,147.083,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[31.003,56.583],[5.694,10.393],[-31.003,-56.583]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0.968627510819,0.450980422076,0.054901964524,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":59,"ix":5},"lc":2,"lj":1,"ml":10,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[178.502,204.083],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0},{"ddd":0,"ind":13,"ty":4,"nm":"Shape Layer 1","sr":1,"ks":{"o":{"a":0,"k":50,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[605.52,1045.081,0],"ix":2,"l":2},"a":{"a":0,"k":[-4.48,465.081,0],"ix":1,"l":2},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":0,"s":[100,100,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":6,"s":[110,110,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":13,"s":[90,90,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":18,"s":[100,100,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":23,"s":[100,100,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":27,"s":[97,97,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":36,"s":[97,97,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":41,"s":[110,110,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":50,"s":[90,90,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":54,"s":[100,100,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":57,"s":[94,94,100]},{"t":64.0000026067734,"s":[100,100,100]}],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"d":1,"ty":"el","s":{"a":0,"k":[441.044,60.732],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"nm":"Ellipse Path 1","mn":"ADBE Vector Shape - Ellipse","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[-4.48,465.081],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Ellipse 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":151.000006150356,"st":0,"bm":0}],"markers":[]};
+</script>
+<script>
+(function () {
+  'use strict';
+
+  // =====================================================================
+  // AI Agent (Blackbox AI) — asisten mengambang untuk aplikasi Stok Opname.
+  // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
+  // langsung lewat variabel/fungsi global yang sudah ada di file ini
+  // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
+  // perubahan lewat AI Agent langsung tampil di layar & ikut tersinkron ke
+  // room tim (kalau sedang aktif), sama seperti kalau diedit manual.
+  // =====================================================================
+
+  // ---------------------------------------------------------------------
+  // Config / penyimpanan lokal
+  // ---------------------------------------------------------------------
+  var LS_KEY_APIKEY  = 'bb_agent_api_key';
+  var LS_KEY_MODEL   = 'bb_agent_model';
+  var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
+  var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
+  var DEFAULT_MODEL  = 'blackboxai/openai/gpt-4o';
+  var API_ORIGIN     = 'https://api.blackbox.ai';
+  var API_URL        = API_ORIGIN + '/chat/completions';
+  var MODELS_URL     = API_ORIGIN + '/v1/models';
+  var MAX_TOOL_LOOPS = 8;
+  var MAX_HISTORY    = 40;
+  var WAKTU_OPTIONS  = ['pagi', 'siang', 'sore', 'malam'];
+
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+
+  function getApiKey() { return lsGet(LS_KEY_APIKEY, ''); }
+  function setApiKey(v) { lsSet(LS_KEY_APIKEY, v || ''); }
+  function getModel() { return lsGet(LS_KEY_MODEL, DEFAULT_MODEL) || DEFAULT_MODEL; }
+  function setModel(v) { lsSet(LS_KEY_MODEL, (v || '').trim() || DEFAULT_MODEL); }
+  function getConfirmWrites() { return lsGet(LS_KEY_CONFIRM, '1') !== '0'; }
+  function setConfirmWrites(v) { lsSet(LS_KEY_CONFIRM, v ? '1' : '0'); }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(LS_KEY_HISTORY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function saveHistory(arr) {
+    try { localStorage.setItem(LS_KEY_HISTORY, JSON.stringify(arr.slice(-MAX_HISTORY))); } catch (e) { /* ignore */ }
+  }
+
+  // ---------------------------------------------------------------------
+  // Helper baca data barang (dipakai tool & tampilan)
+  // ---------------------------------------------------------------------
+  function itemToPlain(r) {
+    var fisik = fisikOf(r);
+    var st = statusOf(r);
+    return {
+      id: r.id,
+      nama: r.nama || '',
+      rafa1: r.t1 === '' || r.t1 === undefined ? null : r.t1,
+      rafa2: r.t2 === '' || r.t2 === undefined ? null : r.t2,
+      web_apk: r.apk === '' || r.apk === undefined ? null : r.apk,
+      total_fisik: fisik,
+      sudah_dicek: isChecked(r),
+      status: st ? st.type : (isChecked(r) ? 'klop' : 'belum_dicek'),
+      selisih: st ? st.selisih : null
+    };
+  }
+
+  function findRowById(id) {
+    var numId = typeof id === 'string' ? parseInt(id, 10) : id;
+    return rows.find(function (r) { return r.id === numId; });
+  }
+
+  function currentMeta() {
+    var elToko = document.getElementById('metaToko');
+    var elWaktu = document.getElementById('metaWaktu');
+    var elTgl = document.getElementById('metaTgl');
+    var elPetugas = document.getElementById('metaPetugas');
+    return {
+      toko: elToko ? elToko.value : '',
+      waktu: elWaktu ? elWaktu.value : '',
+      tanggal: elTgl ? elTgl.value : '',
+      petugas: elPetugas ? elPetugas.value : ''
+    };
+  }
+
+  function syncStatusInfo() {
+    return {
+      terhubung_ke_room: !!roomCode,
+      kode_room: roomCode || null,
+      sebagai_host: !!roomCode && isRoomHost(),
+      mode_hanya_lihat: isViewOnlyForMe()
+    };
+  }
+
+  function assertNotViewOnly() {
+    if (isViewOnlyForMe()) {
+      var e = new Error('Perangkat ini sedang dalam mode "hanya lihat" (view-only) dari host room tim, jadi tidak bisa mengubah data lewat AI Agent sampai host mengizinkan lagi.');
+      e.code = 'VIEW_ONLY';
+      throw e;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Tool schema (OpenAI-compatible function calling, dipakai Blackbox AI)
+  // ---------------------------------------------------------------------
+  var TOOLS = [
+    {
+      type: 'function',
+      function: {
+        name: 'get_summary',
+        description: 'Mengambil ringkasan kondisi stok opname saat ini: total barang, jumlah sudah/belum dicek, jumlah klop/minus/plus beserta total selisihnya, info toko/tanggal/petugas yang sedang diisi, dan status sinkronisasi room tim.',
+        parameters: { type: 'object', properties: {}, additionalProperties: false }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'search_items',
+        description: 'Mencari barang berdasarkan potongan nama (pencocokan substring, tidak peka huruf besar/kecil). Gunakan ini dulu sebelum update_item/delete_item kalau belum tahu id pastinya.',
+        parameters: {
+          type: 'object',
+          properties: {
+            kata_kunci: { type: 'string', description: 'Potongan nama barang yang dicari.' },
+            batas: { type: 'integer', description: 'Jumlah maksimal hasil (default 20, maksimal 100).' }
+          },
+          required: ['kata_kunci']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'list_items',
+        description: 'Menampilkan daftar barang, opsional difilter berdasarkan status, dengan pagination (offset/batas). Untuk daftar besar, panggil berkali-kali dengan offset berbeda.',
+        parameters: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['semua', 'belum_dicek', 'klop', 'minus', 'plus'], description: 'Filter status barang. Default "semua".' },
+            offset: { type: 'integer', description: 'Mulai dari indeks ke berapa (default 0).' },
+            batas: { type: 'integer', description: 'Jumlah maksimal hasil (default 30, maksimal 100).' }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_item',
+        description: 'Mengambil detail satu barang berdasarkan id-nya.',
+        parameters: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'add_item',
+        description: 'Menambahkan satu barang baru ke daftar stok opname. Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
+        parameters: {
+          type: 'object',
+          properties: {
+            nama: { type: 'string', description: 'Nama barang.' },
+            rafa1: { type: 'string', description: 'Stok fisik hasil hitung di toko Rafa 1 (angka, opsional).' },
+            rafa2: { type: 'string', description: 'Stok fisik hasil hitung di toko Rafa 2 (angka, opsional).' },
+            web_apk: { type: 'string', description: 'Stok menurut sistem/aplikasi (pembanding), opsional.' }
+          },
+          required: ['nama']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'update_item',
+        description: 'Mengubah field pada satu barang yang sudah ada (hanya field yang dikirim yang diubah). Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
+        parameters: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer', description: 'id barang, dapatkan dari search_items/list_items/get_item.' },
+            nama: { type: 'string' },
+            rafa1: { type: 'string', description: 'Stok fisik toko Rafa 1. Kirim string kosong "" untuk mengosongkan.' },
+            rafa2: { type: 'string', description: 'Stok fisik toko Rafa 2. Kirim string kosong "" untuk mengosongkan.' },
+            web_apk: { type: 'string', description: 'Stok menurut sistem/aplikasi (pembanding). Kirim string kosong "" untuk mengosongkan.' }
+          },
+          required: ['id']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'delete_item',
+        description: 'Menghapus permanen satu barang dari daftar. Operasi TULIS paling berisiko — SELALU meminta konfirmasi pengguna, walaupun mode auto-jalankan sedang aktif.',
+        parameters: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'bulk_set_stock',
+        description: 'Mengisi satu kolom stok (Rafa 1 / Rafa 2 / Web-Apk) untuk BANYAK barang sekaligus dari daftar nama+jumlah, mis. hasil tempelan dari WhatsApp/Excel. Barang dicocokkan ke nama yang sudah ada di daftar (persis dulu, lalu mirip/typo ringan); yang tidak ketemu bisa otomatis ditambah sebagai barang baru kalau tambah_jika_tidak_ditemukan=true. Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
+        parameters: {
+          type: 'object',
+          properties: {
+            kolom: { type: 'string', enum: ['rafa1', 'rafa2', 'web_apk'], description: 'Kolom stok yang mau diisi untuk semua barang di daftar ini.' },
+            barang: {
+              type: 'array',
+              description: 'Daftar barang & jumlahnya.',
+              items: {
+                type: 'object',
+                properties: { nama: { type: 'string' }, jumlah: { type: 'number' } },
+                required: ['nama', 'jumlah']
+              }
+            },
+            tambah_jika_tidak_ditemukan: { type: 'boolean', description: 'Kalau true, barang yang tidak cocok dengan nama manapun akan ditambahkan sebagai barang baru. Default false (dilewati & dilaporkan).' }
+          },
+          required: ['kolom', 'barang']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'bulk_add_items',
+        description: 'Menambahkan banyak barang BARU sekaligus ke tabel hanya berdasarkan NAMA (tanpa isi stok) — dipakai terutama setelah membaca gambar (foto rak/etalase, struk, daftar/catatan tulisan tangan, dsb) untuk mengekstrak nama-nama barang saja (abaikan harga, jumlah/qty, satuan, tanggal, kode, dan teks lain yang tidak relevan). Tool ini SUDAH otomatis menampilkan daftar nama yang terdeteksi ke pengguna lengkap dengan checkbox untuk dipilih/disunting sebelum benar-benar ditambahkan ke tabel, jadi kamu tidak perlu meminta konfirmasi terpisah di chat.',
+        parameters: {
+          type: 'object',
+          properties: {
+            barang: {
+              type: 'array',
+              description: 'Daftar nama barang yang terdeteksi/ingin ditambahkan, masing-masing sebagai satu baris baru.',
+              items: { type: 'string' }
+            }
+          },
+          required: ['barang']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'set_meta',
+        description: 'Mengubah info update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan petugas. Hanya field yang dikirim yang diubah. Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
+        parameters: {
+          type: 'object',
+          properties: {
+            toko: { type: 'string' },
+            waktu: { type: 'string', enum: WAKTU_OPTIONS },
+            tanggal: { type: 'string', description: 'Format YYYY-MM-DD.' },
+            petugas: { type: 'string' }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'clear_all_items',
+        description: 'Mengosongkan SELURUH daftar barang stok opname (semua baris dihapus). Operasi TULIS PALING BERISIKO — SELALU meminta konfirmasi pengguna, walaupun mode auto-jalankan sedang aktif. Jangan panggil ini kecuali pengguna benar-benar minta mengosongkan semua data.',
+        parameters: { type: 'object', properties: {}, additionalProperties: false }
+      }
+    }
+  ];
+
+  var WRITE_TOOLS = { add_item: 1, update_item: 1, delete_item: 1, bulk_set_stock: 1, bulk_add_items: 1, set_meta: 1, clear_all_items: 1 };
+  var ALWAYS_CONFIRM_TOOLS = { delete_item: 1, clear_all_items: 1, bulk_add_items: 1 };
+
+  // ---------------------------------------------------------------------
+  // Implementasi tool — langsung memakai variabel/fungsi asli aplikasi
+  // (rows, idCounter, addRow-style logic, updateField, delRow, render,
+  // saveState, computeBestMatch, dst — semuanya ada di scope global
+  // halaman ini karena berada di file HTML yang sama).
+  // ---------------------------------------------------------------------
+  function toolGetSummary() {
+    var total = rows.length, klop = 0, minus = 0, plus = 0, belum = 0;
+    var totalSelisihMinus = 0, totalSelisihPlus = 0;
+    rows.forEach(function (r) {
+      if (!isChecked(r)) { belum++; return; }
+      var st = statusOf(r);
+      if (!st || st.type === 'klop') { klop++; return; }
+      if (st.type === 'minus') { minus++; totalSelisihMinus += Math.abs(st.selisih); }
+      else { plus++; totalSelisihPlus += st.selisih; }
+    });
+    return {
+      total_barang: total,
+      sudah_dicek: total - belum,
+      belum_dicek: belum,
+      klop: klop,
+      minus: { jumlah_barang: minus, total_selisih: totalSelisihMinus },
+      plus: { jumlah_barang: plus, total_selisih: totalSelisihPlus },
+      info_update: currentMeta(),
+      sinkronisasi: syncStatusInfo()
+    };
+  }
+
+  function toolSearchItems(args) {
+    if (!args || !args.kata_kunci) throw new Error('Parameter "kata_kunci" wajib diisi.');
+    var kw = String(args.kata_kunci).toLowerCase();
+    var lim = Math.min(Math.max(parseInt(args.batas, 10) || 20, 1), 100);
+    var out = rows.filter(function (r) { return (r.nama || '').toLowerCase().indexOf(kw) !== -1; }).slice(0, lim);
+    return { kata_kunci: args.kata_kunci, jumlah_ditemukan: out.length, data: out.map(itemToPlain) };
+  }
+
+  function toolListItems(args) {
+    args = args || {};
+    var status = args.status || 'semua';
+    var offset = Math.max(parseInt(args.offset, 10) || 0, 0);
+    var lim = Math.min(Math.max(parseInt(args.batas, 10) || 30, 1), 100);
+    var filtered = rows.filter(function (r) {
+      if (status === 'semua') return true;
+      if (status === 'belum_dicek') return !isChecked(r);
+      var st = statusOf(r);
+      var type = st ? st.type : (isChecked(r) ? 'klop' : null);
+      return type === status;
+    });
+    var page = filtered.slice(offset, offset + lim);
+    return { status: status, total_cocok: filtered.length, offset: offset, ditampilkan: page.length, data: page.map(itemToPlain) };
+  }
+
+  function toolGetItem(args) {
+    if (!args || (args.id === undefined || args.id === null)) throw new Error('Parameter "id" wajib diisi.');
+    var r = findRowById(args.id);
+    if (!r) return { ditemukan: false, id: args.id };
+    return { ditemukan: true, data: itemToPlain(r) };
+  }
+
+  function toolAddItem(args) {
+    assertNotViewOnly();
+    if (!args || !args.nama || !String(args.nama).trim()) throw new Error('Parameter "nama" wajib diisi.');
+    var r = newRow();
+    r.nama = String(args.nama).trim();
+    if (args.rafa1 !== undefined) r.t1 = String(args.rafa1);
+    if (args.rafa2 !== undefined) r.t2 = String(args.rafa2);
+    if (args.web_apk !== undefined) r.apk = String(args.web_apk);
+    rows.push(r);
+    pendingEditIds.add(r.id);
+    render();
+    saveState();
+    return { berhasil: true, id_baru: r.id, data: itemToPlain(r) };
+  }
+
+  function toolUpdateItem(args) {
+    assertNotViewOnly();
+    if (!args || args.id === undefined || args.id === null) throw new Error('Parameter "id" wajib diisi.');
+    var r = findRowById(args.id);
+    if (!r) throw new Error('Barang dengan id ' + args.id + ' tidak ditemukan.');
+    if (args.nama !== undefined) r.nama = String(args.nama);
+    if (args.rafa1 !== undefined) r.t1 = String(args.rafa1);
+    if (args.rafa2 !== undefined) r.t2 = String(args.rafa2);
+    if (args.web_apk !== undefined) r.apk = String(args.web_apk);
+    pendingEditIds.add(r.id);
+    render();
+    saveState();
+    return { berhasil: true, data: itemToPlain(r) };
+  }
+
+  function toolDeleteItem(args) {
+    assertNotViewOnly();
+    if (!args || args.id === undefined || args.id === null) throw new Error('Parameter "id" wajib diisi.');
+    var r = findRowById(args.id);
+    if (!r) throw new Error('Barang dengan id ' + args.id + ' tidak ditemukan (mungkin sudah terhapus).');
+    var namaTerhapus = r.nama;
+    rows = rows.filter(function (x) { return x.id !== r.id; });
+    pendingEditIds.delete(r.id);
+    pendingDeleteIds.add(r.id);
+    render();
+    saveState();
+    return { berhasil: true, dihapus: true, id: r.id, nama: namaTerhapus };
+  }
+
+  var BULK_COL_MAP = { rafa1: 't1', rafa2: 't2', web_apk: 'apk' };
+
+  function toolBulkSetStock(args) {
+    assertNotViewOnly();
+    if (!args || !args.kolom || !BULK_COL_MAP[args.kolom]) throw new Error('Parameter "kolom" wajib salah satu dari: rafa1, rafa2, web_apk.');
+    var list = Array.isArray(args.barang) ? args.barang : [];
+    if (!list.length) throw new Error('Parameter "barang" wajib berisi minimal satu item.');
+    if (list.length > 300) throw new Error('Terlalu banyak barang dalam satu panggilan (maksimal 300). Pecah jadi beberapa kali panggil.');
+    var field = BULK_COL_MAP[args.kolom];
+    var tambahBaru = !!args.tambah_jika_tidak_ditemukan;
+
+    var usedIds = new Set();
+    var updated = [], added = [], skipped = [], fuzzyDipakai = [];
+
+    list.forEach(function (it) {
+      var nama = (it && it.nama) ? String(it.nama).trim() : '';
+      var jumlah = it ? it.jumlah : undefined;
+      if (!nama || jumlah === undefined || jumlah === null) { skipped.push({ nama: nama, alasan: 'nama/jumlah kosong' }); return; }
+
+      var bKey = normalizeNamaForMatch(nama);
+      var exactRow = rows.find(function (r) { return !usedIds.has(r.id) && r.nama && r.nama.trim() && normalizeNamaForMatch(r.nama) === bKey; });
+      var row = exactRow;
+      var isFuzzy = false;
+      if (!row) {
+        var best = computeBestMatch(nama, rows, usedIds);
+        if (best) { row = best.row; isFuzzy = !best.exact; }
+      }
+
+      if (row) {
+        usedIds.add(row.id);
+        row[field] = String(jumlah);
+        pendingEditIds.add(row.id);
+        if (isFuzzy) fuzzyDipakai.push({ diminta: nama, dipakai: row.nama });
+        updated.push({ id: row.id, nama: row.nama, jumlah: jumlah, cara: isFuzzy ? 'mirip' : 'persis' });
+      } else if (tambahBaru) {
+        var nr = newRow();
+        nr.nama = nama;
+        nr[field] = String(jumlah);
+        rows.push(nr);
+        usedIds.add(nr.id);
+        pendingEditIds.add(nr.id);
+        added.push({ id: nr.id, nama: nama, jumlah: jumlah });
+      } else {
+        skipped.push({ nama: nama, alasan: 'tidak ada barang yang cocok, dan tambah_jika_tidak_ditemukan=false' });
+      }
+    });
+
+    render();
+    saveState();
+
+    return {
+      berhasil: true,
+      kolom: args.kolom,
+      jumlah_diubah: updated.length,
+      jumlah_ditambah: added.length,
+      jumlah_dilewati: skipped.length,
+      dicocokkan_mirip: fuzzyDipakai,
+      detail_diubah: updated,
+      detail_ditambah: added,
+      detail_dilewati: skipped
+    };
+  }
+
+  // Menambahkan banyak barang baru sekaligus hanya dari daftar nama (tanpa stok) —
+  // dipakai untuk hasil deteksi nama barang dari gambar. Nama yang dikirim ke sini
+  // sudah melalui kartu checklist konfirmasi (addItemListConfirmCard), jadi fungsi
+  // ini tinggal mengeksekusi apa yang sudah disetujui/disunting pengguna.
+  function toolBulkAddItems(args) {
+    assertNotViewOnly();
+    var list = Array.isArray(args && args.barang) ? args.barang : [];
+    var names = [];
+    var seen = {};
+    list.forEach(function (n) {
+      var nm = (n === null || n === undefined) ? '' : String(n).trim();
+      if (!nm) return;
+      var key = nm.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = 1;
+      names.push(nm);
+    });
+    if (!names.length) throw new Error('Tidak ada nama barang yang valid untuk ditambahkan.');
+    var added = [];
+    names.forEach(function (nm) {
+      var r = newRow();
+      r.nama = nm;
+      rows.push(r);
+      pendingEditIds.add(r.id);
+      added.push({ id: r.id, nama: nm });
+    });
+    render();
+    saveState();
+    return { berhasil: true, jumlah_ditambah: added.length, detail_ditambah: added };
+  }
+
+  function toolSetMeta(args) {
+    assertNotViewOnly();
+    args = args || {};
+    var changed = {};
+    var elToko = document.getElementById('metaToko');
+    var elWaktu = document.getElementById('metaWaktu');
+    var elTgl = document.getElementById('metaTgl');
+    var elPetugas = document.getElementById('metaPetugas');
+
+    if (args.toko !== undefined && elToko) { elToko.value = String(args.toko); changed.toko = elToko.value; }
+    if (args.waktu !== undefined && elWaktu) {
+      var w = String(args.waktu).toLowerCase();
+      if (WAKTU_OPTIONS.indexOf(w) === -1) throw new Error('"waktu" harus salah satu dari: ' + WAKTU_OPTIONS.join(', '));
+      elWaktu.value = w; changed.waktu = w;
+    }
+    if (args.tanggal !== undefined && elTgl) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(args.tanggal))) throw new Error('"tanggal" harus berformat YYYY-MM-DD.');
+      elTgl.value = args.tanggal; changed.tanggal = args.tanggal;
+    }
+    if (args.petugas !== undefined && elPetugas) { elPetugas.value = String(args.petugas); changed.petugas = elPetugas.value; }
+
+    saveState();
+    return { berhasil: true, diubah: changed, info_update_sekarang: currentMeta() };
+  }
+
+  function toolClearAllItems() {
+    assertNotViewOnly();
+    var jumlahSebelum = rows.length;
+    rows.forEach(function (r) { pendingDeleteIds.add(r.id); pendingEditIds.delete(r.id); });
+    rows = [];
+    idCounter = 0;
+    render();
+    saveState();
+    return { berhasil: true, jumlah_dihapus: jumlahSebelum };
+  }
+
+  var TOOL_IMPL = {
+    get_summary: toolGetSummary,
+    search_items: toolSearchItems,
+    list_items: toolListItems,
+    get_item: toolGetItem,
+    add_item: toolAddItem,
+    update_item: toolUpdateItem,
+    delete_item: toolDeleteItem,
+    bulk_set_stock: toolBulkSetStock,
+    bulk_add_items: toolBulkAddItems,
+    set_meta: toolSetMeta,
+    clear_all_items: toolClearAllItems
+  };
+
+  function summarizeArgs(name, args) {
+    args = args || {};
+    if (name === 'add_item') return 'Tambah barang baru: "' + args.nama + '"';
+    if (name === 'update_item') return 'Ubah barang id ' + args.id;
+    if (name === 'delete_item') return 'Hapus barang id ' + args.id + ' — permanen';
+    if (name === 'bulk_set_stock') return 'Isi kolom "' + args.kolom + '" untuk ' + ((args.barang && args.barang.length) || 0) + ' barang sekaligus';
+    if (name === 'bulk_add_items') return 'Tambah ' + ((args.barang && args.barang.length) || 0) + ' barang baru dari daftar/gambar';
+    if (name === 'set_meta') return 'Ubah info update (toko/waktu/tanggal/petugas)';
+    if (name === 'clear_all_items') return 'KOSONGKAN SEMUA barang di daftar stok opname — tidak bisa dibatalkan';
+    return name;
+  }
+
+  // ---------------------------------------------------------------------
+  // DOM helpers untuk UI chat
+  // ---------------------------------------------------------------------
+  var els = {};
+
+  // Maskot AI Agent — pakai animasi Lottie "Phoenix" (window.__PHOENIX_LOTTIE__,
+  // disematkan di atas) sebagai pengganti ikon robot SVG lama. Dipasang di
+  // dua tempat (tombol mengambang & header panel chat) lewat lottie-web,
+  // lalu kecepatan animasinya dipercepat saat status "sedang berpikir".
+  var bbaLottieAnims = [];
+  function mountBotLottie(container) {
+    if (!window.lottie || !window.__PHOENIX_LOTTIE__) return null;
+    var anim = window.lottie.loadAnimation({
+      container: container,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: window.__PHOENIX_LOTTIE__
+    });
+    bbaLottieAnims.push(anim);
+    return anim;
+  }
+  function setBotThinking(isThinking) {
+    bbaLottieAnims.forEach(function (a) {
+      if (a) a.setSpeed(isThinking ? 2.4 : 1);
+    });
+  }
+
+  function el(tag, className, attrs) {
+    var e = document.createElement(tag);
+    if (className) e.className = className;
+    if (attrs) for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function scrollToBottom() { if (els.body) els.body.scrollTop = els.body.scrollHeight; }
+
+  // Konversi markdown ringan (**bold**, *italic*) dari jawaban AI menjadi HTML
+  // yang benar-benar tampil bold/italic, bukan tanda bintang mentah di layar.
+  // Semua karakter HTML lain di-escape dulu supaya aman (tidak jadi celah
+  // injeksi lewat teks yang dikirim balik oleh model).
+  function mdToHtml(text) {
+    var s = String(text === null || text === undefined ? '' : text);
+    s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    return s;
+  }
+
+  function addBubble(role, text) {
+    var wrap = el('div', 'bba-row ' + (role === 'user' ? 'u' : 'a'));
+    var bubble = el('div', 'bba-bubble ' + (role === 'user' ? 'u' : role === 'error' ? 'err' : 'a'));
+    if (role === 'assistant') bubble.innerHTML = mdToHtml(text);
+    else bubble.textContent = text;
+    wrap.appendChild(bubble);
+    els.body.appendChild(wrap);
+    scrollToBottom();
+    return bubble;
+  }
+
+  function addInfoCard(icon, text) {
+    var card = el('div', 'bba-infocard');
+    card.textContent = icon + ' ' + text;
+    els.body.appendChild(card);
+    scrollToBottom();
+    return card;
+  }
+
+  function addTypingIndicator() {
+    var wrap = el('div', 'bba-row a');
+    wrap.id = 'bba-typing';
+    var bubble = el('div', 'bba-typing');
+    bubble.appendChild(el('span')); bubble.appendChild(el('span')); bubble.appendChild(el('span'));
+    wrap.appendChild(bubble);
+    els.body.appendChild(wrap);
+    scrollToBottom();
+  }
+  function removeTypingIndicator() {
+    var t = document.getElementById('bba-typing');
+    if (t) t.remove();
+  }
+
+  function addConfirmCard(toolName, args) {
+    return new Promise(function (resolve) {
+      var card = el('div', 'bba-confirm');
+      var title = el('div', 'cf-title'); title.textContent = '⚠️ Konfirmasi perubahan data';
+      var desc = el('div', 'cf-desc'); desc.textContent = summarizeArgs(toolName, args);
+      var pre = el('pre');
+      try { pre.textContent = JSON.stringify(args, null, 2); } catch (e) { pre.textContent = String(args); }
+      var btnRow = el('div', 'cf-btns');
+      var okBtn = el('button', 'cf-ok'); okBtn.textContent = 'Setujui & Jalankan';
+      var noBtn = el('button', 'cf-no'); noBtn.textContent = 'Batalkan';
+      btnRow.appendChild(okBtn); btnRow.appendChild(noBtn);
+
+      card.appendChild(title); card.appendChild(desc); card.appendChild(pre); card.appendChild(btnRow);
+      els.body.appendChild(card);
+      scrollToBottom();
+
+      function finish(approved) {
+        okBtn.disabled = true; noBtn.disabled = true;
+        okBtn.style.opacity = '0.5'; noBtn.style.opacity = '0.5';
+        var status = el('div', 'cf-status');
+        status.style.color = approved ? 'var(--teal-deep)' : '#8a7a52';
+        status.textContent = approved ? 'Disetujui, menjalankan...' : 'Dibatalkan oleh pengguna.';
+        card.appendChild(status);
+        resolve(approved);
+      }
+      okBtn.addEventListener('click', function () { finish(true); });
+      noBtn.addEventListener('click', function () { finish(false); });
+    });
+  }
+
+  function addImageBubble(role, dataUrl, caption) {
+    var wrap = el('div', 'bba-row ' + (role === 'user' ? 'u' : 'a'));
+    var bubble = el('div', 'bba-img-bubble ' + (role === 'user' ? 'u' : 'a'));
+    var img = el('img', 'bba-msg-img'); img.src = dataUrl; img.alt = 'Gambar terlampir';
+    bubble.appendChild(img);
+    if (caption) {
+      var cap = el('div', 'bba-msg-caption'); cap.textContent = caption;
+      bubble.appendChild(cap);
+    }
+    wrap.appendChild(bubble);
+    els.body.appendChild(wrap);
+    scrollToBottom();
+    return bubble;
+  }
+
+  // Kartu checklist: menampilkan daftar nama barang hasil deteksi gambar (dari tool
+  // bulk_add_items), memungkinkan pengguna mencentang/menyunting/membatalkan tiap
+  // nama sebelum benar-benar dimasukkan sebagai baris baru ke tabel.
+  // Resolve -> array nama yang disetujui (bisa sudah disunting), atau null kalau batal.
+  function addItemListConfirmCard(names) {
+    return new Promise(function (resolve) {
+      var card = el('div', 'bba-itemlist');
+      var title = el('div', 'il-title'); title.textContent = '🖼️ ' + names.length + ' nama barang terdeteksi dari gambar';
+      var desc = el('div', 'il-desc'); desc.textContent = 'Periksa & sunting kalau perlu, centang barang yang mau dimasukkan sebagai baris baru ke tabel, lalu konfirmasi.';
+
+      var toolbar = el('div', 'il-toolbar');
+      var toggleAllBtn = el('button', '', { type: 'button' }); toggleAllBtn.textContent = 'Kosongkan semua centang';
+      var countLbl = el('span', 'il-count');
+      toolbar.appendChild(toggleAllBtn); toolbar.appendChild(countLbl);
+
+      var list = el('div', 'il-list');
+      var rowsData = names.map(function (nama) {
+        var rowEl = el('div', 'il-row');
+        var cb = el('input', '', { type: 'checkbox' }); cb.checked = true;
+        var txt = el('input', '', { type: 'text' }); txt.value = nama;
+        rowEl.appendChild(cb); rowEl.appendChild(txt);
+        list.appendChild(rowEl);
+        cb.addEventListener('change', function () { rowEl.classList.toggle('off', !cb.checked); updateCount(); });
+        return { cb: cb, txt: txt, rowEl: rowEl };
+      });
+
+      var okBtn, noBtn;
+      function updateCount() {
+        var n = rowsData.filter(function (r) { return r.cb.checked; }).length;
+        countLbl.textContent = n + ' / ' + rowsData.length + ' dipilih';
+        okBtn.disabled = n === 0;
+      }
+
+      var allChecked = true;
+      toggleAllBtn.addEventListener('click', function () {
+        allChecked = !allChecked;
+        rowsData.forEach(function (r) { r.cb.checked = allChecked; r.rowEl.classList.toggle('off', !allChecked); });
+        toggleAllBtn.textContent = allChecked ? 'Kosongkan semua centang' : 'Centang semua';
+        updateCount();
+      });
+
+      var btnRow = el('div', 'il-btns');
+      okBtn = el('button', 'il-ok', { type: 'button' }); okBtn.textContent = 'Tambahkan ke Tabel';
+      noBtn = el('button', 'il-no', { type: 'button' }); noBtn.textContent = 'Batalkan';
+      btnRow.appendChild(okBtn); btnRow.appendChild(noBtn);
+
+      card.appendChild(title); card.appendChild(desc); card.appendChild(toolbar); card.appendChild(list); card.appendChild(btnRow);
+      els.body.appendChild(card);
+      updateCount();
+      scrollToBottom();
+
+      function finish(selected) {
+        okBtn.disabled = true; noBtn.disabled = true;
+        okBtn.style.opacity = '0.5'; noBtn.style.opacity = '0.5';
+        rowsData.forEach(function (r) { r.cb.disabled = true; r.txt.disabled = true; });
+        var status = el('div', 'il-status');
+        status.style.color = selected ? 'var(--teal-deep)' : '#8a7a52';
+        status.textContent = selected ? (selected.length + ' barang ditambahkan ke tabel.') : 'Dibatalkan, tidak ada barang yang ditambahkan.';
+        card.appendChild(status);
+        scrollToBottom();
+        resolve(selected);
+      }
+      okBtn.addEventListener('click', function () {
+        var chosen = rowsData.filter(function (r) { return r.cb.checked; })
+          .map(function (r) { return r.txt.value.trim(); })
+          .filter(Boolean);
+        finish(chosen.length ? chosen : null);
+      });
+      noBtn.addEventListener('click', function () { finish(null); });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
+  // (biar hemat kuota/token & muat di localStorage), lalu diubah jadi data URL
+  // yang dikirim sebagai content type "image_url" ke API (format vision
+  // OpenAI-compatible, dipakai juga oleh Blackbox AI).
+  // ---------------------------------------------------------------------
+  function fileToCompressedDataUrl(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error('File yang dipilih bukan gambar.')); return; }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Gagal membaca file gambar.')); };
+      reader.onload = function () {
+        var imgEl = new Image();
+        imgEl.onerror = function () { reject(new Error('Gagal memuat gambar.')); };
+        imgEl.onload = function () {
+          var w = imgEl.naturalWidth || 1, h = imgEl.naturalHeight || 1;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(imgEl, 0, 0, cw, ch);
+          try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+          catch (e) { resolve(reader.result); }
+        };
+        imgEl.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Ubah content pesan tersimpan (string ATAU array bagian text/image_url) jadi
+  // tampilan bubble yang sesuai saat riwayat chat dimuat ulang di panel.
+  function renderStoredUserMessage(content) {
+    if (typeof content === 'string') { addBubble('user', content); return; }
+    if (Array.isArray(content)) {
+      var textPart = '', imgUrl = null;
+      content.forEach(function (part) {
+        if (!part) return;
+        if (part.type === 'text') textPart = part.text || '';
+        else if (part.type === 'image_url' && part.image_url) imgUrl = part.image_url.url;
+      });
+      if (imgUrl) addImageBubble('user', imgUrl, textPart);
+      else if (textPart) addBubble('user', textPart);
+    }
+  }
+
+  // Buang field internal (non-standar) sebelum dikirim ke API, agar body request
+  // tetap sesuai skema chat-completions yang diharapkan Blackbox AI.
+  function sanitizeForApi(m) {
+    var out = { role: m.role, content: m.content };
+    if (m.tool_calls) out.tool_calls = m.tool_calls;
+    if (m.tool_call_id) out.tool_call_id = m.tool_call_id;
+    if (m.name) out.name = m.name;
+    return out;
+  }
+
+  // ---------------------------------------------------------------------
+  // Percakapan agent
+  // ---------------------------------------------------------------------
+  var messages = loadHistory();
+  var isBusy = false;
+
+  function buildSystemPrompt() {
+    return [
+      'Kamu adalah AI Agent yang terpasang langsung di aplikasi "Stok Opname" (pencocokan stok fisik apotek Rafa 1 & Rafa 2 dengan data sistem/aplikasi).',
+      'Kamu dapat MEMBACA dan MENGUBAH data barang secara langsung lewat tools yang disediakan (bukan sekadar menyarankan) — termasuk menambah barang satu-satu atau massal, mengedit field barang, menghapus, mengisi stok massal, mengubah info toko/tanggal/petugas, dan mengekstrak nama barang dari GAMBAR yang dikirim pengguna.',
+      'Tanggal & waktu saat ini: ' + new Date().toString() + '.',
+      '',
+      'Model data setiap barang:',
+      '- nama: nama barang.',
+      '- rafa1 / rafa2: jumlah stok FISIK hasil hitung langsung di toko Rafa 1 / Rafa 2 (angka, boleh kosong).',
+      '- web_apk: jumlah stok menurut sistem/aplikasi kasir, dipakai sebagai PEMBANDING (angka, boleh kosong).',
+      '- Barang dianggap "sudah dicek" hanya kalau web_apk sudah diisi.',
+      '- Status: "klop" kalau (rafa1+rafa2) sama dengan web_apk; "minus" kalau fisik LEBIH SEDIKIT dari web_apk; "plus" kalau fisik LEBIH BANYAK dari web_apk; "belum_dicek" kalau web_apk masih kosong.',
+      '- Ada juga info_update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan nama petugas yang sedang mengisi.',
+      '',
+      'Aturan wajib:',
+      '1. Jangan pernah mengarang id barang. Gunakan id hasil search_items/list_items/get_item, atau biarkan add_item membuatkan id baru secara otomatis.',
+      '2. Untuk mengisi banyak barang sekaligus (mis. dari daftar/pasteran WhatsApp), pakai bulk_set_stock — jangan panggil update_item satu-satu untuk puluhan/ratusan barang, itu boros langkah.',
+      '3. add_item, update_item, delete_item, bulk_set_stock, set_meta, dan clear_all_items adalah operasi tulis yang akan ditampilkan ke pengguna untuk konfirmasi terlebih dahulu. Kalau hasil tool menunjukkan pengguna membatalkan, itu bukan error — sampaikan dengan wajar dan tanyakan apakah ingin melakukan hal lain.',
+      '4. clear_all_items sangat merusak (menghapus SEMUA barang) — jelaskan dulu risikonya ke pengguna sebelum memanggilnya, dan hanya panggil kalau pengguna memang eksplisit minta mengosongkan semua data.',
+      '5. Untuk bulk_set_stock, kalau ada barang yang dicocokkan secara "mirip" (bukan persis sama), sebutkan ke pengguna di jawabanmu supaya mereka bisa cek kalau-kalau salah cocok.',
+      '6. Jangan pernah mengarang data yang tidak ada. Selalu gunakan tools untuk memastikan (mis. search_items dulu sebelum update_item kalau belum yakin id-nya).',
+      '7. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
+      '8. Kamu juga bisa menerima GAMBAR yang dilampirkan pengguna (foto rak/etalase, struk, catatan/daftar tulisan tangan, dsb). Kalau pengguna mengirim gambar dan minta barangnya didata/dimasukkan ke tabel, baca gambar itu dan ambil HANYA nama barangnya — abaikan harga, jumlah/qty, satuan, tanggal, kode, dan teks lain yang tidak relevan — lalu panggil tool bulk_add_items dengan daftar nama tersebut. Jangan menebak isi gambar kalau tidak terbaca jelas; sebutkan saja bagian yang tidak yakin. Kamu TIDAK perlu meminta konfirmasi manual lewat teks karena tool bulk_add_items sudah otomatis menampilkan daftar nama terdeteksi ke pengguna lengkap dengan checkbox untuk dipilih/disunting sebelum benar-benar masuk ke tabel.',
+      '9. Kalau model yang sedang dipakai ternyata tidak mendukung input gambar (bukan model vision) sehingga gagal memproses gambar, sampaikan itu apa adanya ke pengguna dan sarankan mengganti ke model yang mendukung gambar (mis. model seri gpt-4o atau model vision lain) lewat ikon kunci 🔑 → Model.',
+      '10. Jawab selalu dalam Bahasa Indonesia, singkat, jelas, dan ramah.',
+      '11. Jangan gunakan format markdown (seperti **tebal**, *miring*, tanda pagar #, atau backtick) di jawabanmu — tulis dengan teks polos saja. Kalau perlu daftar, pakai baris baru dengan tanda hubung "-", bukan tanda bintang.',
+      '',
+      'Kepribadian & obrolan santai:',
+      '12. Kamu tidak melulu harus soal stok opname. Kalau pengguna mengajak ngobrol topik lain (curhat, minta ide, tanya hal umum, becanda, minta dihibur, dll), layani dengan senang hati layaknya rekan kerja yang asyik diajak ngobrol — tidak perlu selalu menarik topik balik ke stok barang.',
+      '13. Gaya bicaramu humoris dan bijak: boleh melempar candaan ringan atau pantun singkat sesekali, tapi juga sisipkan pandangan yang masuk akal/bijak kalau pengguna sedang serius, capek, atau butuh semangat — jangan menggurui, cukup hangat dan tulus.',
+      '14. Tetap peka situasi: kalau pengguna kelihatan stres, sedih, atau butuh dukungan sungguhan, kurangi becandaan dan dengarkan dulu dengan empati sebelum (kalau pas) menyelipkan humor ringan untuk mencairkan suasana.',
+      '15. Emoji boleh dipakai sewajarnya untuk terasa hidup, tapi jangan berlebihan sampai mengganggu keterbacaan, dan jangan sampai mengorbankan kejelasan saat menyampaikan info penting soal data stok.'
+    ].join('\n');
+  }
+
+  async function fetchModelList(apiKey) {
+    var res = await fetch(MODELS_URL, { method: 'GET', headers: { 'Authorization': 'Bearer ' + apiKey } });
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      throw new Error('HTTP ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 200)) : ''));
+    }
+    var json = await res.json();
+    var list = Array.isArray(json) ? json : (json.data || json.models || []);
+    var ids = list.map(function (m) { return typeof m === 'string' ? m : (m.id || m.name || m.model || null); }).filter(Boolean);
+    var seen = {}, out = [];
+    ids.forEach(function (id) { if (!seen[id]) { seen[id] = 1; out.push(id); } });
+    out.sort();
+    return out;
+  }
+
+  async function callBlackbox(msgsForApi) {
+    var apiKey = getApiKey();
+    if (!apiKey) { var err = new Error('NO_API_KEY'); err.code = 'NO_API_KEY'; throw err; }
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModel(), messages: msgsForApi.map(sanitizeForApi), tools: TOOLS, tool_choice: 'auto', temperature: 0.3, max_tokens: 1500, stream: false })
+    });
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      var apiErr = new Error('Blackbox AI API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      apiErr.status = res.status;
+      throw apiErr;
+    }
+    return res.json();
+  }
+
+  // Versi streaming — supaya jawaban AI langsung muncul kata-per-kata begitu
+  // mulai digenerate (bukan menunggu seluruh jawaban selesai), jadi terasa
+  // jauh lebih cepat. onTextDelta dipanggil berulang dengan teks terkumpul
+  // sejauh ini setiap kali ada potongan baru datang dari server.
+  // Kalau server/model ternyata tidak mendukung SSE stream, otomatis jatuh
+  // balik ke pembacaan respons biasa (non-stream) supaya tetap jalan.
+  async function callBlackboxStream(msgsForApi, onTextDelta) {
+    var apiKey = getApiKey();
+    if (!apiKey) { var err = new Error('NO_API_KEY'); err.code = 'NO_API_KEY'; throw err; }
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModel(), messages: msgsForApi.map(sanitizeForApi), tools: TOOLS, tool_choice: 'auto', temperature: 0.3, max_tokens: 1500, stream: true })
+    });
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      var apiErr = new Error('Blackbox AI API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      apiErr.status = res.status;
+      throw apiErr;
+    }
+
+    // Fallback kalau environment tidak bisa baca body sebagai stream.
+    if (!res.body || typeof res.body.getReader !== 'function') {
+      var json = await res.json();
+      var m0 = json && json.choices && json.choices[0] && json.choices[0].message;
+      if (m0 && m0.content && onTextDelta) onTextDelta(m0.content);
+      return m0 || { content: '', tool_calls: undefined };
+    }
+
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder('utf-8');
+    var buffer = '';
+    var content = '';
+    var toolCallsMap = {};
+    var sawAnyEvent = false;
+
+    function handleLine(line) {
+      line = line.trim();
+      if (!line || line.indexOf('data:') !== 0) return;
+      var payload = line.slice(5).trim();
+      if (payload === '[DONE]') return;
+      var evt;
+      try { evt = JSON.parse(payload); } catch (e) { return; }
+      sawAnyEvent = true;
+      var choice = evt.choices && evt.choices[0];
+      var delta = choice && choice.delta;
+      if (!delta) return;
+      if (delta.content) {
+        content += delta.content;
+        if (onTextDelta) onTextDelta(content);
+      }
+      if (delta.tool_calls) {
+        delta.tool_calls.forEach(function (tc) {
+          var idx = (tc.index === undefined || tc.index === null) ? 0 : tc.index;
+          if (!toolCallsMap[idx]) toolCallsMap[idx] = { id: '', type: 'function', function: { name: '', arguments: '' } };
+          if (tc.id) toolCallsMap[idx].id = tc.id;
+          if (tc.type) toolCallsMap[idx].type = tc.type;
+          if (tc.function) {
+            if (tc.function.name) toolCallsMap[idx].function.name += tc.function.name;
+            if (tc.function.arguments) toolCallsMap[idx].function.arguments += tc.function.arguments;
+          }
+        });
+      }
+    }
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      var lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (var i = 0; i < lines.length; i++) handleLine(lines[i]);
+    }
+    if (buffer) handleLine(buffer);
+
+    // Kalau tidak ada satupun event SSE yang terbaca (server ternyata balas
+    // non-stream walau diminta stream:true), coba baca ulang sebagai JSON biasa.
+    if (!sawAnyEvent) {
+      try {
+        var textFallback = decoder.decode();
+        var jsonFallback = textFallback ? JSON.parse(textFallback) : null;
+        var mF = jsonFallback && jsonFallback.choices && jsonFallback.choices[0] && jsonFallback.choices[0].message;
+        if (mF) {
+          if (mF.content && onTextDelta) onTextDelta(mF.content);
+          return mF;
+        }
+      } catch (eFallback) { /* abaikan, lanjut ke hasil stream kosong di bawah */ }
+    }
+
+    var toolCallsArr = Object.keys(toolCallsMap).sort(function (a, b) { return a - b; }).map(function (k) { return toolCallsMap[k]; });
+    return { content: content, tool_calls: toolCallsArr.length ? toolCallsArr : undefined };
+  }
+
+  async function executeToolCall(tc) {
+    var name = tc.function && tc.function.name;
+    var args = {};
+    try { args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {}; } catch (e) { args = {}; }
+
+    var impl = TOOL_IMPL[name];
+    if (!impl) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tool tidak dikenal: ' + name }) };
+
+    // bulk_add_items (hasil deteksi gambar) pakai kartu checklist khusus, bukan
+    // kartu konfirmasi JSON generik — supaya pengguna bisa pilih & sunting nama
+    // satu per satu sebelum benar-benar masuk ke tabel.
+    if (name === 'bulk_add_items') {
+      var rawNames = Array.isArray(args.barang) ? args.barang : [];
+      var candidateNames = [];
+      var seenN = {};
+      rawNames.forEach(function (n) {
+        var nm = (n === null || n === undefined) ? '' : String(n).trim();
+        if (!nm) return;
+        var key = nm.toLowerCase();
+        if (seenN[key]) return;
+        seenN[key] = 1;
+        candidateNames.push(nm);
+      });
+      if (!candidateNames.length) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tidak ada nama barang yang valid dikirim ke bulk_add_items.' }) };
+      }
+      if (isViewOnlyForMe()) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Perangkat ini sedang dalam mode "hanya lihat" (view-only), tidak bisa menambah barang.' }) };
+      }
+      var selectedNames = await addItemListConfirmCard(candidateNames);
+      if (!selectedNames || !selectedNames.length) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna tidak memilih/membatalkan barang dari daftar hasil deteksi gambar.' }) };
+      }
+      try {
+        var bulkRes = toolBulkAddItems({ barang: selectedNames });
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(bulkRes) };
+      } catch (eBulk) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((eBulk && eBulk.message) || eBulk) }) };
+      }
+    }
+
+    var isWrite = !!WRITE_TOOLS[name];
+    var needsConfirm = isWrite && (ALWAYS_CONFIRM_TOOLS[name] || getConfirmWrites());
+
+    if (needsConfirm) {
+      var approved = await addConfirmCard(name, args);
+      if (!approved) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna membatalkan aksi ini melalui tombol konfirmasi.' }) };
+    } else if (isWrite) {
+      addInfoCard('✏️', summarizeArgs(name, args) + ' (auto-jalankan)');
+    } else {
+      addInfoCard('📋', 'Membaca data (' + name + ')');
+    }
+
+    try {
+      var result = await impl(args);
+      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(result) };
+    } catch (e) {
+      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((e && e.message) || e) }) };
+    }
+  }
+
+  async function runAgentLoop(userText) {
+    if (isBusy) return;
+    isBusy = true;
+    setInputEnabled(false);
+    messages.push({ role: 'user', content: userText });
+    saveHistory(messages);
+
+    var loops = 0;
+    try {
+      while (loops < MAX_TOOL_LOOPS) {
+        loops++;
+        var apiMessages = [{ role: 'system', content: buildSystemPrompt() }].concat(messages);
+        addTypingIndicator();
+
+        // Streaming: bubble jawaban dibuat begitu potongan teks pertama datang,
+        // lalu terus diperbarui — jadi pengguna langsung lihat jawaban mengalir
+        // alih-alih menunggu diam sampai semuanya selesai digenerate.
+        var liveBubble = null;
+        var msg;
+        try {
+          msg = await callBlackboxStream(apiMessages, function (textSoFar) {
+            if (!liveBubble) { removeTypingIndicator(); liveBubble = addBubble('assistant', ''); }
+            liveBubble.innerHTML = mdToHtml(textSoFar);
+            scrollToBottom();
+          });
+        } finally {
+          removeTypingIndicator();
+        }
+        if (!msg) throw new Error('Respons API tidak berisi pesan yang valid.');
+
+        var toolCalls = msg.tool_calls || [];
+        messages.push({ role: 'assistant', content: msg.content || '', tool_calls: toolCalls.length ? toolCalls : undefined });
+
+        // Kalau belum sempat ada bubble live (mis. jawabannya cuma tool_calls
+        // tanpa teks pendamping yang sempat ter-stream), baru tampilkan di sini.
+        if (!liveBubble && msg.content && msg.content.trim()) addBubble('assistant', msg.content.trim());
+
+        if (!toolCalls.length) { saveHistory(messages); return; }
+
+        for (var i = 0; i < toolCalls.length; i++) {
+          var toolResultMsg = await executeToolCall(toolCalls[i]);
+          messages.push(toolResultMsg);
+        }
+        saveHistory(messages);
+      }
+      addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
+    } catch (e) {
+      if (e && e.code === 'NO_API_KEY') {
+        addBubble('error', 'API Key Blackbox AI belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
+        openKeyModal();
+      } else if (e && e.status === 400 && /model/i.test((e.message || ''))) {
+        addBubble('error', 'Model "' + getModel() + '" tidak dikenali oleh API Key ini.\n\nKlik ikon kunci 🔑 → tombol "Muat Model" untuk melihat daftar model yang benar-benar valid untuk akun kamu, lalu pilih salah satu.\n\nDetail: ' + e.message);
+        openKeyModal();
+      } else {
+        addBubble('error', 'Terjadi kesalahan: ' + ((e && e.message) || e));
+      }
+    } finally {
+      isBusy = false;
+      setInputEnabled(true);
+    }
+  }
+
+  function setInputEnabled(enabled) {
+    if (els.input) els.input.disabled = !enabled;
+    if (els.sendBtn) els.sendBtn.disabled = !enabled;
+    if (els.attachBtn) els.attachBtn.disabled = !enabled;
+    if (els.fab) els.fab.classList.toggle('thinking', !enabled);
+    if (els.headIco) els.headIco.classList.toggle('thinking', !enabled);
+    setBotThinking(!enabled);
+    if (enabled && els.input) els.input.focus();
+  }
+
+  function openKeyModal() {
+    els.keyInput.value = getApiKey();
+    els.modelInput.value = getModel();
+    els.confirmToggle.checked = getConfirmWrites();
+    els.keyModalOv.classList.add('show');
+  }
+  function closeKeyModal() { els.keyModalOv.classList.remove('show'); }
+
+  // ---------------------------------------------------------------------
+  // Kata-kata semangat / lucu / bijak yang muncul gantian di bubble chat
+  // kecil di atas ikon robot. Campuran: penyemangat kerja, humor ringan,
+  // ajakan ngobrol santai (bukan cuma soal stok), dan sepercik kebijaksanaan.
+  // ---------------------------------------------------------------------
+  var HINT_PHRASES = [
+    'Semangat ya! Barang nggak akan ngitung dirinya sendiri 😄',
+    'Kalau capek, istirahat dulu. Stok bisa nunggu, kesehatanmu enggak.',
+    'Psst... aku juga bisa diajak ngobrol santai kok, bukan cuma soal stok!',
+    'Setiap angka yang kamu catat itu jejak kerja keras. Keren! 👏',
+    'Hidup itu kayak stok opname: kadang lebih, kadang kurang — yang penting jujur dicatat.',
+    'Butuh teman ngobrol? Klik aku, kita bisa bahas apa aja 🙂',
+    'Jangan lupa minum air putih, bukan cuma stok yang perlu diisi ulang.',
+    'Kerja keras hari ini, cerita seru buat besok.',
+    'Selisih di rak itu wajar. Yang nggak wajar itu kalau nggak dicek sama sekali.',
+    'Kalau bosan, mampir chat aku — aku juga suka becanda kok 😆',
+    'Teliti itu bukan soal lambat, tapi soal nggak mau nyesel belakangan.',
+    'Kopi dulu, gih. Barang-barang ini sabar kok nungguin.',
+    'Satu rak beres, satu langkah lebih dekat ke pulang cepat.',
+    'Aku robot, tapi aku dengerin curhatmu juga, serius.',
+    'Rapi hari ini, tenang di akhir bulan.',
+    'Capek boleh, nyerah jangan.',
+    'Kalau pikiranmu penuh, ngobrol dulu sama aku — nggak harus soal kerjaan.',
+    'Yang dihitung bukan cuma barang, tapi juga usahamu hari ini.'
+  ];
+  var hintTimer = null, hintRotateIdx = -1;
+  var HINT_SHOW_MS = 4500;   // lama teks tampil
+  var HINT_GAP_MS = 3200;    // jeda kosong sebelum teks berikutnya muncul
+  var HINT_RETRY_MS = 1200;  // cek ulang kalau panel chat lagi terbuka
+  function pickNextHintIdx() {
+    if (HINT_PHRASES.length <= 1) return 0;
+    var idx;
+    do { idx = Math.floor(Math.random() * HINT_PHRASES.length); } while (idx === hintRotateIdx);
+    return idx;
+  }
+  function startHintBubble(hintEl, panelEl) {
+    function cycle() {
+      if (panelEl && panelEl.classList.contains('show')) {
+        // Chat lagi dibuka — jangan ganggu, cek lagi sebentar.
+        hintTimer = setTimeout(cycle, HINT_RETRY_MS);
+        return;
+      }
+      hintRotateIdx = pickNextHintIdx();
+      hintEl.textContent = HINT_PHRASES[hintRotateIdx];
+      hintEl.classList.remove('fading');
+      hintEl.classList.add('show');
+      hintTimer = setTimeout(function () {
+        hintEl.classList.remove('show'); // sembunyi dulu, ada jeda sebelum teks berikutnya
+        hintTimer = setTimeout(cycle, HINT_GAP_MS);
+      }, HINT_SHOW_MS);
+    }
+    // Tampilan pertama, sedikit delay biar tidak muncul mendadak saat halaman baru dibuka.
+    hintTimer = setTimeout(cycle, 1400);
+  }
+
+  // ---------------------------------------------------------------------
+  // Bangun & pasang UI setelah DOM siap
+  // ---------------------------------------------------------------------
+  function mount() {
+    // --- Floating action button ---
+    var fab = el('button', 'bba-fab', { type: 'button', 'aria-label': 'Buka AI Agent' });
+    var fabIconWrap = el('span', 'bba-fab-icon');
+    fab.appendChild(fabIconWrap);
+    document.body.appendChild(fab);
+    mountBotLottie(fabIconWrap);
+
+    // --- Bubble chat "kata semangat" di atas robot ---
+    var hint = el('div', 'bba-hint', { role: 'button', 'aria-label': 'Buka AI Agent' });
+    document.body.appendChild(hint);
+    hint.addEventListener('click', function () { fab.click(); });
+
+    // --- Panel chat ---
+    var panel = el('div', 'bba-panel');
+
+    var head = el('div', 'bba-head');
+    var headLeft = el('div', 'bba-head-left');
+    var headIco = el('div', 'bba-head-ico');
+    headLeft.appendChild(headIco);
+    mountBotLottie(headIco);
+    var headTxt = el('div', 'bba-head-txt');
+    var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Blackbox AI';
+    var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
+    headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
+    headLeft.appendChild(headTxt);
+    var headRight = el('div', 'bba-head-right');
+    var keyBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'API Key & Pengaturan' }); keyBtn.textContent = '🔑';
+    var clearBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Bersihkan chat' }); clearBtn.textContent = '🧹';
+    var closeBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Tutup' }); closeBtn.textContent = '✕';
+    headRight.appendChild(keyBtn); headRight.appendChild(clearBtn); headRight.appendChild(closeBtn);
+    head.appendChild(headLeft); head.appendChild(headRight);
+
+    var body = el('div', 'bba-body');
+
+    var foot = el('div', 'bba-foot');
+
+    var imgChip = el('div', 'bba-img-chip');
+    var imgChipThumb = el('img', 'bba-img-chip-thumb', { alt: 'Preview gambar' });
+    var imgChipLabel = el('span', 'bba-img-chip-label'); imgChipLabel.textContent = 'Gambar siap dikirim';
+    var imgChipRemove = el('button', 'bba-img-chip-remove', { type: 'button', title: 'Hapus gambar' });
+    imgChipRemove.textContent = '✕';
+    imgChip.appendChild(imgChipThumb); imgChip.appendChild(imgChipLabel); imgChip.appendChild(imgChipRemove);
+
+    var footRow = el('div', 'bba-foot-row');
+    var attachBtn = el('button', 'bba-attach', { type: 'button', title: 'Lampirkan foto barang' });
+    attachBtn.textContent = '📷';
+    var attachInput = el('input', '', { type: 'file', accept: 'image/*' });
+    attachInput.style.display = 'none';
+    var textarea = el('textarea', '', { rows: '1', placeholder: 'Tulis perintah, mis: "isi stok Rafa 1 untuk barang X = 12", atau lampirkan foto barang' });
+    var sendBtn = el('button', 'bba-send', { type: 'button', title: 'Kirim' });
+    sendBtn.textContent = '➤';
+    footRow.appendChild(attachBtn); footRow.appendChild(textarea); footRow.appendChild(sendBtn);
+
+    foot.appendChild(imgChip); foot.appendChild(footRow); foot.appendChild(attachInput);
+
+    panel.appendChild(head); panel.appendChild(body); panel.appendChild(foot);
+    document.body.appendChild(panel);
+
+    // --- Modal API key / pengaturan ---
+    var modalOv = el('div', 'bba-modal-ov');
+    var modal = el('div', 'bba-modal');
+
+    var mTitle = el('h3'); mTitle.textContent = '🔑 Pengaturan AI Agent';
+    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Blackbox AI.';
+    var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
+    mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
+
+    var lblKey = el('label'); lblKey.textContent = 'Blackbox AI API Key';
+    var keyRow = el('div', 'bba-field-row');
+    var keyInput = el('input', '', { type: 'password', placeholder: 'sk-xxxxxxxxxxxxxxxx' });
+    var toggleShow = el('button', 'bba-eye', { type: 'button', tabindex: '-1' }); toggleShow.textContent = '👁';
+    keyRow.appendChild(keyInput); keyRow.appendChild(toggleShow);
+
+    var lblModel = el('label'); lblModel.textContent = 'Model';
+    var modelRow = el('div', 'bba-model-row');
+    var modelInput = el('input', '', { type: 'text', placeholder: DEFAULT_MODEL });
+    var loadModelsBtn = el('button', '', { type: 'button', title: 'Muat daftar model yang valid untuk API Key ini' });
+    loadModelsBtn.textContent = 'Muat Model';
+    modelRow.appendChild(modelInput); modelRow.appendChild(loadModelsBtn);
+    var modelSelect = el('select', 'bba-model-select');
+    var modelStatus = el('p', 'bba-model-status');
+    var modelHint = el('p', 'bba-model-hint');
+    modelHint.textContent = 'Klik "Muat Model" untuk mengambil daftar model yang benar-benar aktif untuk API Key kamu, lalu pilih dari daftar tersebut. Untuk fitur 📷 deteksi barang dari gambar, pastikan modelnya mendukung input gambar (vision) — model default (gpt-4o) sudah mendukung.';
+
+    var confirmRow = el('label', 'bba-confirm-toggle');
+    var confirmToggle = el('input', '', { type: 'checkbox' });
+    var confirmText = el('span'); confirmText.textContent = 'Minta konfirmasi sebelum menambah/mengubah data (hapus & kosongkan semua selalu minta konfirmasi)';
+    confirmRow.appendChild(confirmToggle); confirmRow.appendChild(confirmText);
+
+    var mBtnRow = el('div', 'bba-modal-btns');
+    var saveBtn = el('button', 'bba-btn-save', { type: 'button' }); saveBtn.textContent = 'Simpan';
+    var clearKeyBtn = el('button', 'bba-btn-clear', { type: 'button' }); clearKeyBtn.textContent = 'Hapus Key';
+    var closeModalBtn = el('button', 'bba-btn-close', { type: 'button' }); closeModalBtn.textContent = 'Tutup';
+    mBtnRow.appendChild(saveBtn); mBtnRow.appendChild(clearKeyBtn); mBtnRow.appendChild(closeModalBtn);
+
+    modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
+    modal.appendChild(lblKey); modal.appendChild(keyRow);
+    modal.appendChild(lblModel); modal.appendChild(modelRow); modal.appendChild(modelSelect);
+    modal.appendChild(modelStatus); modal.appendChild(modelHint);
+    modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
+    modalOv.appendChild(modal);
+    document.body.appendChild(modalOv);
+
+    els.fab = fab; els.headIco = headIco; els.panel = panel; els.body = body; els.input = textarea; els.sendBtn = sendBtn;
+    els.keyModalOv = modalOv; els.keyInput = keyInput; els.modelInput = modelInput; els.confirmToggle = confirmToggle;
+    els.loadModelsBtn = loadModelsBtn; els.modelSelect = modelSelect; els.modelStatus = modelStatus;
+    els.attachBtn = attachBtn; els.attachInput = attachInput; els.imgChip = imgChip;
+    els.imgChipThumb = imgChipThumb; els.imgChipRemove = imgChipRemove;
+
+    // --- Lampiran gambar: state & helper ---
+    var pendingImage = null; // data URL gambar yang sudah dikompres, siap dikirim
+    function clearPendingImage() {
+      pendingImage = null;
+      imgChip.classList.remove('show');
+      imgChipThumb.src = '';
+      attachInput.value = '';
+    }
+    function setPendingImage(dataUrl) {
+      pendingImage = dataUrl;
+      imgChipThumb.src = dataUrl;
+      imgChip.classList.add('show');
+    }
+    attachBtn.addEventListener('click', function () { if (!isBusy) attachInput.click(); });
+    attachInput.addEventListener('change', async function () {
+      var file = attachInput.files && attachInput.files[0];
+      if (!file) return;
+      attachBtn.disabled = true;
+      try {
+        var dataUrl = await fileToCompressedDataUrl(file, 1280, 0.78);
+        setPendingImage(dataUrl);
+        textarea.focus();
+      } catch (eImg) {
+        addBubble('error', 'Gagal memproses gambar: ' + ((eImg && eImg.message) || eImg));
+        attachInput.value = '';
+      } finally {
+        attachBtn.disabled = false;
+      }
+    });
+    imgChipRemove.addEventListener('click', function () { clearPendingImage(); });
+
+    function setModelStatus(text, kind) {
+      modelStatus.textContent = text;
+      modelStatus.className = 'bba-model-status' + (kind === 'error' ? ' err' : kind === 'ok' ? ' ok' : '');
+      modelStatus.style.display = text ? 'block' : 'none';
+    }
+
+    async function doLoadModels() {
+      var key = keyInput.value.trim();
+      if (!key) { setModelStatus('Masukkan API Key dulu sebelum memuat daftar model.', 'error'); return; }
+      loadModelsBtn.disabled = true;
+      var originalLabel = loadModelsBtn.textContent;
+      loadModelsBtn.textContent = 'Memuat...';
+      setModelStatus('Mengambil daftar model dari Blackbox AI...', 'info');
+      try {
+        var ids = await fetchModelList(key);
+        modelSelect.innerHTML = '';
+        if (!ids.length) {
+          setModelStatus('Tidak ada model yang ditemukan untuk API Key ini.', 'error');
+          modelSelect.style.display = 'none';
+        } else {
+          var placeholderOpt = el('option'); placeholderOpt.value = ''; placeholderOpt.textContent = '— pilih model (' + ids.length + ' tersedia) —';
+          modelSelect.appendChild(placeholderOpt);
+          ids.forEach(function (id) {
+            var opt = el('option'); opt.value = id; opt.textContent = id;
+            if (id === modelInput.value.trim()) opt.selected = true;
+            modelSelect.appendChild(opt);
+          });
+          modelSelect.style.display = 'block';
+          setModelStatus(ids.length + ' model ditemukan. Pilih salah satu di bawah ini.', 'ok');
+        }
+      } catch (e) {
+        setModelStatus('Gagal memuat daftar model: ' + ((e && e.message) || e), 'error');
+        modelSelect.style.display = 'none';
+      } finally {
+        loadModelsBtn.disabled = false;
+        loadModelsBtn.textContent = originalLabel;
+      }
+    }
+    loadModelsBtn.addEventListener('click', doLoadModels);
+    modelSelect.addEventListener('change', function () { if (modelSelect.value) modelInput.value = modelSelect.value; });
+
+    // --- Event wiring ---
+    fab.addEventListener('click', function () {
+      panel.classList.toggle('show');
+      if (panel.classList.contains('show')) {
+        hint.classList.remove('show');
+        if (!body.childElementCount) {
+          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\n📷 Kirim FOTO rak, struk, atau catatan barang juga bisa lewat tombol kamera di sebelah kotak chat. Nanti saya ambil nama-nama barangnya, lalu tampilkan daftarnya buat kamu pilih & konfirmasi sebelum masuk ke tabel.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\nKalau belum diatur, masukkan API Key Blackbox AI lewat ikon kunci 🔑 di atas dulu ya (pastikan modelnya mendukung gambar/vision — model default sudah mendukung).\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
+          messages.forEach(function (m) {
+            if (m.role === 'user') renderStoredUserMessage(m.content);
+            else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
+          });
+        }
+        textarea.focus();
+      } else {
+        hint.classList.remove('show');
+      }
+    });
+    closeBtn.addEventListener('click', function () { panel.classList.remove('show'); });
+    keyBtn.addEventListener('click', openKeyModal);
+    closeModalBtn.addEventListener('click', closeKeyModal);
+    modalOv.addEventListener('click', function (e) { if (e.target === modalOv) closeKeyModal(); });
+
+    clearBtn.addEventListener('click', function () {
+      messages.length = 0;
+      saveHistory(messages);
+      body.innerHTML = '';
+      addBubble('assistant', 'Riwayat chat dibersihkan. Ada yang bisa saya bantu?');
+    });
+
+    var showingKey = false;
+    toggleShow.addEventListener('click', function () {
+      showingKey = !showingKey;
+      keyInput.type = showingKey ? 'text' : 'password';
+      toggleShow.textContent = showingKey ? '🙈' : '👁';
+    });
+
+    saveBtn.addEventListener('click', function () {
+      setApiKey(keyInput.value.trim());
+      setModel(modelInput.value.trim());
+      setConfirmWrites(confirmToggle.checked);
+      closeKeyModal();
+      addBubble('assistant', 'Pengaturan disimpan. Siap membantu!');
+    });
+    clearKeyBtn.addEventListener('click', function () {
+      setApiKey('');
+      keyInput.value = '';
+      addBubble('assistant', 'API Key dihapus dari perangkat ini.');
+    });
+
+    function doSend() {
+      if (isBusy) return;
+      var text = textarea.value.trim();
+      if (!text && !pendingImage) return;
+
+      var contentForApi;
+      if (pendingImage) {
+        var caption = text || 'Deteksi & ambil nama-nama barang dari gambar ini (abaikan harga/jumlah/satuan), lalu tampilkan daftarnya untuk saya konfirmasi sebelum dimasukkan ke tabel.';
+        addImageBubble('user', pendingImage, caption);
+        contentForApi = [
+          { type: 'text', text: caption },
+          { type: 'image_url', image_url: { url: pendingImage } }
+        ];
+        clearPendingImage();
+      } else {
+        addBubble('user', text);
+        contentForApi = text;
+      }
+
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      runAgentLoop(contentForApi);
+    }
+    sendBtn.addEventListener('click', doSend);
+    textarea.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+    });
+    textarea.addEventListener('input', function () {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 90) + 'px';
+    });
+
+    // Mulai putar bubble kata semangat di atas robot.
+    startHintBubble(hint, panel);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount);
+  } else {
+    mount();
+  }
+})();
 </script>
 
 </body>
