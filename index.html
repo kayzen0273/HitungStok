@@ -3953,6 +3953,43 @@ loadState();
   .bba-btn-clear{ background:#fff; color:var(--minus); border:1px solid var(--minus-bg) !important; padding:9px 12px !important; }
   .bba-btn-close{ background:#fff; color:var(--ink-soft); border:1px solid var(--line) !important; padding:9px 12px !important; }
 
+  /* Tombol pemicu modal pilih model (tampil seperti input, tapi bisa diklik) */
+  .bba-model-picker-btn{
+    width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    border:1px solid var(--line); border-radius:10px; padding:9px 10px; font-family:inherit; font-size:12.5px;
+    background:var(--paper); color:var(--ink); text-align:left; margin-bottom:6px;
+  }
+  .bba-model-picker-btn:hover{ border-color:var(--teal); background:var(--card); }
+  .bba-model-picker-btn .chev{ color:var(--ink-soft); font-size:10px; flex-shrink:0; }
+
+  /* Modal terpisah untuk memilih model, dengan kotak pencarian */
+  .bba-model-modal-ov{ position:fixed; inset:0; z-index:10001; display:none; align-items:center; justify-content:center; background:rgba(10,25,22,0.55); padding:14px; }
+  .bba-model-modal-ov.show{ display:flex; }
+  .bba-model-modal{ background:var(--card); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.4); width:100%; max-width:340px; padding:16px; max-height:82vh; display:flex; flex-direction:column; }
+  .bba-model-modal h3{ margin:0 0 10px; font-size:14px; font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px; }
+  .bba-model-search{
+    width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:8px 10px;
+    font-family:inherit; font-size:12.8px; background:var(--paper); color:var(--ink); margin-bottom:8px;
+  }
+  .bba-model-search:focus{ outline:none; border-color:var(--teal); }
+  .bba-model-modal-status{ font-size:10.5px; margin:0 0 8px; color:var(--ink-soft); min-height:13px; }
+  .bba-model-modal-status.ok{ color:var(--klop); }
+  .bba-model-modal-status.err{ color:var(--minus); }
+  .bba-model-list{ overflow-y:auto; border:1px solid var(--line); border-radius:10px; flex:1; min-height:120px; max-height:280px; }
+  .bba-model-item{
+    padding:9px 11px; font-size:12.5px; color:var(--ink); cursor:pointer; border-bottom:1px solid #eef1ec;
+    word-break:break-all; font-family:'JetBrains Mono', monospace;
+  }
+  .bba-model-item:last-child{ border-bottom:none; }
+  .bba-model-item:hover{ background:var(--mint); }
+  .bba-model-item.active{ background:var(--mint); color:var(--teal-deep); font-weight:700; }
+  .bba-model-empty{ padding:16px 11px; font-size:12px; color:var(--ink-soft); text-align:center; }
+  .bba-model-modal-close{
+    margin-top:10px; width:100%; border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    border-radius:10px; padding:9px 8px; font-size:12px; font-weight:800; cursor:pointer;
+  }
+  .bba-model-modal-close:hover{ background:var(--mint); }
+
   /* --- Lampiran gambar (deteksi barang dari foto) --- */
   .bba-foot{ flex-direction:column; align-items:stretch; gap:7px; }
   .bba-foot-row{ display:flex; align-items:flex-end; gap:7px; }
@@ -5103,6 +5140,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function openKeyModal() {
     els.keyInput.value = getApiKey();
     els.modelInput.value = getModel();
+    if (els.modelDisplayTxt) els.modelDisplayTxt.textContent = getModel();
     els.confirmToggle.checked = getConfirmWrites();
     els.keyModalOv.classList.add('show');
   }
@@ -5242,15 +5280,27 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     keyRow.appendChild(keyInput); keyRow.appendChild(toggleShow);
 
     var lblModel = el('label'); lblModel.textContent = 'Model';
-    var modelRow = el('div', 'bba-model-row');
-    var modelInput = el('input', '', { type: 'text', placeholder: DEFAULT_MODEL });
-    var loadModelsBtn = el('button', '', { type: 'button', title: 'Muat daftar model yang valid untuk API Key ini' });
-    loadModelsBtn.textContent = 'Muat Model';
-    modelRow.appendChild(modelInput); modelRow.appendChild(loadModelsBtn);
-    var modelSelect = el('select', 'bba-model-select');
-    var modelStatus = el('p', 'bba-model-status');
+    var modelInput = el('input', '', { type: 'hidden' }); // penyimpan nilai model terpilih (tersembunyi)
+    var modelDisplayBtn = el('button', 'bba-model-picker-btn', { type: 'button', title: 'Pilih model' });
+    var modelDisplayTxt = el('span'); modelDisplayTxt.textContent = DEFAULT_MODEL;
+    var modelDisplayChev = el('span', 'chev'); modelDisplayChev.textContent = '▾ pilih';
+    modelDisplayBtn.appendChild(modelDisplayTxt); modelDisplayBtn.appendChild(modelDisplayChev);
     var modelHint = el('p', 'bba-model-hint');
-    modelHint.textContent = 'Klik "Muat Model" untuk mengambil daftar model yang benar-benar aktif untuk API Key kamu, lalu pilih dari daftar tersebut. Untuk fitur 📷 deteksi barang dari gambar, pastikan modelnya mendukung input gambar (vision) — model default (gpt-4o) sudah mendukung.';
+    modelHint.textContent = 'Klik untuk membuka daftar model yang benar-benar aktif untuk API Key kamu, lengkap dengan kotak pencarian. Untuk fitur 📷 deteksi barang dari gambar, pastikan modelnya mendukung input gambar (vision) — model default (gpt-4o) sudah mendukung.';
+
+    // --- Modal terpisah: pilih model dengan pencarian ---
+    var modelModalOv = el('div', 'bba-model-modal-ov');
+    var modelModal = el('div', 'bba-model-modal');
+    var mmTitle = el('h3'); mmTitle.textContent = '🧠 Pilih Model';
+    var modelSearchInput = el('input', 'bba-model-search', { type: 'text', placeholder: 'Cari model, mis: gpt-4o, claude, llama...' });
+    var modelModalStatus = el('p', 'bba-model-modal-status');
+    var modelListBody = el('div', 'bba-model-list');
+    var modelModalCloseBtn = el('button', 'bba-model-modal-close', { type: 'button' }); modelModalCloseBtn.textContent = 'Tutup';
+    modelModal.appendChild(mmTitle); modelModal.appendChild(modelSearchInput);
+    modelModal.appendChild(modelModalStatus); modelModal.appendChild(modelListBody);
+    modelModal.appendChild(modelModalCloseBtn);
+    modelModalOv.appendChild(modelModal);
+    document.body.appendChild(modelModalOv);
 
     var confirmRow = el('label', 'bba-confirm-toggle');
     var confirmToggle = el('input', '', { type: 'checkbox' });
@@ -5265,15 +5315,16 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
     modal.appendChild(lblKey); modal.appendChild(keyRow);
-    modal.appendChild(lblModel); modal.appendChild(modelRow); modal.appendChild(modelSelect);
-    modal.appendChild(modelStatus); modal.appendChild(modelHint);
+    modal.appendChild(lblModel); modal.appendChild(modelDisplayBtn); modal.appendChild(modelHint);
     modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
     modalOv.appendChild(modal);
     document.body.appendChild(modalOv);
 
     els.fab = fab; els.headIco = headIco; els.panel = panel; els.body = body; els.input = textarea; els.sendBtn = sendBtn;
     els.keyModalOv = modalOv; els.keyInput = keyInput; els.modelInput = modelInput; els.confirmToggle = confirmToggle;
-    els.loadModelsBtn = loadModelsBtn; els.modelSelect = modelSelect; els.modelStatus = modelStatus;
+    els.modelDisplayBtn = modelDisplayBtn; els.modelDisplayTxt = modelDisplayTxt;
+    els.modelModalOv = modelModalOv; els.modelSearchInput = modelSearchInput;
+    els.modelModalStatus = modelModalStatus; els.modelListBody = modelListBody;
     els.attachBtn = attachBtn; els.attachInput = attachInput; els.imgChip = imgChip;
     els.imgChipThumb = imgChipThumb; els.imgChipRemove = imgChipRemove;
 
@@ -5308,46 +5359,72 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     imgChipRemove.addEventListener('click', function () { clearPendingImage(); });
 
-    function setModelStatus(text, kind) {
-      modelStatus.textContent = text;
-      modelStatus.className = 'bba-model-status' + (kind === 'error' ? ' err' : kind === 'ok' ? ' ok' : '');
-      modelStatus.style.display = text ? 'block' : 'none';
+    var modelListCache = []; // cache daftar model yang terakhir berhasil dimuat
+
+    function setModelModalStatus(text, kind) {
+      modelModalStatus.textContent = text || '';
+      modelModalStatus.className = 'bba-model-modal-status' + (kind === 'error' ? ' err' : kind === 'ok' ? ' ok' : '');
     }
 
-    async function doLoadModels() {
-      var key = keyInput.value.trim();
-      if (!key) { setModelStatus('Masukkan API Key dulu sebelum memuat daftar model.', 'error'); return; }
-      loadModelsBtn.disabled = true;
-      var originalLabel = loadModelsBtn.textContent;
-      loadModelsBtn.textContent = 'Memuat...';
-      setModelStatus('Mengambil daftar model dari Blackbox AI...', 'info');
+    function renderModelList(filterText) {
+      var q = (filterText || '').trim().toLowerCase();
+      var current = modelInput.value.trim();
+      var filtered = !q ? modelListCache : modelListCache.filter(function (id) {
+        return id.toLowerCase().indexOf(q) !== -1;
+      });
+      modelListBody.innerHTML = '';
+      if (!filtered.length) {
+        var empty = el('div', 'bba-model-empty');
+        empty.textContent = modelListCache.length ? 'Tidak ada model yang cocok dengan pencarian.' : 'Belum ada model dimuat.';
+        modelListBody.appendChild(empty);
+        return;
+      }
+      filtered.forEach(function (id) {
+        var item = el('div', 'bba-model-item' + (id === current ? ' active' : ''));
+        item.textContent = id;
+        item.addEventListener('click', function () {
+          modelInput.value = id;
+          modelDisplayTxt.textContent = id;
+          closeModelModal();
+        });
+        modelListBody.appendChild(item);
+      });
+    }
+
+    async function doLoadModelsForPicker() {
+      var key = (keyInput.value || '').trim() || getApiKey();
+      if (!key) { setModelModalStatus('Masukkan API Key dulu di halaman sebelumnya.', 'error'); return; }
+      setModelModalStatus('Mengambil daftar model dari Blackbox AI...', 'info');
+      modelSearchInput.disabled = true;
       try {
         var ids = await fetchModelList(key);
-        modelSelect.innerHTML = '';
+        modelListCache = ids;
         if (!ids.length) {
-          setModelStatus('Tidak ada model yang ditemukan untuk API Key ini.', 'error');
-          modelSelect.style.display = 'none';
+          setModelModalStatus('Tidak ada model yang ditemukan untuk API Key ini.', 'error');
         } else {
-          var placeholderOpt = el('option'); placeholderOpt.value = ''; placeholderOpt.textContent = '— pilih model (' + ids.length + ' tersedia) —';
-          modelSelect.appendChild(placeholderOpt);
-          ids.forEach(function (id) {
-            var opt = el('option'); opt.value = id; opt.textContent = id;
-            if (id === modelInput.value.trim()) opt.selected = true;
-            modelSelect.appendChild(opt);
-          });
-          modelSelect.style.display = 'block';
-          setModelStatus(ids.length + ' model ditemukan. Pilih salah satu di bawah ini.', 'ok');
+          setModelModalStatus(ids.length + ' model tersedia. Ketik untuk mencari.', 'ok');
         }
+        renderModelList(modelSearchInput.value);
       } catch (e) {
-        setModelStatus('Gagal memuat daftar model: ' + ((e && e.message) || e), 'error');
-        modelSelect.style.display = 'none';
+        setModelModalStatus('Gagal memuat daftar model: ' + ((e && e.message) || e), 'error');
+        renderModelList(modelSearchInput.value);
       } finally {
-        loadModelsBtn.disabled = false;
-        loadModelsBtn.textContent = originalLabel;
+        modelSearchInput.disabled = false;
       }
     }
-    loadModelsBtn.addEventListener('click', doLoadModels);
-    modelSelect.addEventListener('change', function () { if (modelSelect.value) modelInput.value = modelSelect.value; });
+
+    function openModelModal() {
+      modelSearchInput.value = '';
+      modelModalOv.classList.add('show');
+      modelSearchInput.focus();
+      doLoadModelsForPicker();
+    }
+    function closeModelModal() { modelModalOv.classList.remove('show'); }
+
+    modelDisplayBtn.addEventListener('click', openModelModal);
+    modelModalCloseBtn.addEventListener('click', closeModelModal);
+    modelModalOv.addEventListener('click', function (e) { if (e.target === modelModalOv) closeModelModal(); });
+    modelSearchInput.addEventListener('input', function () { renderModelList(modelSearchInput.value); });
 
     // --- Event wiring ---
     fab.addEventListener('click', function () {
