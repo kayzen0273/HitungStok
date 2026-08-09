@@ -4036,6 +4036,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
   var DEFAULT_MODEL  = 'blackboxai/openai/gpt-4o';
+  var DEFAULT_API_KEY = 'sk-yvRmteB7SDaZwtsFm_tzzg';
   var API_ORIGIN     = 'https://api.blackbox.ai';
   var API_URL        = API_ORIGIN + '/chat/completions';
   var MODELS_URL     = API_ORIGIN + '/v1/models';
@@ -4046,7 +4047,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
 
-  function getApiKey() { return lsGet(LS_KEY_APIKEY, ''); }
+  function getApiKey() { return lsGet(LS_KEY_APIKEY, DEFAULT_API_KEY) || DEFAULT_API_KEY; }
   function setApiKey(v) { lsSet(LS_KEY_APIKEY, v || ''); }
   function getModel() { return lsGet(LS_KEY_MODEL, DEFAULT_MODEL) || DEFAULT_MODEL; }
   function setModel(v) { lsSet(LS_KEY_MODEL, (v || '').trim() || DEFAULT_MODEL); }
