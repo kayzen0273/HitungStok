@@ -363,6 +363,9 @@
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
   .cashier-nav-btn:disabled{opacity:0.4; cursor:default;}
+  .cashier-shot-btn{background:rgba(255,255,255,0.28);}
+  .cashier-shot-btn.working{animation:cashierShotPulse 1s ease-in-out infinite;}
+  @keyframes cashierShotPulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
   .cashier-addr-form{flex:1; display:flex; align-items:center; min-width:0;}
   .cashier-addr-bar{
     flex:1; min-width:0; background:rgba(255,255,255,0.92); border:none; outline:none;
@@ -3562,6 +3565,7 @@ loadState();
         <div class="cashier-popup-nav">
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
+          <button class="cashier-nav-btn cashier-shot-btn" id="cashierShotBtn" onclick="cashierScreenshotAndAnalyze()" title="Screenshot halaman & kirim ke AI Agent untuk dianalisis">📸</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -3637,6 +3641,70 @@ loadState();
   }
   function closeCashierPopup(){
     document.getElementById('cashierPopup').classList.remove('show');
+  }
+
+  // -------------------------------------------------------------------
+  // Screenshot halaman penuh dari jendela Browser mini, lalu otomatis
+  // dikirim ke AI Agent untuk dibaca & dicocokkan dengan barang yang
+  // sudah ada di tabel Stok Opname.
+  //
+  // Catatan penting: karena isi iframe ini berasal dari situs lain
+  // (lintas-domain), browser TIDAK MENGIZINKAN JavaScript membaca piksel
+  // di dalamnya secara diam-diam (dibatasi keamanan Same-Origin Policy) —
+  // ini berlaku di semua browser, bukan cuma di aplikasi ini. Satu-satunya
+  // cara yang sah untuk "memfoto" isi iframe lintas-domain adalah lewat
+  // Screen/Tab Capture API bawaan browser (getDisplayMedia), yang WAJIB
+  // menampilkan izin pilih sumber dari pengguna setiap kali dipakai —
+  // ini juga bukan sesuatu yang bisa dilewati lewat kode.
+  // -------------------------------------------------------------------
+  async function cashierScreenshotAndAnalyze(){
+    var btn = document.getElementById('cashierShotBtn');
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+      alert('Screenshot otomatis butuh fitur "Screen Capture" yang belum didukung browser/perangkat ini. Coba pakai screenshot manual bawaan HP, lalu kirim lewat tombol kamera 📷 di AI Agent.');
+      return;
+    }
+    if(btn){ btn.disabled = true; btn.classList.add('working'); }
+    var stream = null;
+    try{
+      try{
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'browser' },
+          preferCurrentTab: true,
+          audio: false
+        });
+      }catch(errPick){
+        // Pengguna menutup dialog pilih sumber / menolak izin — bukan error, batalkan diam-diam.
+        return;
+      }
+      var video = document.createElement('video');
+      video.muted = true; video.playsInline = true;
+      video.srcObject = stream;
+      await video.play();
+      // Beri jeda sebentar supaya frame video benar-benar sudah menampilkan konten terbaru.
+      await new Promise(function(r){ setTimeout(r, 300); });
+      var vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+      var maxDim = 1600;
+      var scale = Math.min(1, maxDim / Math.max(vw, vh));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(vw * scale));
+      canvas.height = Math.max(1, Math.round(vh * scale));
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      stream = null;
+
+      closeCashierPopup();
+      if(window.bbaAnalyzeScreenshot){
+        window.bbaAnalyzeScreenshot(dataUrl);
+      }else{
+        alert('AI Agent belum siap dimuat. Coba lagi sesaat lagi.');
+      }
+    }catch(errCap){
+      alert('Gagal mengambil screenshot: ' + ((errCap && errCap.message) || errCap));
+    }finally{
+      if(stream){ stream.getTracks().forEach(function(t){ t.stop(); }); }
+      if(btn){ btn.disabled = false; btn.classList.remove('working'); }
+    }
   }
 
   (function(){
@@ -4868,6 +4936,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       '7. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
       '8. Kamu juga bisa menerima GAMBAR yang dilampirkan pengguna (foto rak/etalase, struk, catatan/daftar tulisan tangan, dsb). Kalau pengguna mengirim gambar dan minta barangnya didata/dimasukkan ke tabel, baca gambar itu dan ambil HANYA nama barangnya — abaikan harga, jumlah/qty, satuan, tanggal, kode, dan teks lain yang tidak relevan — lalu panggil tool bulk_add_items dengan daftar nama tersebut. Jangan menebak isi gambar kalau tidak terbaca jelas; sebutkan saja bagian yang tidak yakin. Kamu TIDAK perlu meminta konfirmasi manual lewat teks karena tool bulk_add_items sudah otomatis menampilkan daftar nama terdeteksi ke pengguna lengkap dengan checkbox untuk dipilih/disunting sebelum benar-benar masuk ke tabel.',
       '9. Kalau model yang sedang dipakai ternyata tidak mendukung input gambar (bukan model vision) sehingga gagal memproses gambar, sampaikan itu apa adanya ke pengguna dan sarankan mengganti ke model yang mendukung gambar (mis. model seri gpt-4o atau model vision lain) lewat ikon kunci 🔑 → Model.',
+      '9b. Kalau gambar yang dikirim adalah SCREENSHOT halaman Browser mini (web/apk kasir) — biasanya pesannya akan menyebut ini secara eksplisit — perlakuannya BEDA dari foto rak/struk di aturan 8: baca nama barang BESERTA angka stoknya (jangan diabaikan), cocokkan dengan barang yang sudah ada di tabel (list_items/search_items kalau perlu), lalu isi/perbarui kolom web_apk lewat bulk_set_stock untuk barang yang cocok. Jangan panggil bulk_add_items untuk kasus ini kecuali pengguna memang eksplisit minta menambahkan barang baru dari gambar tersebut ke tabel; barang yang tidak ketemu cukup disebutkan sebagai catatan.',
       '10. Jawab selalu dalam Bahasa Indonesia, singkat, jelas, dan ramah.',
       '11. Jangan gunakan format markdown (seperti **tebal**, *miring*, tanda pagar #, atau backtick) di jawabanmu — tulis dengan teks polos saja. Kalau perlu daftar, pakai baris baru dengan tanda hubung "-", bukan tanda bintang.',
       '',
@@ -5427,23 +5496,50 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     modelSearchInput.addEventListener('input', function () { renderModelList(modelSearchInput.value); });
 
     // --- Event wiring ---
+    function openPanelUI() {
+      panel.classList.add('show');
+      hint.classList.remove('show');
+      if (!body.childElementCount) {
+        addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\n📷 Kirim FOTO rak, struk, atau catatan barang juga bisa lewat tombol kamera di sebelah kotak chat. Nanti saya ambil nama-nama barangnya, lalu tampilkan daftarnya buat kamu pilih & konfirmasi sebelum masuk ke tabel.\n\n📸 Ada juga tombol screenshot di jendela Browser mini — sekali tap, halaman yang sedang tampil otomatis kefoto dan langsung saya baca buat dicocokkan sama barang yang sudah ada di tabel.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\nKalau belum diatur, masukkan API Key Blackbox AI lewat ikon kunci 🔑 di atas dulu ya (pastikan modelnya mendukung gambar/vision — model default sudah mendukung).\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
+        messages.forEach(function (m) {
+          if (m.role === 'user') renderStoredUserMessage(m.content);
+          else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
+        });
+      }
+      textarea.focus();
+    }
     fab.addEventListener('click', function () {
-      panel.classList.toggle('show');
       if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
         hint.classList.remove('show');
-        if (!body.childElementCount) {
-          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\n📷 Kirim FOTO rak, struk, atau catatan barang juga bisa lewat tombol kamera di sebelah kotak chat. Nanti saya ambil nama-nama barangnya, lalu tampilkan daftarnya buat kamu pilih & konfirmasi sebelum masuk ke tabel.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\nKalau belum diatur, masukkan API Key Blackbox AI lewat ikon kunci 🔑 di atas dulu ya (pastikan modelnya mendukung gambar/vision — model default sudah mendukung).\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
-          messages.forEach(function (m) {
-            if (m.role === 'user') renderStoredUserMessage(m.content);
-            else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
-          });
-        }
-        textarea.focus();
       } else {
-        hint.classList.remove('show');
+        openPanelUI();
       }
     });
     closeBtn.addEventListener('click', function () { panel.classList.remove('show'); });
+
+    // ---------------------------------------------------------------------
+    // Jembatan untuk fitur "Screenshot halaman" di jendela Browser mini:
+    // dipanggil dari luar (cashierScreenshotAndAnalyze) begitu screenshot
+    // sudah jadi data URL. Panel dibuka otomatis, gambar dikirim sebagai
+    // pesan bergambar dengan instruksi khusus: baca nama barang + stoknya
+    // dari gambar, lalu cocokkan & isi kolom stok Web/Apk untuk barang yang
+    // sudah ada di tabel (bukan sekadar menambah barang baru).
+    // ---------------------------------------------------------------------
+    window.bbaAnalyzeScreenshot = function (dataUrl) {
+      if (isBusy) {
+        alert('AI Agent masih memproses permintaan sebelumnya, coba lagi sesaat lagi.');
+        return;
+      }
+      openPanelUI();
+      var caption = 'Ini SCREENSHOT FULL HALAMAN dari jendela Browser mini (web/apk) yang baru saja saya ambil lewat tombol 📸. Ini BUKAN foto rak/struk biasa — tolong baca nama barang BESERTA angka stoknya di gambar ini (jangan diabaikan). Cocokkan setiap nama barang itu dengan barang yang SUDAH ADA di tabel Stok Opname sekarang (cek dulu isi tabel kalau perlu), lalu isi/perbarui kolom stok Web/Apk lewat bulk_set_stock untuk barang yang cocok — sebutkan juga kalau ada yang dicocokkan secara mirip (bukan persis sama) supaya saya bisa cek. Untuk nama barang di gambar yang TIDAK ditemukan di tabel, jangan langsung ditambahkan — cukup sebutkan sebagai daftar terpisah di jawabanmu, biar saya yang putuskan.';
+      addImageBubble('user', dataUrl, caption);
+      var contentForApi = [
+        { type: 'text', text: caption },
+        { type: 'image_url', image_url: { url: dataUrl } }
+      ];
+      runAgentLoop(contentForApi);
+    };
     keyBtn.addEventListener('click', openKeyModal);
     closeModalBtn.addEventListener('click', closeKeyModal);
     modalOv.addEventListener('click', function (e) { if (e.target === modalOv) closeKeyModal(); });
