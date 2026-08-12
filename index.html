@@ -1029,6 +1029,7 @@ function delRow(id){
   pendingDeleteIds.add(id);
   render();
   saveState();
+  logActivity('delete_row', `Menghapus barang ${label}`);
 }
 
 function updateField(id, field, value){
@@ -2327,6 +2328,7 @@ async function importExcel(file){
     render();
     saveState();
     alert(`Import selesai. ${added} barang baru ditambahkan, ${updated} barang diperbarui.`);
+    logActivity('import_excel', `Impor Excel: ${added} barang baru, ${updated} barang diperbarui`);
   } catch(err){
     console.error('Gagal import Excel:', err);
     alert('Gagal membaca file Excel. Pastikan formatnya benar (.xlsx) lalu coba lagi.');
@@ -2422,6 +2424,95 @@ function initSupabaseClient(){
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
   return sb;
+}
+
+// ====== "Sedang Aktif" (Presence) & Log Aktivitas — dipantau dari Panel Admin ======
+// Presence murni realtime (tidak perlu tabel database): begitu tab ditutup
+// atau koneksi putus, status "aktif" perangkat ini otomatis hilang dari
+// Panel Admin. Log Aktivitas dicatat ke tabel stok_opname_activity_log supaya
+// riwayatnya tetap ada walau perangkatnya sudah offline.
+const ACTIVITY_LOG_TABLE = 'stok_opname_activity_log';
+const PRESENCE_CHANNEL_NAME = 'presence-stok-opname';
+let presenceChannel = null;
+let presenceHeartbeatTimer = null;
+
+function currentUserMeta(){
+  const petugasEl = document.getElementById('metaPetugas');
+  const tokoEl = document.getElementById('metaToko');
+  return {
+    petugas: petugasEl ? petugasEl.value.trim() : '',
+    toko: tokoEl ? tokoEl.value.trim() : ''
+  };
+}
+
+// Kirim satu baris ke Log Aktivitas. Selalu "fire-and-forget" — kalau gagal
+// (tabel belum dibuat / koneksi bermasalah) cukup dicatat di console, tidak
+// pernah mengganggu/menghentikan pemakaian normal aplikasi ini.
+async function logActivity(action, detail){
+  const client = initSupabaseClient();
+  if(!client) return;
+  const meta = currentUserMeta();
+  try{
+    await sb.from(ACTIVITY_LOG_TABLE).insert({
+      client_id: CLIENT_ID,
+      room_code: roomCode || null,
+      petugas: meta.petugas || null,
+      toko: meta.toko || null,
+      action,
+      detail: detail || null
+    });
+  } catch(e){
+    console.error('Gagal mencatat aktivitas:', e);
+  }
+}
+
+function currentPresencePayload(){
+  const meta = currentUserMeta();
+  return {
+    client_id: CLIENT_ID,
+    petugas: meta.petugas,
+    toko: meta.toko,
+    room_code: roomCode || '',
+    online_at: new Date().toISOString()
+  };
+}
+
+// Perangkat ini dianggap "aktif" di Panel Admin HANYA kalau field Petugas
+// sudah diisi — sama sekali tidak berkaitan dengan fitur "Sinkronisasi Tim"
+// (join/keluar room). Mengisi Petugas saja sudah cukup untuk muncul di
+// Panel Admin, dipakai sendirian atau lewat room, sama saja.
+function hasPetugasFilled(){
+  return !!currentUserMeta().petugas;
+}
+
+// Daftarkan perangkat ini sebagai "sedang aktif" lewat Supabase Realtime
+// Presence. Panel Admin memantau channel yang sama untuk menampilkan siapa
+// saja yang sedang membuka halaman ini secara live (hanya yang Petugas-nya
+// sudah terisi — lihat updatePresence()). Tidak ada tampilan baru apa pun
+// yang ditambahkan di halaman ini; presence berjalan diam-diam di latar.
+async function initPresence(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  if(presenceChannel){ try{ sb.removeChannel(presenceChannel); }catch(e){} presenceChannel = null; }
+  presenceChannel = sb.channel(PRESENCE_CHANNEL_NAME, { config: { presence: { key: CLIENT_ID } } });
+  presenceChannel.subscribe(status => {
+    if(status === 'SUBSCRIBED') updatePresence();
+  });
+  clearInterval(presenceHeartbeatTimer);
+  // Perbarui berkala supaya "online sejak" di Panel Admin tetap akurat dan
+  // presence tidak dianggap basi oleh perangkat yang idle lama.
+  presenceHeartbeatTimer = setInterval(updatePresence, 25000);
+}
+
+// Kirim status "aktif" HANYA kalau Petugas sudah diisi; kalau kosong (belum
+// dipilih, atau baru saja dikosongkan lewat Reset), langsung untrack supaya
+// perangkat ini tidak nongol di daftar "Pengguna Aktif Sekarang".
+function updatePresence(){
+  if(!presenceChannel) return;
+  try{
+    if(hasPetugasFilled()) presenceChannel.track(currentPresencePayload());
+    else presenceChannel.untrack();
+  } catch(e){}
 }
 
 function setSyncStatus(text, mode){
@@ -2623,6 +2714,8 @@ async function joinRoom(rawCode){
       setSyncStatus('Tersambung • room baru dibuat, data saat ini dimigrasi', 'on');
     }
     subscribeRoom();
+    updatePresence();
+    logActivity('join_room', `Bergabung ke room "${roomCode}"`);
   } catch(err){
     console.error('Gagal join room:', err);
     setSyncStatus('Gagal terhubung ke room. Pastikan tabel Supabase sudah dibuat.', 'warn');
@@ -2704,6 +2797,7 @@ async function stopRoomSession(){
   sessionActive = false;
   updateSessionUI();
   await doPushToRoomNow();
+  logActivity('stop_room', `Menghentikan room "${roomCode}"`);
 }
 
 async function resumeRoomSession(){
@@ -2711,10 +2805,12 @@ async function resumeRoomSession(){
   sessionActive = true;
   updateSessionUI();
   await doPushToRoomNow();
+  logActivity('resume_room', `Menjalankan lagi room "${roomCode}"`);
 }
 
 async function leaveRoom(){
   if(!confirm('Keluar dari room ini? Perangkat ini tidak akan lagi tersinkron otomatis, tapi data di room tetap ada untuk rekan tim lain.')) return;
+  const leftRoomCode = roomCode;
   if(realtimeChannel && sb){ try{ await sb.removeChannel(realtimeChannel); }catch(e){} realtimeChannel = null; }
   roomCode = '';
   sessionActive = true;
@@ -2724,6 +2820,8 @@ async function leaveRoom(){
   try{ localStorage.removeItem(ROOM_KEY); }catch(e){}
   updateRoomUI();
   setSyncStatus('\u00A0');
+  updatePresence();
+  logActivity('leave_room', `Keluar dari room "${leftRoomCode}"`);
 }
 
 function copyInviteLink(){
@@ -2942,6 +3040,7 @@ async function manualUpdateStockFromAdmin(){
         ? `Tidak ada yang diperbarui — ${result.notFound} nama dari admin tidak cocok dengan nama barang di tabel ini.`
         : 'Tidak ada baris yang diperbarui — kolom Web/Apk sudah sesuai data admin.');
     }
+    logActivity('apply_stock_import', `Menerapkan update stok Web/Apk dari admin (${result.filled} baris terisi)`);
   } catch(e){
     console.error('Gagal memperbarui stok Web/Apk dari admin:', e);
     alert('Gagal mengambil data sisa stok dari admin. Coba lagi nanti.');
@@ -3536,10 +3635,10 @@ async function resyncRoomIfNeeded(){
 }
 
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); }
+  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); }
 });
-window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); });
-window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); });
+window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); });
+window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); });
 
 let screenResyncInFlight = false;
 async function resyncScreenIfNeeded(){
@@ -3650,6 +3749,8 @@ async function loadState(){
   initSyncCardVisibilityListener();
   initItemMasterListener();
   initStockImportListener();
+  initPresence();
+  logActivity('buka_halaman', 'Membuka halaman stok opname');
 }
 
 function todayISO(){
@@ -3699,6 +3800,8 @@ async function resetAll(){
   // Simpan kondisi kosong ini secara eksplisit (dan sinkron ke room kalau
   // sedang aktif), supaya nanti saat dibuka lagi tidak otomatis terisi ulang.
   saveState();
+  updatePresence();
+  logActivity('reset_all', 'Menghapus semua data dan mulai dari kosong');
 }
 
 function openTokoModal(e){
@@ -3727,6 +3830,8 @@ function selectToko(name){
   document.getElementById('metaToko').value = name;
   saveState();
   closeTokoModal();
+  updatePresence();
+  logActivity('ganti_toko', `Mengganti nama toko menjadi "${name}"`);
 }
 
 function submitManualToko(){
@@ -3761,6 +3866,8 @@ function selectPetugas(name){
   document.getElementById('metaPetugas').value = name;
   saveState();
   closePetugasModal();
+  updatePresence();
+  logActivity('ganti_petugas', `Mengganti petugas menjadi "${name}"`);
 }
 
 function submitManualPetugas(){
@@ -3800,6 +3907,7 @@ async function saveHistoryEntry(entry){
   list.unshift(entry);
   if(list.length > 50) list.length = 50;
   await setHistoryList(list);
+  logActivity('generate_report', `Membuat & menyalin laporan update stok (${entry.toko || '-'})`);
 }
 
 async function openHistoryModal(){
@@ -5586,6 +5694,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     try {
       var result = await impl(args);
+      if (isWrite) logActivity('ai_agent', 'AI Agent: ' + summarizeArgs(name, args));
       return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(result) };
     } catch (e) {
       return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((e && e.message) || e) }) };
