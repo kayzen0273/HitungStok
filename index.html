@@ -819,7 +819,12 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.66-5.66M20 12a8 8 0 0 1-13.66 5.66" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 3v4h-4M7 21v-4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Update Stok Web/Apk
       </button>
+      <button class="btn-add" onclick="document.getElementById('stockImportUploadInput').click()" id="btnUploadStockImport" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 15.5V7.5M8.5 11l3.5-3.5L15.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Upload Sisa Stok
+      </button>
       <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(this.files[0]); this.value='';">
+      <input type="file" id="stockImportUploadInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleStockImportUpload(this.files[0]); this.value='';">
     </div>
   </div>
 
@@ -2488,10 +2493,12 @@ function updateSessionUI(){
   const importBtn = document.getElementById('btnImportExcel');
   const pasteStokBtn = document.getElementById('btnPasteStok');
   const pasteNamaBtn = document.getElementById('btnPasteNama');
+  const uploadStockImportBtn = document.getElementById('btnUploadStockImport');
   if(addBtn) addBtn.disabled = viewOnly;
   if(importBtn) importBtn.disabled = viewOnly;
   if(pasteStokBtn) pasteStokBtn.disabled = viewOnly;
   if(pasteNamaBtn) pasteNamaBtn.disabled = viewOnly;
+  if(uploadStockImportBtn) uploadStockImportBtn.disabled = viewOnly;
   document.body.classList.toggle('view-only-mode', viewOnly);
 
   // render ulang baris supaya input/tombol hapus ikut terkunci/terbuka
@@ -2981,6 +2988,232 @@ function subscribeStockImportChannel(){
       notifyStockImportAvailable(payload.new);
     })
     .subscribe();
+}
+
+// ====== Upload Sisa Stok (Web/Apk) langsung dari halaman Stok Opname ======
+// Sama seperti fitur "Import Sisa Stok (Web/Apk)" di panel admin, tapi bisa
+// dilakukan langsung dari halaman ini tanpa perlu buka panel admin. File
+// Excel/CSV cukup punya kolom nama barang + kolom angka sisa stok (judul
+// kolom bebas, dideteksi otomatis dari kata "sisa/stok/stock/qty/jumlah").
+// Diterapkan ke kolom Web/Apk di tabel (dicocokkan lewat nama, tidak pernah
+// membuat baris baru) dan disimpan LOKAL SAJA di perangkat ini (localStorage)
+// — TIDAK dikirim ke Supabase, jadi tidak tersinkron ke perangkat lain dan
+// tidak tercatat di panel admin.
+function looksLikeQtyHeaderCell(text){
+  const t = String(text || '').trim().toLowerCase();
+  if(!t) return false;
+  return /(sisa|stok|stock|qty|jumlah)/.test(t);
+}
+
+function looksLikeHeaderCellStockImport(text){
+  const t = String(text || '').trim().toLowerCase();
+  if(!t) return false;
+  return /^(nama( barang| obat)?|item|product|produk|no\.?|kode|qty|jumlah|stok|stock|harga|satuan|kategori|tanggal)$/.test(t);
+}
+
+function isPureNumberTextStockImport(text){
+  const t = String(text || '').trim();
+  return t !== '' && /^-?\d+([.,]\d+)?$/.test(t);
+}
+
+function isLikelyNameCellStockImport(text){
+  const t = String(text || '').trim();
+  if(!t) return false;
+  if(isPureNumberTextStockImport(t)) return false;
+  return t.length >= 2;
+}
+
+function parseStockQtyCell(cell){
+  if(cell === null || cell === undefined) return null;
+  const raw = String(cell).trim();
+  if(!raw) return null;
+  const neg = /^-/.test(raw) || /^\(.*\)$/.test(raw); // "(12)" kadang dipakai Excel untuk minus
+  const digitsOnly = raw.replace(/[^0-9]/g, '');
+  if(!digitsOnly) return null;
+  const num = parseInt(digitsOnly, 10);
+  if(isNaN(num)) return null;
+  return neg ? -num : num;
+}
+
+// Mendeteksi kolom nama barang & kolom sisa stok sekaligus dari data mentah
+// berbentuk array-of-array (baris x kolom), tidak peduli sumbernya Excel atau CSV.
+function detectStockImportColumnsLocal(rows){
+  if(!rows.length) return { nameColIdx: 0, qtyColIdx: 1, headerRowIdx: -1 };
+
+  const scanLimit = Math.min(rows.length, 5);
+  let nameColIdx = -1, qtyColIdx = -1, headerRowIdx = -1;
+  for(let r = 0; r < scanLimit; r++){
+    const row = rows[r] || [];
+    for(let c = 0; c < row.length; c++){
+      const cell = String(row[c] || '').trim().toLowerCase();
+      if(nameColIdx === -1 && /nama/.test(cell)){ nameColIdx = c; headerRowIdx = r; }
+      if(qtyColIdx === -1 && looksLikeQtyHeaderCell(cell)){ qtyColIdx = c; headerRowIdx = r; }
+    }
+    if(nameColIdx !== -1 && qtyColIdx !== -1) break;
+  }
+
+  const sampleRows = rows.slice(0, 200);
+  const maxCols = Math.max(1, ...sampleRows.map(r => (r || []).length));
+  const colLimit = Math.min(maxCols, 15);
+
+  if(nameColIdx === -1){
+    let bestCol = 0, bestScore = -1;
+    for(let c = 0; c < colLimit; c++){
+      if(c === qtyColIdx) continue;
+      let score = 0;
+      sampleRows.forEach(row => { if(isLikelyNameCellStockImport((row || [])[c])) score++; });
+      if(score > bestScore){ bestScore = score; bestCol = c; }
+    }
+    nameColIdx = bestCol;
+  }
+
+  if(qtyColIdx === -1){
+    let bestCol = -1, bestScore = -1;
+    for(let c = 0; c < colLimit; c++){
+      if(c === nameColIdx) continue;
+      let score = 0;
+      sampleRows.forEach(row => { if(isPureNumberTextStockImport((row || [])[c])) score++; });
+      if(score > bestScore){ bestScore = score; bestCol = c; }
+    }
+    qtyColIdx = bestCol;
+  }
+
+  if(headerRowIdx === -1){
+    const firstRow = rows[0] || [];
+    const headerLike = firstRow.some(cell => looksLikeHeaderCellStockImport(cell) || looksLikeQtyHeaderCell(cell));
+    headerRowIdx = headerLike ? 0 : -1;
+  }
+
+  return { nameColIdx, qtyColIdx, headerRowIdx };
+}
+
+function rowsToStockImportItems(rows){
+  const { nameColIdx, qtyColIdx, headerRowIdx } = detectStockImportColumnsLocal(rows);
+  const items = [];
+  const seen = new Set();
+  rows.forEach((row, idx) => {
+    if(idx === headerRowIdx) return;
+    const nameCell = (row || [])[nameColIdx];
+    const nama = (nameCell === null || nameCell === undefined) ? '' : String(nameCell).trim();
+    if(!nama) return;
+    if(isPureNumberTextStockImport(nama)) return; // jaga-jaga: baris nomor urut yang lolos jangan ikut masuk
+
+    const qtyCell = qtyColIdx === -1 ? null : (row || [])[qtyColIdx];
+    const apk = parseStockQtyCell(qtyCell);
+    if(apk === null) return; // baris tanpa angka sisa stok yang valid dilewati
+
+    const key = nama.toLowerCase().replace(/\s+/g, ' ');
+    if(seen.has(key)) return; // nama dobel di file yang sama, pakai kemunculan pertama
+    seen.add(key);
+    items.push({ nama, apk });
+  });
+  return items;
+}
+
+// Baca file .xlsx/.xls lewat ExcelJS (sudah dimuat untuk fitur Import Excel)
+// lalu ubah worksheet pertama jadi array-of-array baris x kolom.
+async function excelFileToRows(file){
+  const buffer = await file.arrayBuffer();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  const ws = wb.worksheets[0];
+  if(!ws) return [];
+  const rows = [];
+  ws.eachRow({ includeEmpty: true }, row => {
+    const vals = row.values || [];
+    const arr = [];
+    for(let i = 1; i < vals.length; i++){
+      let v = vals[i];
+      if(v && typeof v === 'object' && v.result !== undefined) v = v.result; // sel formula
+      if(v && typeof v === 'object' && v.richText) v = v.richText.map(t => t.text).join('');
+      if(v && typeof v === 'object' && v.text !== undefined) v = v.text;
+      arr.push(v === null || v === undefined ? '' : v);
+    }
+    rows.push(arr);
+  });
+  return rows;
+}
+
+// Parser CSV sederhana (dukung tanda kutip & koma di dalam sel).
+function csvTextToRows(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; }
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field = ''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+      else if(c === '\r'){ /* abaikan */ }
+      else field += c;
+    }
+  }
+  if(field !== '' || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+async function readFileToStockImportRows(file){
+  const isCsv = /\.csv$/i.test(file.name);
+  if(isCsv){
+    const text = await file.text();
+    return csvTextToRows(text);
+  }
+  if(typeof ExcelJS === 'undefined'){
+    throw new Error('Modul Excel belum termuat. Cek koneksi internet lalu coba lagi.');
+  }
+  return excelFileToRows(file);
+}
+
+async function handleStockImportUpload(file){
+  if(!file) return;
+  if(isViewOnlyForMe()){ alert('Kamu sedang dalam mode lihat saja, tidak bisa upload data.'); return; }
+  const btn = document.getElementById('btnUploadStockImport');
+  const originalLabel = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Membaca file…'; }
+
+  try{
+    const rows = await readFileToStockImportRows(file);
+    const items = rowsToStockImportItems(rows);
+    if(!items.length){
+      alert('Tidak ada pasangan nama barang + sisa stok yang terbaca dari file ini. Pastikan file punya kolom nama barang dan kolom angka sisa stok.');
+      return;
+    }
+
+    const preview = items.slice(0, 8).map(it => `• ${it.nama} — ${it.apk}`).join('\n');
+    const more = items.length > 8 ? `\n…dan ${items.length - 8} lainnya` : '';
+    const lanjut = await customConfirm(
+      `${items.length} pasangan nama barang + sisa stok terbaca dari "${file.name}":\n\n${preview}${more}\n\nLanjutkan menerapkan ke kolom Web/Apk di perangkat ini saja (dicocokkan lewat nama, tidak dikirim ke server)?`,
+      'Lanjutkan', 'Batal'
+    );
+    if(!lanjut) return;
+
+    const timpa = await customConfirm(
+      'Timpa juga baris Web/Apk yang sudah terisi angka?\n\nPilih "Isi yang kosong saja" untuk hanya mengisi baris yang kolom Web/Apk-nya masih kosong.',
+      'Timpa semua', 'Isi yang kosong saja'
+    );
+    const mode = timpa ? 'overwrite' : 'fill_empty';
+    const updatedAt = new Date().toISOString();
+
+    // Diterapkan LOKAL SAJA ke tabel di perangkat ini (localStorage lewat
+    // saveState() di dalam applyStockImportRow) — sengaja TIDAK dikirim ke
+    // Supabase, jadi tidak tersinkron ke perangkat lain maupun tercatat di
+    // panel admin.
+    const result = applyStockImportRow({ items, mode, updated_at: updatedAt }, true);
+    if(result.filled === 0){
+      showStockImportToast(result.notFound
+        ? `Tidak ada yang diperbarui — ${result.notFound} nama dari file tidak cocok dengan nama barang di tabel ini.`
+        : 'Tidak ada baris yang diperbarui — kolom Web/Apk sudah sesuai file ini.');
+    }
+  } catch(err){
+    console.error('Gagal membaca file upload sisa stok:', err);
+    alert(err && err.message ? err.message : 'Gagal membaca file ini. Pastikan formatnya .xlsx, .xls, atau .csv yang valid.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = originalLabel; }
+  }
 }
 
 let currentBroadcastAudioEl = null;
@@ -4022,7 +4255,7 @@ loadState();
 
 
 <!-- ============================================================================
-     AI Agent (Blackbox AI) — asisten mengambang yang bisa membaca & MENGUBAH
+     AI Agent (Groq) — asisten mengambang yang bisa membaca & MENGUBAH
      data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
      perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
      variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
@@ -4031,7 +4264,7 @@ loadState();
      Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
 ============================================================================ -->
 <style>
-  /* ================= AI Agent (Blackbox AI) — widget styles =================
+  /* ================= AI Agent (Groq) — widget styles =================
      Namespaced with "bba-" so it never collides with the app's own CSS.
      Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
      so it feels native instead of bolted-on. */
@@ -4340,7 +4573,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   'use strict';
 
   // =====================================================================
-  // AI Agent (Blackbox AI) — asisten mengambang untuk aplikasi Stok Opname.
+  // AI Agent (Groq) — asisten mengambang untuk aplikasi Stok Opname.
   // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
   // langsung lewat variabel/fungsi global yang sudah ada di file ini
   // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
@@ -4351,15 +4584,15 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // ---------------------------------------------------------------------
   // Config / penyimpanan lokal
   // ---------------------------------------------------------------------
-  var LS_KEY_APIKEY  = 'bb_agent_api_key';
-  var LS_KEY_MODEL   = 'bb_agent_model';
+  var LS_KEY_APIKEY  = 'groq_agent_api_key_v4';
+  var LS_KEY_MODEL   = 'groq_agent_model_v4';
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
-  var DEFAULT_MODEL  = 'blackboxai/openai/gpt-4o';
-  var DEFAULT_API_KEY = 'sk-yvRmteB7SDaZwtsFm_tzzg';
-  var API_ORIGIN     = 'https://api.blackbox.ai';
+  var DEFAULT_MODEL  = 'llama-3.3-70b-versatile';
+  var DEFAULT_API_KEY = '';
+  var API_ORIGIN     = 'https://api.groq.com/openai/v1';
   var API_URL        = API_ORIGIN + '/chat/completions';
-  var MODELS_URL     = API_ORIGIN + '/v1/models';
+  var MODELS_URL     = API_ORIGIN + '/models';
   var MAX_TOOL_LOOPS = 8;
   var MAX_HISTORY    = 40;
   var WAKTU_OPTIONS  = ['pagi', 'siang', 'sore', 'malam'];
@@ -4440,7 +4673,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Tool schema (OpenAI-compatible function calling, dipakai Blackbox AI)
+  // Tool schema (OpenAI-compatible function calling, dipakai Groq)
   // ---------------------------------------------------------------------
   var TOOLS = [
     {
@@ -5079,7 +5312,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
   // (biar hemat kuota/token & muat di localStorage), lalu diubah jadi data URL
   // yang dikirim sebagai content type "image_url" ke API (format vision
-  // OpenAI-compatible, dipakai juga oleh Blackbox AI).
+  // OpenAI-compatible, dipakai juga oleh Groq).
   // ---------------------------------------------------------------------
   function fileToCompressedDataUrl(file, maxDim, quality) {
     return new Promise(function (resolve, reject) {
@@ -5123,7 +5356,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // Buang field internal (non-standar) sebelum dikirim ke API, agar body request
-  // tetap sesuai skema chat-completions yang diharapkan Blackbox AI.
+  // tetap sesuai skema chat-completions yang diharapkan Groq.
   function sanitizeForApi(m) {
     var out = { role: m.role, content: m.content };
     if (m.tool_calls) out.tool_calls = m.tool_calls;
@@ -5198,7 +5431,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('Blackbox AI API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -5221,7 +5454,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('Blackbox AI API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -5407,7 +5640,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
     } catch (e) {
       if (e && e.code === 'NO_API_KEY') {
-        addBubble('error', 'API Key Blackbox AI belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
+        addBubble('error', 'API Key Groq belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
         openKeyModal();
       } else if (e && e.status === 400 && /model/i.test((e.message || ''))) {
         addBubble('error', 'Model "' + getModel() + '" tidak dikenali oleh API Key ini.\n\nKlik ikon kunci 🔑 → tombol "Muat Model" untuk melihat daftar model yang benar-benar valid untuk akun kamu, lalu pilih salah satu.\n\nDetail: ' + e.message);
@@ -5507,9 +5740,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(fabIconWrap);
 
     // --- Bubble chat "kata semangat" di atas robot ---
-    var hint = el('div', 'bba-hint', { role: 'button', 'aria-label': 'Buka AI Agent' });
+    var hint = el('div', 'bba-hint');
+    hint.style.pointerEvents = 'none';
     document.body.appendChild(hint);
-    hint.addEventListener('click', function () { fab.click(); });
 
     // --- Panel chat ---
     var panel = el('div', 'bba-panel');
@@ -5521,7 +5754,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(headIco);
     var headTxt = el('div', 'bba-head-txt');
     var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
-    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Blackbox AI';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Groq';
     var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
     headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
     headLeft.appendChild(headTxt);
@@ -5563,38 +5796,17 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var modal = el('div', 'bba-modal');
 
     var mTitle = el('h3'); mTitle.textContent = '🔑 Pengaturan AI Agent';
-    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Blackbox AI.';
+    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Groq.';
     var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
     mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
 
-    var lblKey = el('label'); lblKey.textContent = 'Blackbox AI API Key';
+    var lblKey = el('label'); lblKey.textContent = 'Groq API Key';
     var keyRow = el('div', 'bba-field-row');
     var keyInput = el('input', '', { type: 'password', placeholder: 'sk-xxxxxxxxxxxxxxxx' });
     var toggleShow = el('button', 'bba-eye', { type: 'button', tabindex: '-1' }); toggleShow.textContent = '👁';
     keyRow.appendChild(keyInput); keyRow.appendChild(toggleShow);
 
-    var lblModel = el('label'); lblModel.textContent = 'Model';
-    var modelInput = el('input', '', { type: 'hidden' }); // penyimpan nilai model terpilih (tersembunyi)
-    var modelDisplayBtn = el('button', 'bba-model-picker-btn', { type: 'button', title: 'Pilih model' });
-    var modelDisplayTxt = el('span'); modelDisplayTxt.textContent = DEFAULT_MODEL;
-    var modelDisplayChev = el('span', 'chev'); modelDisplayChev.textContent = '▾ pilih';
-    modelDisplayBtn.appendChild(modelDisplayTxt); modelDisplayBtn.appendChild(modelDisplayChev);
-    var modelHint = el('p', 'bba-model-hint');
-    modelHint.textContent = 'Klik untuk membuka daftar model yang benar-benar aktif untuk API Key kamu, lengkap dengan kotak pencarian. Untuk fitur 📷 deteksi barang dari gambar, pastikan modelnya mendukung input gambar (vision) — model default (gpt-4o) sudah mendukung.';
-
-    // --- Modal terpisah: pilih model dengan pencarian ---
-    var modelModalOv = el('div', 'bba-model-modal-ov');
-    var modelModal = el('div', 'bba-model-modal');
-    var mmTitle = el('h3'); mmTitle.textContent = '🧠 Pilih Model';
-    var modelSearchInput = el('input', 'bba-model-search', { type: 'text', placeholder: 'Cari model, mis: gpt-4o, claude, llama...' });
-    var modelModalStatus = el('p', 'bba-model-modal-status');
-    var modelListBody = el('div', 'bba-model-list');
-    var modelModalCloseBtn = el('button', 'bba-model-modal-close', { type: 'button' }); modelModalCloseBtn.textContent = 'Tutup';
-    modelModal.appendChild(mmTitle); modelModal.appendChild(modelSearchInput);
-    modelModal.appendChild(modelModalStatus); modelModal.appendChild(modelListBody);
-    modelModal.appendChild(modelModalCloseBtn);
-    modelModalOv.appendChild(modelModal);
-    document.body.appendChild(modelModalOv);
+    var modelInput = el('input', '', { type: 'hidden' }); // dipertahankan untuk kompatibilitas internal, model selalu otomatis
 
     var confirmRow = el('label', 'bba-confirm-toggle');
     var confirmToggle = el('input', '', { type: 'checkbox' });
@@ -5609,16 +5821,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
     modal.appendChild(lblKey); modal.appendChild(keyRow);
-    modal.appendChild(lblModel); modal.appendChild(modelDisplayBtn); modal.appendChild(modelHint);
     modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
     modalOv.appendChild(modal);
     document.body.appendChild(modalOv);
 
     els.fab = fab; els.headIco = headIco; els.panel = panel; els.body = body; els.input = textarea; els.sendBtn = sendBtn;
     els.keyModalOv = modalOv; els.keyInput = keyInput; els.modelInput = modelInput; els.confirmToggle = confirmToggle;
-    els.modelDisplayBtn = modelDisplayBtn; els.modelDisplayTxt = modelDisplayTxt;
-    els.modelModalOv = modelModalOv; els.modelSearchInput = modelSearchInput;
-    els.modelModalStatus = modelModalStatus; els.modelListBody = modelListBody;
     els.attachBtn = attachBtn; els.attachInput = attachInput; els.imgChip = imgChip;
     els.imgChipThumb = imgChipThumb; els.imgChipRemove = imgChipRemove;
 
@@ -5653,72 +5861,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     imgChipRemove.addEventListener('click', function () { clearPendingImage(); });
 
-    var modelListCache = []; // cache daftar model yang terakhir berhasil dimuat
-
-    function setModelModalStatus(text, kind) {
-      modelModalStatus.textContent = text || '';
-      modelModalStatus.className = 'bba-model-modal-status' + (kind === 'error' ? ' err' : kind === 'ok' ? ' ok' : '');
-    }
-
-    function renderModelList(filterText) {
-      var q = (filterText || '').trim().toLowerCase();
-      var current = modelInput.value.trim();
-      var filtered = !q ? modelListCache : modelListCache.filter(function (id) {
-        return id.toLowerCase().indexOf(q) !== -1;
-      });
-      modelListBody.innerHTML = '';
-      if (!filtered.length) {
-        var empty = el('div', 'bba-model-empty');
-        empty.textContent = modelListCache.length ? 'Tidak ada model yang cocok dengan pencarian.' : 'Belum ada model dimuat.';
-        modelListBody.appendChild(empty);
-        return;
-      }
-      filtered.forEach(function (id) {
-        var item = el('div', 'bba-model-item' + (id === current ? ' active' : ''));
-        item.textContent = id;
-        item.addEventListener('click', function () {
-          modelInput.value = id;
-          modelDisplayTxt.textContent = id;
-          closeModelModal();
-        });
-        modelListBody.appendChild(item);
-      });
-    }
-
-    async function doLoadModelsForPicker() {
-      var key = (keyInput.value || '').trim() || getApiKey();
-      if (!key) { setModelModalStatus('Masukkan API Key dulu di halaman sebelumnya.', 'error'); return; }
-      setModelModalStatus('Mengambil daftar model dari Blackbox AI...', 'info');
-      modelSearchInput.disabled = true;
-      try {
-        var ids = await fetchModelList(key);
-        modelListCache = ids;
-        if (!ids.length) {
-          setModelModalStatus('Tidak ada model yang ditemukan untuk API Key ini.', 'error');
-        } else {
-          setModelModalStatus(ids.length + ' model tersedia. Ketik untuk mencari.', 'ok');
-        }
-        renderModelList(modelSearchInput.value);
-      } catch (e) {
-        setModelModalStatus('Gagal memuat daftar model: ' + ((e && e.message) || e), 'error');
-        renderModelList(modelSearchInput.value);
-      } finally {
-        modelSearchInput.disabled = false;
-      }
-    }
-
-    function openModelModal() {
-      modelSearchInput.value = '';
-      modelModalOv.classList.add('show');
-      modelSearchInput.focus();
-      doLoadModelsForPicker();
-    }
-    function closeModelModal() { modelModalOv.classList.remove('show'); }
-
-    modelDisplayBtn.addEventListener('click', openModelModal);
-    modelModalCloseBtn.addEventListener('click', closeModelModal);
-    modelModalOv.addEventListener('click', function (e) { if (e.target === modelModalOv) closeModelModal(); });
-    modelSearchInput.addEventListener('input', function () { renderModelList(modelSearchInput.value); });
+    // Model dipilih otomatis (DEFAULT_MODEL) — tidak ada UI pemilihan model lagi.
 
     // --- Event wiring ---
     fab.addEventListener('click', function () {
@@ -5726,7 +5869,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if (panel.classList.contains('show')) {
         hint.classList.remove('show');
         if (!body.childElementCount) {
-          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\n📷 Kirim FOTO rak, struk, atau catatan barang juga bisa lewat tombol kamera di sebelah kotak chat. Nanti saya ambil nama-nama barangnya, lalu tampilkan daftarnya buat kamu pilih & konfirmasi sebelum masuk ke tabel.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\nKalau belum diatur, masukkan API Key Blackbox AI lewat ikon kunci 🔑 di atas dulu ya (pastikan modelnya mendukung gambar/vision — model default sudah mendukung).\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
+          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
           messages.forEach(function (m) {
             if (m.role === 'user') renderStoredUserMessage(m.content);
             else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
