@@ -823,6 +823,10 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M8 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 15.5V7.5M8.5 11l3.5-3.5L15.5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Upload Sisa Stok
       </button>
+      <button class="btn-add" onclick="openPasteStokImportModal()" id="btnPasteStokImport" style="border-style:solid;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5h6a1 1 0 0 1 1 1v1H8V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 6h-.5A1.5 1.5 0 0 0 5 7.5v13A1.5 1.5 0 0 0 6.5 22h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 6H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Tempel Sisa Stok (Clipboard)
+      </button>
       <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(this.files[0]); this.value='';">
       <input type="file" id="stockImportUploadInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleStockImportUpload(this.files[0]); this.value='';">
     </div>
@@ -960,6 +964,31 @@
         <button type="button" class="btn-main" onclick="applyPasteNamaConfirm()">Tambahkan ke daftar</button>
       </div>
       <div class="paste-stok-result" id="pasteNamaResult"></div>
+    </div>
+  </div>
+</div>
+
+<div class="history-overlay" id="pasteStokImportOverlay" onclick="if(event.target===this) closePasteStokImportModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Tempel Sisa Stok dari Clipboard</h3>
+      <button class="history-close" onclick="closePasteStokImportModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Alternatif dari "Upload Sisa Stok" (file) — tempel langsung isi clipboard di sini,
+        misalnya hasil <b>copy dari Excel/Google Sheets</b> (kolom nama &amp; sisa stok),
+        atau format <b>Nama barang : jumlah</b> satu baris per barang. Jika browser mengizinkan,
+        kotak di bawah akan otomatis terisi dari clipboard; kalau tidak, tekan <b>Ctrl+V</b>
+        (atau tekan lama lalu Tempel di HP) di dalam kotak. Diterapkan ke kolom <b>Web/Apk</b>,
+        dicocokkan lewat nama, dan hanya tersimpan di perangkat ini saja (tidak dikirim ke server).
+      </div>
+      <textarea id="pasteStokImportText" class="paste-stok-textarea" placeholder="Plossa merah&#9;3&#10;Bodrex tab&#9;5&#10;Antangin jrg&#9;6&#10;&#10;atau:&#10;Plossa merah : 3&#10;Bodrex tab : 5"></textarea>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-add" style="border-style:solid;" onclick="tryAutoFillClipboardStokImport(true)">Ambil dari Clipboard</button>
+        <button type="button" class="btn-main" onclick="applyPasteStokImportConfirm()">Terapkan</button>
+      </div>
+      <div class="paste-stok-result" id="pasteStokImportResult"></div>
     </div>
   </div>
 </div>
@@ -2588,11 +2617,13 @@ function updateSessionUI(){
   const pasteStokBtn = document.getElementById('btnPasteStok');
   const pasteNamaBtn = document.getElementById('btnPasteNama');
   const uploadStockImportBtn = document.getElementById('btnUploadStockImport');
+  const pasteStockImportBtn = document.getElementById('btnPasteStokImport');
   if(addBtn) addBtn.disabled = viewOnly;
   if(importBtn) importBtn.disabled = viewOnly;
   if(pasteStokBtn) pasteStokBtn.disabled = viewOnly;
   if(pasteNamaBtn) pasteNamaBtn.disabled = viewOnly;
   if(uploadStockImportBtn) uploadStockImportBtn.disabled = viewOnly;
+  if(pasteStockImportBtn) pasteStockImportBtn.disabled = viewOnly;
   document.body.classList.toggle('view-only-mode', viewOnly);
 
   // render ulang baris supaya input/tombol hapus ikut terkunci/terbuka
@@ -3310,6 +3341,102 @@ async function handleStockImportUpload(file){
     alert(err && err.message ? err.message : 'Gagal membaca file ini. Pastikan formatnya .xlsx, .xls, atau .csv yang valid.');
   } finally {
     if(btn){ btn.disabled = false; btn.innerHTML = originalLabel; }
+  }
+}
+
+// --- Tempel Sisa Stok dari Clipboard (alternatif dari upload file) ---
+// Mengubah teks bebas (hasil paste dari Excel/Google Sheets/WhatsApp, dsb)
+// jadi array-of-array baris x kolom, supaya bisa dipakai ulang lewat pipeline
+// yang sama dengan upload file (rowsToStockImportItems + applyStockImportRow).
+function clipboardTextToRows(text){
+  const lines = String(text || '').split(/\r\n|\r|\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  return lines.map(line => {
+    if(line.includes('\t')) return line.split('\t'); // hasil copy dari Excel/Google Sheets
+    const colonIdx = line.indexOf(':');
+    if(colonIdx > -1) return [line.slice(0, colonIdx), line.slice(colonIdx + 1)]; // format "Nama : jumlah"
+    if(/ {2,}/.test(line)) return line.split(/ {2,}/); // kolom rata dengan spasi ganda
+    if(line.includes(',')) return line.split(','); // mirip CSV
+    return [line];
+  });
+}
+
+// Coba ambil teks dari clipboard perangkat secara otomatis begitu modal dibuka
+// (butuh izin browser). Kalau gagal/tidak didukung, dibiarkan saja — user masih
+// bisa tempel manual (Ctrl+V atau tekan lama > Tempel di HP) ke kotak teksnya.
+async function tryAutoFillClipboardStokImport(manual){
+  const ta = document.getElementById('pasteStokImportText');
+  const resultEl = document.getElementById('pasteStokImportResult');
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.readText){
+      if(manual){ resultEl.textContent = 'Browser ini tidak mengizinkan ambil clipboard otomatis. Tempel manual (Ctrl+V) ke kotak di atas ya.'; resultEl.classList.add('show'); }
+      return;
+    }
+    const text = await navigator.clipboard.readText();
+    if(text && text.trim()){
+      ta.value = text;
+      if(manual){ resultEl.classList.remove('show'); }
+    } else if(manual){
+      resultEl.textContent = 'Clipboard kosong. Copy dulu datanya, baru tekan tombol ini lagi (atau tempel manual dengan Ctrl+V).';
+      resultEl.classList.add('show');
+    }
+  } catch(e){
+    if(manual){ resultEl.textContent = 'Tidak bisa ambil clipboard otomatis (izin ditolak/tidak didukung). Tempel manual (Ctrl+V, atau tekan lama > Tempel di HP) ke kotak di atas ya.'; resultEl.classList.add('show'); }
+  }
+}
+
+function openPasteStokImportModal(){
+  if(isViewOnlyForMe()){ alert('Kamu sedang dalam mode lihat saja, tidak bisa upload data.'); return; }
+  const ta = document.getElementById('pasteStokImportText');
+  ta.value = '';
+  const resultEl = document.getElementById('pasteStokImportResult');
+  resultEl.textContent = ''; resultEl.classList.remove('show');
+  document.getElementById('pasteStokImportOverlay').classList.add('show');
+  tryAutoFillClipboardStokImport(false);
+  setTimeout(() => ta.focus(), 50);
+}
+function closePasteStokImportModal(){
+  document.getElementById('pasteStokImportOverlay').classList.remove('show');
+}
+
+async function applyPasteStokImportConfirm(){
+  if(isViewOnlyForMe()){ alert('Kamu sedang dalam mode lihat saja, tidak bisa upload data.'); return; }
+  const text = document.getElementById('pasteStokImportText').value;
+  const resultEl = document.getElementById('pasteStokImportResult');
+  if(!text || !text.trim()){
+    resultEl.textContent = 'Belum ada teks yang ditempel.';
+    resultEl.classList.add('show');
+    return;
+  }
+
+  const rows = clipboardTextToRows(text);
+  const items = rowsToStockImportItems(rows);
+  if(!items.length){
+    resultEl.textContent = 'Tidak ada pasangan nama barang + sisa stok yang terbaca. Pastikan tiap baris punya nama barang dan angka sisa stok (mis. hasil copy dari Excel, atau format "Nama : jumlah").';
+    resultEl.classList.add('show');
+    return;
+  }
+
+  const preview = items.slice(0, 8).map(it => `• ${it.nama} — ${it.apk}`).join('\n');
+  const more = items.length > 8 ? `\n…dan ${items.length - 8} lainnya` : '';
+  const lanjut = await customConfirm(
+    `${items.length} pasangan nama barang + sisa stok terbaca dari clipboard:\n\n${preview}${more}\n\nLanjutkan menerapkan ke kolom Web/Apk di perangkat ini saja (dicocokkan lewat nama, tidak dikirim ke server)?`,
+    'Lanjutkan', 'Batal'
+  );
+  if(!lanjut) return;
+
+  const timpa = await customConfirm(
+    'Timpa juga baris Web/Apk yang sudah terisi angka?\n\nPilih "Isi yang kosong saja" untuk hanya mengisi baris yang kolom Web/Apk-nya masih kosong.',
+    'Timpa semua', 'Isi yang kosong saja'
+  );
+  const mode = timpa ? 'overwrite' : 'fill_empty';
+  const updatedAt = new Date().toISOString();
+
+  const result = applyStockImportRow({ items, mode, updated_at: updatedAt }, true);
+  closePasteStokImportModal();
+  if(result.filled === 0){
+    showStockImportToast(result.notFound
+      ? `Tidak ada yang diperbarui — ${result.notFound} nama dari clipboard tidak cocok dengan nama barang di tabel ini.`
+      : 'Tidak ada baris yang diperbarui — kolom Web/Apk sudah sesuai teks ini.');
   }
 }
 
