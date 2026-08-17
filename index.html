@@ -4578,7 +4578,10 @@ function saveOrderItems(){
 }
 
 // Pindah antara halaman "Stok Opname" dan "Barang Kosong / Order".
-function switchAppPage(page){
+const APP_PAGE_KEY = 'stokOpname_activePage_v1';
+function switchAppPage(page, opts){
+  const skipSave = opts && opts.skipSave;
+  const skipScroll = opts && opts.skipScroll;
   const opnameView = document.getElementById('pageOpnameView');
   const orderView = document.getElementById('pageOrderView');
   const tabOpname = document.getElementById('tabOpname');
@@ -4595,7 +4598,12 @@ function switchAppPage(page){
     tabOrder.classList.remove('active');
     tabOpname.classList.add('active');
   }
-  window.scrollTo({ top:0, behavior:'smooth' });
+  if(!skipSave){
+    try{ localStorage.setItem(APP_PAGE_KEY, page); }catch(e){ /* abaikan */ }
+  }
+  if(!skipScroll){
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
 }
 
 // Merapikan teks tempelan: buang baris kosong, baris judul/header (diakhiri ':'
@@ -4889,6 +4897,16 @@ function renderOrderList(){
 
 loadOrderItems();
 renderOrderList();
+
+// Setelah refresh, tetap di halaman terakhir yang dibuka (Stok Opname / Order).
+(function restoreActivePage(){
+  try{
+    const savedPage = localStorage.getItem(APP_PAGE_KEY);
+    if(savedPage === 'order'){
+      switchAppPage('order', { skipSave:true, skipScroll:true });
+    }
+  }catch(e){ /* abaikan */ }
+})();
 
 </script>
 <div class="broadcast-overlay" id="broadcastOverlay">
