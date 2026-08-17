@@ -4558,23 +4558,128 @@ loadState();
    ====================================================================== */
 const ORDER_LIST_KEY = 'stokOpname_orderList_v1';
 let orderItems = [];
-let orderIdCounter = 0;
 let orderFilter = 'all';
 // Perubahan centang "sudah order" yang BELUM disimpan. Klik centang hanya
 // mengubah tampilan (dan disimpan di sini dulu) — baru benar-benar tersimpan
 // ke daftar setelah tombol "Simpan" di bar bawah ditekan.
 let pendingOrderChanges = {};
 
+// ID unik per barang di daftar order. Dulu pakai counter angka berurutan per
+// perangkat (0,1,2,...) — sekarang daftar ini disinkronkan lewat Supabase ke
+// SEMUA perangkat/pengguna sekaligus (lihat bagian "Sinkronisasi Bersama
+// Daftar Barang Kosong" di bawah), jadi ID harus unik walau ditambahkan dari
+// perangkat berbeda di saat yang hampir bersamaan. Counter angka berurutan
+// bisa bentrok antar perangkat; string acak berbasis waktu jauh lebih aman.
+function genOrderId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
 function loadOrderItems(){
+  // Muat cache lokal dulu supaya daftar langsung tampil (instan, termasuk
+  // saat offline). Begitu koneksi Supabase siap, initOrderListListener() di
+  // bawah akan mengambil & menerapkan versi TERBARU dari server yang sudah
+  // digabung dari semua pengguna, lalu menimpa cache ini kalau perlu.
   try{
     const raw = localStorage.getItem(ORDER_LIST_KEY);
     orderItems = raw ? JSON.parse(raw) : [];
   }catch(e){ orderItems = []; }
-  orderIdCounter = orderItems.length ? Math.max(...orderItems.map(o => o.id)) + 1 : 0;
 }
 
-function saveOrderItems(){
+// Simpan HANYA ke localStorage perangkat ini (cache lokal), tanpa mengirim
+// ke Supabase. Dipakai saat menerapkan data yang BARU SAJA diterima dari
+// server, supaya tidak langsung mengirim baliknya lagi (mencegah loop).
+function saveOrderItemsLocalOnly(){
   try{ localStorage.setItem(ORDER_LIST_KEY, JSON.stringify(orderItems)); }catch(e){ /* abaikan */ }
+}
+
+// Simpan perubahan daftar barang kosong: ke cache lokal DAN ke Supabase,
+// supaya semua orang (semua perangkat yang membuka halaman ini) melihat
+// daftar yang sama secara realtime.
+function saveOrderItems(){
+  saveOrderItemsLocalOnly();
+  pushOrderListToSupabase();
+}
+
+/* ============================================================
+   Sinkronisasi Bersama Daftar Barang Kosong (Supabase Realtime)
+   ------------------------------------------------------------
+   Sama seperti fitur "Layar Tampilan dari Admin" di atas: daftar ini
+   disimpan sebagai SATU baris global di Supabase (screen_code tetap,
+   tidak butuh kode room), jadi otomatis sama & tersinkron untuk SEMUA
+   orang yang membuka halaman ini — tidak perlu join room dulu.
+   ============================================================ */
+const ORDER_LIST_TABLE = 'stok_opname_order_list';
+let orderListChannel = null;
+let applyingRemoteOrder = false;
+
+// Terapkan data daftar barang kosong yang diterima dari Supabase (baik dari
+// pemuatan awal maupun dari update realtime pengguna lain) ke tampilan.
+function applyOrderListRow(row){
+  if(!row || !Array.isArray(row.items)) return;
+  applyingRemoteOrder = true;
+  orderItems = row.items;
+  // Buang perubahan centang yang belum disimpan kalau barangnya sudah tidak
+  // ada lagi di versi terbaru (mis. sudah dihapus oleh pengguna lain).
+  Object.keys(pendingOrderChanges).forEach(id => {
+    if(!orderItems.some(o => o.id === id)) delete pendingOrderChanges[id];
+  });
+  saveOrderItemsLocalOnly();
+  renderOrderList();
+  applyingRemoteOrder = false;
+}
+
+async function pushOrderListToSupabase(){
+  if(applyingRemoteOrder) return; // sedang menerapkan data dari server, jangan dikirim balik
+  const client = initSupabaseClient();
+  if(!client) return; // belum ada koneksi Supabase -> tetap jalan lokal saja
+  try{
+    const { error } = await sb.from(ORDER_LIST_TABLE).upsert({
+      screen_code: BROADCAST_SCREEN_CODE,
+      items: orderItems,
+      updated_at: new Date().toISOString(),
+      updated_by: CLIENT_ID
+    }, { onConflict: 'screen_code' });
+    if(error) throw error;
+  } catch(e){
+    // tabel mungkin belum dibuat di Supabase -> fitur berbagi daftar barang
+    // kosong otomatis nonaktif, tetap tersimpan lokal di perangkat ini saja.
+    console.error('Gagal menyinkronkan daftar barang kosong ke Supabase:', e);
+  }
+}
+
+async function initOrderListListener(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await sb.from(ORDER_LIST_TABLE).select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
+    if(error) throw error;
+    if(data){
+      applyOrderListRow(data);
+    } else if(orderItems.length){
+      // Belum ada baris di Supabase sama sekali, tapi perangkat ini sudah
+      // punya daftar lokal (dari sebelum fitur sinkron ini ada) -> unggah
+      // sekali supaya jadi data bersama awal untuk semua orang.
+      pushOrderListToSupabase();
+    }
+  } catch(e){
+    console.error('Gagal memuat daftar barang kosong bersama dari Supabase:', e);
+  }
+  subscribeOrderListChannel();
+}
+
+function subscribeOrderListChannel(){
+  if(!sb) return;
+  if(orderListChannel){ try{ sb.removeChannel(orderListChannel); }catch(e){} orderListChannel = null; }
+  orderListChannel = sb.channel('order-list-' + BROADCAST_SCREEN_CODE)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: ORDER_LIST_TABLE, filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
+    }, payload => {
+      // Perubahan dari perangkat ini sendiri sudah diterapkan duluan secara
+      // lokal saat dikirim -> tidak perlu diterapkan ulang.
+      if(payload.new && payload.new.updated_by === CLIENT_ID) return;
+      applyOrderListRow(payload.new || null);
+    })
+    .subscribe();
 }
 
 // Pindah antara halaman "Stok Opname" dan "Barang Kosong / Order".
@@ -4644,7 +4749,7 @@ function applyOrderPaste(){
     const key = nama.toLowerCase();
     if(existingLower.has(key)){ skipped++; return; }
     existingLower.add(key);
-    orderItems.push({ id: orderIdCounter++, nama, ordered:false, addedAt: Date.now(), orderedAt:null });
+    orderItems.push({ id: genOrderId(), nama, ordered:false, addedAt: Date.now(), orderedAt:null });
     added++;
   });
   saveOrderItems();
@@ -4705,11 +4810,10 @@ function updateOrderSaveBar(){
 async function saveOrderChanges(){
   const ids = Object.keys(pendingOrderChanges);
   if(!ids.length) return;
-  ids.forEach(idStr => {
-    const id = Number(idStr);
+  ids.forEach(id => {
     const item = orderItems.find(o => o.id === id);
     if(!item) return;
-    const willOrder = pendingOrderChanges[idStr];
+    const willOrder = pendingOrderChanges[id];
     item.ordered = willOrder;
     item.orderedAt = willOrder ? Date.now() : null;
   });
@@ -4836,7 +4940,7 @@ function renderOrderList(){
 
   // Urutan mengikuti urutan saat ditempel/ditambahkan — barang yang sudah
   // dicentang TIDAK dipindah ke bawah, tetap di posisi aslinya.
-  let list = orderItems.slice().sort((a, b) => a.addedAt - b.addedAt || a.id - b.id);
+  let list = orderItems.slice().sort((a, b) => a.addedAt - b.addedAt || String(a.id).localeCompare(String(b.id)));
   if(q) list = list.filter(o => o.nama.toLowerCase().includes(q));
   // Filter pakai status TERSIMPAN (bukan centangan yang belum disimpan), jadi
   // barang yang baru dicentang tetap ada di posisi/filter semula sampai
@@ -4875,7 +4979,7 @@ function renderOrderList(){
     const isPending = Object.prototype.hasOwnProperty.call(pendingOrderChanges, item.id);
     return `
     <div class="order-row${eff ? ' is-ordered' : ''}${isPending ? ' is-pending' : ''}">
-      <button type="button" class="order-check" onclick="toggleOrderItem(${item.id})" title="Centang lalu tekan Simpan">
+      <button type="button" class="order-check" onclick="toggleOrderItem('${item.id}')" title="Centang lalu tekan Simpan">
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="order-main">
@@ -4886,7 +4990,7 @@ function renderOrderList(){
           <span class="order-pending-dot" title="Belum disimpan"></span>
         </div>
       </div>
-      <button type="button" class="del-btn order-del" onclick="deleteOrderItem(${item.id})" title="Hapus dari daftar">
+      <button type="button" class="del-btn order-del" onclick="deleteOrderItem('${item.id}')" title="Hapus dari daftar">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-8 0 1 13a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
@@ -4897,6 +5001,9 @@ function renderOrderList(){
 
 loadOrderItems();
 renderOrderList();
+// Sambungkan daftar barang kosong ke Supabase supaya semua orang melihat
+// daftar bersama yang sama secara realtime (lihat definisi di atas).
+initOrderListListener();
 
 // Setelah refresh, tetap di halaman terakhir yang dibuka (Stok Opname / Order).
 (function restoreActivePage(){
