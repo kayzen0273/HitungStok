@@ -190,11 +190,11 @@
     position:absolute; left:11px; top:50%; transform:translateY(-50%);
     width:15px; height:15px; color:#9aada6; pointer-events:none;
   }
-  #searchBox{
+  #searchBox, #orderSearchBox{
     width:100%; padding:9px 32px 9px 33px; border:1.5px solid var(--line); border-radius:9px;
     font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
   }
-  #searchBox:focus{outline:none; border-color:var(--teal);}
+  #searchBox:focus, #orderSearchBox:focus{outline:none; border-color:var(--teal);}
   .clear-search{
     position:absolute; right:4px; top:50%; transform:translateY(-50%);
     background:none; border:none; cursor:pointer; color:#b3c0b9; padding:5px;
@@ -4762,12 +4762,21 @@ function copyOrderPendingList(){
       setTimeout(() => msg.classList.remove('show'), 1800);
     }
   };
+  const fallbackCopy = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    doShowMsg();
+  };
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(doShowMsg).catch(() => {
-      window.prompt('Salin manual (Ctrl+C lalu Enter):', text);
-    });
+    navigator.clipboard.writeText(text).then(doShowMsg).catch(fallbackCopy);
   } else {
-    window.prompt('Salin manual (Ctrl+C lalu Enter):', text);
+    fallbackCopy();
   }
 }
 
