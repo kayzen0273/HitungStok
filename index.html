@@ -939,6 +939,14 @@
     <div class="footnote">Masukkan kode room yang sama di HP rekan tim (atau bagikan link undangan) supaya data tersambung dan perubahan langsung muncul di kedua perangkat secara real-time. Yang pertama kali membuat room jadi host — host bisa mengunci tim supaya cuma bisa lihat, atau menghentikan kode supaya rekan tim tidak melihat data lagi sampai dijalankan lagi.</div>
   </div>
 
+  <div class="view-only-banner" id="takeoverBanner" style="display:none; background:#fff3cd; color:#7a5b00; border-color:#f0d888;">
+    <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 3v10m0 0-3.5-3.5M12 13l3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="15" width="16" height="6" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+    <div>
+      <div class="rlb-title">Mode Ambil Alih — <span id="takeoverBannerNama"></span></div>
+      <div class="rlb-sub">Kamu sedang mengedit langsung data petugas ini dari Panel Admin. Perubahan tersinkron live ke HP petugas, dan sebaliknya.</div>
+    </div>
+  </div>
+
   <div class="view-only-banner" id="viewOnlyBanner" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"/></svg>
     <div>
@@ -1392,13 +1400,35 @@
   </div>
 </div>
 
+<!-- Popup wajib "Siapa yang bertugas?" — muncul otomatis di HP yang belum
+     pernah mengisi nama petugas. Sengaja TIDAK ada tombol tutup / klik di
+     luar untuk menutup, supaya nama petugas selalu terisi. -->
+<div class="history-overlay" id="petugasIdentityOverlay" style="z-index:400;">
+  <div class="history-modal" style="max-width:380px;">
+    <div class="history-modal-head">
+      <h3>Siapa yang bertugas?</h3>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">Pilih nama kamu supaya data stok opname ini tercatat atas nama yang benar. Sekali dipilih, HP ini akan mengingatnya otomatis.</div>
+      <div class="modal-list" id="petugasIdentityList"></div>
+      <div class="modal-manual" style="margin-top:10px;">
+        <input id="petugasIdentityManualInput" placeholder="Atau ketik nama baru" onkeydown="if(event.key==='Enter') submitPetugasIdentityManual()">
+        <button class="modal-add" onclick="submitPetugasIdentityManual()">Lanjut</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
 const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
 
 // Daftar nama petugas yang muncul di modal pilihan.
-// Ganti / tambah / hapus nama di sini sesuai petugas toko.
-const PETUGAS_LIST = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
+// Sekarang disinkron langsung dari tabel Supabase `stok_opname_petugas` yang
+// dikelola lewat kartu "Kelola Nama Petugas" di Panel Admin — daftar di
+// bawah ini cuma dipakai sebagai cadangan sementara sebelum data server
+// selesai dimuat (lihat initPetugasListListener()).
+let petugasList = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
 
 let rows = [];
 let idCounter = 0;
@@ -2940,6 +2970,16 @@ function initSupabaseClient(){
   return sb;
 }
 
+// ====== Mode "Ambil Alih" dari Panel Admin ======
+// Kalau halaman ini dibuka lewat iframe Panel Admin dengan parameter
+// ?admin_takeover=<slug>&nama=<nama>, seluruh halaman berperan sebagai
+// "jendela" ke sesi live milik petugas tersebut -- BUKAN memuat/menyimpan
+// data milik perangkat ini sendiri. Lihat startPetugasSession() di bawah.
+const ADMIN_TAKEOVER_PARAMS = new URLSearchParams(window.location.search);
+const ADMIN_TAKEOVER_SLUG = ADMIN_TAKEOVER_PARAMS.get('admin_takeover') || '';
+const ADMIN_TAKEOVER_NAMA = ADMIN_TAKEOVER_PARAMS.get('nama') || '';
+const IS_ADMIN_TAKEOVER = !!ADMIN_TAKEOVER_SLUG;
+
 // ====== "Sedang Aktif" (Presence) — dipantau dari Panel Admin ======
 // Presence murni realtime (tidak perlu tabel database): begitu tab ditutup
 // atau koneksi putus, status "aktif" perangkat ini otomatis hilang dari
@@ -3414,6 +3454,245 @@ function subscribeSettingsChannel(){
       applySyncCardVisibility(payload.new ? payload.new.sync_card_visible !== false : true);
     })
     .subscribe();
+}
+
+// ====== Daftar Nama Petugas (dari panel admin) ======
+// Sinkron langsung dari tabel `stok_opname_petugas` yang dikelola lewat kartu
+// "Kelola Nama Petugas" di Panel Admin, supaya tambah/ubah/hapus nama di sana
+// langsung muncul di dropdown "Petugas" halaman ini tanpa perlu reload.
+const PETUGAS_TABLE = 'stok_opname_petugas';
+let petugasListChannel = null;
+
+async function loadPetugasListFromServer(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await sb.from(PETUGAS_TABLE).select('*').order('nama', { ascending: true });
+    if(error) throw error;
+    if(data) petugasList = data.map(r => r.nama).filter(Boolean);
+  } catch(e){
+    console.error('Gagal memuat daftar nama petugas dari server, pakai daftar cadangan:', e);
+  }
+}
+
+async function initPetugasListListener(){
+  await loadPetugasListFromServer();
+  subscribePetugasListChannel();
+}
+
+function subscribePetugasListChannel(){
+  if(!sb) return;
+  if(petugasListChannel){ try{ sb.removeChannel(petugasListChannel); }catch(e){} petugasListChannel = null; }
+  petugasListChannel = sb.channel('petugas-list-stok-opname')
+    .on('postgres_changes', { event: '*', schema: 'public', table: PETUGAS_TABLE }, () => {
+      loadPetugasListFromServer();
+    })
+    .subscribe();
+}
+
+// ====== Popup wajib "Siapa yang bertugas?" ======
+// Muncul otomatis begitu HP ini pertama kali membuka halaman (belum ada nama
+// petugas tersimpan), lalu setelah dipilih akan diingat otomatis di HP ini
+// (tersimpan lewat mekanisme penyimpanan lokal yang sudah ada). Tidak muncul
+// dalam mode Ambil Alih, karena nama petugas di mode itu sudah ditentukan
+// dari Panel Admin.
+function openPetugasIdentityModal(){
+  const listEl = document.getElementById('petugasIdentityList');
+  if(petugasList.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
+  } else {
+    listEl.innerHTML = petugasList.map(name => `
+      <button type="button" class="modal-option" onclick="submitPetugasIdentity('${name.replace(/'/g, "\\'")}')">
+        <span class="dot"></span>${escapeHtml(name)}
+      </button>
+    `).join('');
+  }
+  const overlay = document.getElementById('petugasIdentityOverlay');
+  if(overlay) overlay.classList.add('show');
+}
+
+function closePetugasIdentityModal(){
+  const overlay = document.getElementById('petugasIdentityOverlay');
+  if(overlay) overlay.classList.remove('show');
+}
+
+function submitPetugasIdentityManual(){
+  const input = document.getElementById('petugasIdentityManualInput');
+  const val = input ? input.value.trim() : '';
+  if(!val) return;
+  submitPetugasIdentity(val);
+}
+
+function submitPetugasIdentity(name){
+  document.getElementById('metaPetugas').value = name;
+  saveState();
+  updatePresence();
+  startPetugasSession(name);
+  closePetugasIdentityModal();
+}
+
+// Dipanggil setelah data tersimpan & room (kalau ada) selesai dimuat. Kalau
+// nama petugas di HP ini masih kosong, wajib pilih dulu lewat popup; kalau
+// sudah ada (dari data tersimpan atau dari room), langsung nyalakan sesi live
+// petugas tersebut tanpa bertanya lagi.
+function maybeShowPetugasIdentityModal(){
+  const val = document.getElementById('metaPetugas').value.trim();
+  if(val){
+    startPetugasSession(val);
+    return;
+  }
+  openPetugasIdentityModal();
+}
+
+// ====== Sesi Live Per-Petugas (dipakai fitur "Ambil Alih" di Panel Admin) ======
+// Beda dari "Sinkronisasi Tim" (room, harus diaktifkan manual pakai kode):
+// sesi ini OTOMATIS aktif begitu nama petugas di HP ini diketahui, berjalan
+// diam-diam di latar, dan tetap bisa dibuka dari Panel Admin (menampilkan
+// data terakhir tersimpan) walau petugas-nya sedang offline. Satu baris di
+// tabel `stok_opname_petugas_session` per nama petugas (bukan per HP), jadi
+// kalau admin membuka "Ambil Alih" untuk nama itu, perubahan di kedua sisi
+// (HP petugas & jendela admin) langsung nyambung dua arah secara live.
+const PETUGAS_SESSION_TABLE = 'stok_opname_petugas_session';
+let petugasSessionSlug = '';
+let petugasSessionChannel = null;
+let petugasSessionPushTimer = null;
+let applyingPetugasSession = false;
+let petugasSessionResyncInFlight = false;
+
+function slugifyPetugas(name){
+  return (name || '').toString().trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || '';
+}
+
+async function pushPetugasSessionNow(){
+  const client = initSupabaseClient();
+  if(!client || !petugasSessionSlug) return;
+  const namaEl = document.getElementById('metaPetugas');
+  try{
+    const { error } = await sb.from(PETUGAS_SESSION_TABLE).upsert({
+      petugas_slug: petugasSessionSlug,
+      petugas_nama: namaEl ? namaEl.value.trim() : '',
+      state: collectCurrentState(),
+      updated_by: CLIENT_ID,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'petugas_slug' });
+    if(error) throw error;
+    if(IS_ADMIN_TAKEOVER) setSaveStatus('Tersinkron ke HP petugas');
+  } catch(err){
+    console.error('Gagal sinkron sesi petugas:', err);
+    if(IS_ADMIN_TAKEOVER) setSaveStatus('Gagal sinkron ke HP petugas, cek koneksi.');
+  }
+}
+
+function pushPetugasSession(immediate){
+  if(!petugasSessionSlug || applyingRemote) return;
+  clearTimeout(petugasSessionPushTimer);
+  if(immediate){ pushPetugasSessionNow(); return; }
+  petugasSessionPushTimer = setTimeout(pushPetugasSessionNow, 500);
+}
+
+// Terapkan state yang datang dari sesi live (dari HP petugas asli ATAU dari
+// jendela Ambil Alih admin, tergantung siapa yang barusan mengedit).
+function applyPetugasSessionState(state){
+  if(!state) return;
+  applyingPetugasSession = true;
+  applyingRemote = true; // pinjam guard yang sama supaya saveState() tidak memicu kirim balik
+  const remoteRows = state.rows || [];
+  rows = remoteRows;
+  idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
+  if(state.meta){
+    document.getElementById('metaToko').value = state.meta.toko || '';
+    document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+    document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+    // Nama petugas TIDAK diikutkan di HP petugas asli sendiri (nama itu milik
+    // device ini), tapi diterapkan di jendela Ambil Alih supaya selalu sama
+    // dengan nama yang sedang diambil alih.
+    if(IS_ADMIN_TAKEOVER) document.getElementById('metaPetugas').value = state.meta.petugas || ADMIN_TAKEOVER_NAMA;
+  }
+  hideToko = state.hideToko || { t1:false, t2:false };
+  editingFromId = state.editingFromId || null;
+  updateHideTokoUI();
+  render();
+  applyingRemote = false;
+  applyingPetugasSession = false;
+}
+
+// Mulai (atau pindah) sesi live untuk nama petugas tertentu.
+async function startPetugasSession(nama){
+  const slug = slugifyPetugas(nama);
+  if(!slug) return;
+  const client = initSupabaseClient();
+  if(!client) return;
+
+  if(petugasSessionChannel){ try{ await sb.removeChannel(petugasSessionChannel); }catch(e){} petugasSessionChannel = null; }
+  petugasSessionSlug = slug;
+
+  if(IS_ADMIN_TAKEOVER){
+    // Muat data terakhir milik petugas ini apa adanya -- termasuk kalau
+    // petugas-nya sedang offline. Kalau belum pernah ada sesi tersimpan
+    // (petugas belum pernah buka halaman ini), mulai dari kosong dan buat
+    // baris sesinya supaya siap menerima sinkron begitu petugas online.
+    try{
+      const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('*').eq('petugas_slug', slug).maybeSingle();
+      if(error) throw error;
+      if(data && data.state){
+        applyPetugasSessionState(data.state);
+        setSaveStatus('Tersambung ke sesi live ' + (ADMIN_TAKEOVER_NAMA || nama));
+      } else {
+        rows = []; idCounter = 0; hideToko = { t1:false, t2:false }; editingFromId = null;
+        document.getElementById('metaToko').value = '';
+        document.getElementById('metaWaktu').value = 'siang';
+        document.getElementById('metaTgl').value = todayISO();
+        updateHideTokoUI();
+        render();
+        await pushPetugasSessionNow();
+        setSaveStatus('Sesi baru dibuat untuk ' + (ADMIN_TAKEOVER_NAMA || nama));
+      }
+    } catch(err){
+      console.error('Gagal memuat sesi petugas untuk Ambil Alih:', err);
+      setSaveStatus('Gagal memuat data petugas ini, cek koneksi.');
+    }
+  } else {
+    // HP petugas: langsung kirim kondisi saat ini supaya kalau Panel Admin
+    // sedang menunggu buka "Ambil Alih", datanya langsung ada -- tidak perlu
+    // menunggu sampai ada perubahan berikutnya.
+    pushPetugasSession(true);
+  }
+
+  subscribePetugasSessionChannel();
+}
+
+function subscribePetugasSessionChannel(){
+  if(!sb || !petugasSessionSlug) return;
+  petugasSessionChannel = sb.channel('petugas-session-' + petugasSessionSlug)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: PETUGAS_SESSION_TABLE, filter: `petugas_slug=eq.${petugasSessionSlug}`
+    }, payload => {
+      if(!payload.new || payload.new.updated_by === CLIENT_ID) return;
+      applyPetugasSessionState(payload.new.state);
+    })
+    .subscribe();
+}
+
+// Sama seperti resyncRoomIfNeeded() -- kalau koneksi realtime sempat putus
+// diam-diam (tab lama di background dsb.), tarik ulang data terbaru dan
+// sambungkan ulang begitu tab aktif/online lagi.
+async function resyncPetugasSessionIfNeeded(){
+  if(!petugasSessionSlug || petugasSessionResyncInFlight) return;
+  const client = initSupabaseClient();
+  if(!client) return;
+  petugasSessionResyncInFlight = true;
+  try{
+    if(IS_ADMIN_TAKEOVER){
+      const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('*').eq('petugas_slug', petugasSessionSlug).maybeSingle();
+      if(!error && data && data.state) applyPetugasSessionState(data.state);
+    }
+    if(petugasSessionChannel){ try{ await sb.removeChannel(petugasSessionChannel); }catch(e){} petugasSessionChannel = null; }
+    subscribePetugasSessionChannel();
+  } finally {
+    petugasSessionResyncInFlight = false;
+  }
 }
 
 // ====== Daftar nama barang master (dari panel admin) ======
@@ -4247,10 +4526,10 @@ async function resyncRoomIfNeeded(){
 }
 
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); }
+  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); }
 });
-window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); });
-window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); updatePresence(); });
+window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); });
+window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); });
 
 let screenResyncInFlight = false;
 async function resyncScreenIfNeeded(){
@@ -4278,6 +4557,13 @@ function saveState(){
   clearTimeout(saveTimer);
   setSaveStatus('Menyimpan…');
   saveTimer = setTimeout(async () => {
+    if(IS_ADMIN_TAKEOVER){
+      // Mode Ambil Alih: TIDAK ada penyimpanan lokal sama sekali di
+      // perangkat admin ini -- satu-satunya tujuan adalah sesi live milik
+      // petugas yang sedang diambil alih.
+      if(!applyingRemote) pushPetugasSession(true);
+      return;
+    }
     const state = {
       meta: {
         toko: document.getElementById('metaToko').value,
@@ -4304,11 +4590,44 @@ function saveState(){
       setSaveStatus('Gagal menyimpan');
     }
     if(roomCode && !applyingRemote) pushToRoom();
+    if(petugasSessionSlug && !applyingRemote) pushPetugasSession();
   }, 400);
 }
 
 async function loadState(){
   setSaveStatus('Memuat…');
+
+  if(IS_ADMIN_TAKEOVER){
+    // Mode Ambil Alih dari Panel Admin: JANGAN pakai data tersimpan di
+    // perangkat ini sama sekali. Semua data datang dari & tersinkron ke
+    // sesi live milik petugas yang sedang diambil alih (lihat
+    // startPetugasSession()). Nama petugas dikunci sesuai parameter URL.
+    rows = [];
+    idCounter = 0;
+    hideToko = { t1:false, t2:false };
+    editingFromId = null;
+    document.getElementById('metaToko').value = '';
+    document.getElementById('metaWaktu').value = 'siang';
+    document.getElementById('metaTgl').value = todayISO();
+    document.getElementById('metaPetugas').value = ADMIN_TAKEOVER_NAMA;
+    const petugasInput = document.getElementById('metaPetugas');
+    if(petugasInput){ petugasInput.readOnly = true; petugasInput.style.pointerEvents = 'none'; petugasInput.style.opacity = '0.7'; petugasInput.style.cursor = 'default'; }
+    const takeoverBanner = document.getElementById('takeoverBanner');
+    if(takeoverBanner){ takeoverBanner.style.display = 'flex'; document.getElementById('takeoverBannerNama').textContent = ADMIN_TAKEOVER_NAMA; }
+    updateHideTokoUI();
+    render();
+    updateRoomUI();
+
+    initBroadcastListener();
+    initDrawListener();
+    initSyncCardVisibilityListener();
+    initItemMasterListener();
+    initStockImportListener();
+    await initPetugasListListener();
+    await startPetugasSession(ADMIN_TAKEOVER_NAMA);
+    return;
+  }
+
   try{
     const result = await storageGet(STORAGE_KEY);
     if(result && result.value){
@@ -4354,7 +4673,8 @@ async function loadState(){
   }
 
   updateRoomUI();
-  autoJoinFromStartup();
+  await initPetugasListListener();
+  await autoJoinFromStartup();
 
   initBroadcastListener();
   initDrawListener();
@@ -4362,6 +4682,8 @@ async function loadState(){
   initItemMasterListener();
   initStockImportListener();
   initPresence();
+
+  maybeShowPetugasIdentityModal();
 }
 
 function todayISO(){
@@ -4452,12 +4774,13 @@ function submitManualToko(){
 function openPetugasModal(e){
   if(e) e.stopPropagation();
   if(isViewOnlyForMe()) return;
+  if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
   closeTokoModal();
   const listEl = document.getElementById('petugasList');
-  if(PETUGAS_LIST.length === 0){
+  if(petugasList.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
-    listEl.innerHTML = PETUGAS_LIST.map(name => `
+    listEl.innerHTML = petugasList.map(name => `
       <button type="button" class="modal-option" onclick="selectPetugas('${name.replace(/'/g, "\\'")}')">
         <span class="dot"></span>${escapeHtml(name)}
       </button>
@@ -4476,6 +4799,7 @@ function selectPetugas(name){
   saveState();
   closePetugasModal();
   updatePresence();
+  startPetugasSession(name);
 }
 
 function submitManualPetugas(){
