@@ -303,6 +303,24 @@
   }
   .modal-add:hover{background:var(--teal-deep);}
 
+  .petugas-gate-overlay{
+    display:none; position:fixed; inset:0; background:rgba(10,25,22,0.62); z-index:20000;
+    align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(2px);
+  }
+  .petugas-gate-overlay.show{display:flex;}
+  .petugas-gate-card{
+    background:var(--card); border-radius:18px; width:100%; max-width:380px;
+    padding:22px 20px 18px; box-shadow:0 24px 60px rgba(10,25,22,0.4);
+    max-height:88vh; overflow-y:auto;
+  }
+  .petugas-gate-icon{
+    width:46px; height:46px; border-radius:14px; background:var(--mint); color:var(--teal);
+    display:flex; align-items:center; justify-content:center; font-size:21px; margin-bottom:12px;
+  }
+  .petugas-gate-card h3{margin:0 0 6px; font-size:16px; font-weight:800; color:var(--ink);}
+  .petugas-gate-card p{margin:0 0 14px; font-size:12.5px; line-height:1.5; color:var(--ink-soft);}
+  .petugas-gate-note{font-size:11.5px; color:#c0392b; font-weight:700; margin-top:8px; min-height:14px;}
+
   .hide-toko-row{display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
   .hide-toko-row .htr-label{font-size:12px; color:var(--ink-soft); font-weight:600;}
   .chip-toggle{
@@ -876,6 +894,20 @@
 <body>
 <div class="wrap">
 
+  <div class="petugas-gate-overlay" id="petugasGateOverlay">
+    <div class="petugas-gate-card">
+      <div class="petugas-gate-icon">👤</div>
+      <h3>Siapa yang bertugas?</h3>
+      <p>Isi nama petugas dulu untuk masuk. Nama ini otomatis diingat di perangkat ini, jadi lain kali tidak perlu pilih lagi.</p>
+      <div class="modal-list" id="petugasGateList"></div>
+      <div class="modal-manual">
+        <input id="petugasGateInput" placeholder="Atau ketik nama baru" onkeydown="if(event.key==='Enter') submitPetugasGate()">
+        <button class="modal-add" onclick="submitPetugasGate()">Masuk</button>
+      </div>
+      <div class="petugas-gate-note" id="petugasGateNote"></div>
+    </div>
+  </div>
+
   <div class="masthead">
     <div class="pill">
       <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg>
@@ -1396,9 +1428,17 @@
 // Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
 const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
 
-// Daftar nama petugas yang muncul di modal pilihan.
-// Ganti / tambah / hapus nama di sini sesuai petugas toko.
-const PETUGAS_LIST = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
+// Daftar nama petugas bawaan (dipakai kalau Supabase belum tersambung/tabel
+// belum dibuat). Daftar yang sebenarnya sekarang dinamis: gabungan daftar ini
+// dengan semua nama yang pernah diisi lewat pop up "Siapa yang bertugas?" /
+// dikelola dari Panel Admin, disimpan di tabel Supabase stok_opname_petugas
+// dan disinkron ke semua perangkat.
+const DEFAULT_PETUGAS_LIST = ['Dinda', 'Hayati', 'Mely', 'Putri', 'Sely', 'Zen'];
+let petugasList = [...DEFAULT_PETUGAS_LIST];
+const PETUGAS_TABLE = 'stok_opname_petugas';
+const DEVICE_PETUGAS_KEY = 'stok-opname-device-petugas';
+let devicePetugasName = '';
+let petugasChannel = null;
 
 let rows = [];
 let idCounter = 0;
@@ -3447,6 +3487,143 @@ function subscribeItemMasterChannel(){
     .subscribe();
 }
 
+// ====== Daftar nama Petugas (disinkron dari/ke Panel Admin) ======
+// Setiap nama yang dipilih/diketik (baik lewat pop up "Siapa yang bertugas?"
+// saat pertama buka halaman, maupun lewat dropdown Petugas di form) disimpan
+// ke tabel Supabase PETUGAS_TABLE supaya muncul & bisa dikelola (lihat/edit/
+// hapus) dari Panel Admin, dan otomatis tersedia sebagai pilihan di semua
+// perangkat lain.
+async function loadPetugasList(){
+  const client = initSupabaseClient();
+  if(!client){ refreshPetugasGateList(); return; }
+  try{
+    const { data, error } = await sb.from(PETUGAS_TABLE).select('*').order('nama', { ascending: true });
+    if(error) throw error;
+    if(Array.isArray(data) && data.length){
+      const names = data.map(r => (r.nama || '').trim()).filter(Boolean);
+      petugasList = [...new Set([...DEFAULT_PETUGAS_LIST, ...names])].sort((a, b) => a.localeCompare(b, 'id'));
+    }
+  } catch(e){
+    // tabel mungkin belum dibuat di Supabase -> tetap pakai daftar bawaan saja
+    console.error('Gagal memuat daftar petugas dari Supabase:', e);
+  }
+  refreshPetugasGateList();
+}
+
+function initPetugasListener(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  if(petugasChannel){ try{ sb.removeChannel(petugasChannel); }catch(e){} petugasChannel = null; }
+  petugasChannel = sb.channel('petugas-list-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: PETUGAS_TABLE }, () => {
+      loadPetugasList();
+    })
+    .subscribe();
+}
+
+// Menyimpan nama petugas baru (kalau belum ada) ke Supabase supaya muncul di
+// Panel Admin dan tersedia sebagai pilihan di semua perangkat lain.
+async function ensurePetugasSaved(name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return;
+  const already = petugasList.some(n => n.toLowerCase() === trimmed.toLowerCase());
+  if(!already){
+    petugasList = [...petugasList, trimmed].sort((a, b) => a.localeCompare(b, 'id'));
+    refreshPetugasGateList();
+  }
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    await sb.from(PETUGAS_TABLE).upsert({ nama: trimmed }, { onConflict: 'nama' });
+  } catch(e){
+    // tabel mungkin belum dibuat di Supabase -> nama tetap bisa dipakai di
+    // perangkat ini saja (tersimpan di localStorage), cuma belum tersinkron
+    console.error('Gagal menyimpan nama petugas ke Supabase:', e);
+  }
+}
+
+function renderPetugasGateOptions(){
+  const listEl = document.getElementById('petugasGateList');
+  if(!listEl) return;
+  if(petugasList.length === 0){
+    listEl.innerHTML = '<div class="modal-empty">Belum ada nama petugas. Ketik nama baru di bawah.</div>';
+    return;
+  }
+  listEl.innerHTML = petugasList.map(name => `
+    <button type="button" class="modal-option" onclick="submitPetugasGate('${name.replace(/'/g, "\\'")}')">
+      <span class="dot"></span>${escapeHtml(name)}
+    </button>
+  `).join('');
+}
+
+function refreshPetugasGateList(){
+  const overlay = document.getElementById('petugasGateOverlay');
+  if(overlay && overlay.classList.contains('show')) renderPetugasGateOptions();
+}
+
+function getDevicePetugasName(){
+  try{ return localStorage.getItem(DEVICE_PETUGAS_KEY) || ''; }catch(e){ return ''; }
+}
+
+function setDevicePetugasName(name){
+  try{ localStorage.setItem(DEVICE_PETUGAS_KEY, name); }catch(e){ /* abaikan */ }
+}
+
+function openPetugasGate(){
+  renderPetugasGateOptions();
+  const note = document.getElementById('petugasGateNote');
+  if(note) note.textContent = '';
+  const input = document.getElementById('petugasGateInput');
+  if(input) input.value = '';
+  const overlay = document.getElementById('petugasGateOverlay');
+  if(overlay) overlay.classList.add('show');
+  if(input) setTimeout(() => input.focus(), 150);
+}
+
+function closePetugasGate(){
+  const overlay = document.getElementById('petugasGateOverlay');
+  if(overlay) overlay.classList.remove('show');
+}
+
+// Dipanggil saat menekan tombol "Masuk" (nama manual) atau memilih salah satu
+// nama dari daftar. Wajib diisi — pop up tidak bisa ditutup tanpa nama.
+function submitPetugasGate(pickedName){
+  const input = document.getElementById('petugasGateInput');
+  const name = (pickedName || (input ? input.value : '')).trim();
+  if(!name){
+    const note = document.getElementById('petugasGateNote');
+    if(note) note.textContent = 'Nama petugas wajib diisi dulu, ya.';
+    if(input) input.focus();
+    return;
+  }
+  setDevicePetugasName(name);
+  devicePetugasName = name;
+  const metaPetugas = document.getElementById('metaPetugas');
+  if(metaPetugas && !metaPetugas.value.trim()){
+    metaPetugas.value = name;
+    saveState();
+  }
+  closePetugasGate();
+  ensurePetugasSaved(name);
+  updatePresence();
+}
+
+// Dipanggil sekali saat halaman dibuka. Kalau perangkat ini sudah pernah
+// mengisi nama sebelumnya (tersimpan di localStorage), pop up TIDAK muncul
+// lagi dan nama langsung dipakai otomatis. Kalau belum, pop up wajib diisi
+// dulu sebelum bisa memakai halaman ini.
+function initPetugasGate(){
+  const saved = getDevicePetugasName();
+  if(saved){
+    devicePetugasName = saved;
+    const metaPetugas = document.getElementById('metaPetugas');
+    if(metaPetugas && !metaPetugas.value.trim()) metaPetugas.value = saved;
+    ensurePetugasSaved(saved);
+  } else {
+    openPetugasGate();
+  }
+}
+
 // ====== Import Sisa Stok (Web/Apk) dari panel admin ======
 // Admin mengimpor daftar PASANGAN nama barang + angka sisa stok dari Excel
 // (format item: {nama, apk}), lalu di sini otomatis mengisi kolom Web/Apk
@@ -4395,7 +4572,7 @@ async function resetAll(){
   document.getElementById('metaToko').value = 'Rafa 1';
   document.getElementById('metaWaktu').value = 'siang';
   document.getElementById('metaTgl').value = todayISO();
-  document.getElementById('metaPetugas').value = '';
+  document.getElementById('metaPetugas').value = devicePetugasName || '';
   const searchBox = document.getElementById('searchBox');
   if(searchBox) searchBox.value = '';
   const clearBtn = document.getElementById('clearSearchBtn');
@@ -4454,10 +4631,10 @@ function openPetugasModal(e){
   if(isViewOnlyForMe()) return;
   closeTokoModal();
   const listEl = document.getElementById('petugasList');
-  if(PETUGAS_LIST.length === 0){
+  if(petugasList.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
-    listEl.innerHTML = PETUGAS_LIST.map(name => `
+    listEl.innerHTML = petugasList.map(name => `
       <button type="button" class="modal-option" onclick="selectPetugas('${name.replace(/'/g, "\\'")}')">
         <span class="dot"></span>${escapeHtml(name)}
       </button>
@@ -4482,6 +4659,7 @@ function submitManualPetugas(){
   const val = document.getElementById('petugasManualInput').value.trim();
   if(!val) return;
   selectPetugas(val);
+  ensurePetugasSaved(val);
 }
 
 document.addEventListener('click', function(e){
@@ -4770,7 +4948,15 @@ async function deleteHistoryEntry(id){
   renderHistoryList(list);
 }
 
-loadState();
+loadState().then(() => {
+  // Menunggu loadState() selesai dulu (supaya nilai Petugas dari sesi/room
+  // tersimpan tidak tertimpa balapan dengan pop up ini), baru cek identitas
+  // perangkat: kalau sudah pernah diisi, langsung pakai tanpa nanya lagi;
+  // kalau belum, pop up wajib diisi dulu sebelum halaman bisa dipakai.
+  loadPetugasList();
+  initPetugasListener();
+  initPetugasGate();
+});
 
 /* ======================================================================
    Halaman "Barang Kosong / Perlu Order"
