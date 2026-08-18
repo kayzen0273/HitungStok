@@ -892,6 +892,10 @@
 </style>
 </head>
 <body>
+  <div id="adminTakeoverBanner" style="display:none; position:sticky; top:0; z-index:99999; background:#c0392b; color:#fff; padding:9px 14px; font-weight:800; font-size:12.5px; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(0,0,0,.25);">
+    <span id="adminTakeoverText">🔴 Mode Ambil Alih Admin</span>
+    <span id="adminTakeoverStatus" style="font-weight:600; font-size:11.5px; opacity:.9;"></span>
+  </div>
 <div class="wrap">
 
   <div class="petugas-gate-overlay" id="petugasGateOverlay">
@@ -2892,6 +2896,9 @@ async function importExcel(file){
 }
 
 async function storageGet(key){
+  if(isAdminTakeoverMode){
+    return memoryStorageMap.hasOwnProperty(key) ? { value: memoryStorageMap[key] } : null;
+  }
   if(hasClaudeStorage){
     return await window.storage.get(key, false);
   }
@@ -2904,6 +2911,10 @@ async function storageGet(key){
 }
 
 async function storageSet(key, value){
+  if(isAdminTakeoverMode){
+    memoryStorageMap[key] = value;
+    return { value };
+  }
   if(hasClaudeStorage){
     return await window.storage.set(key, value, false);
   }
@@ -2916,6 +2927,10 @@ async function storageSet(key, value){
 }
 
 async function storageDelete(key){
+  if(isAdminTakeoverMode){
+    delete memoryStorageMap[key];
+    return { deleted: true };
+  }
   if(hasClaudeStorage){
     return await window.storage.delete(key, false);
   }
@@ -2932,6 +2947,19 @@ const SUPABASE_URL = 'https://hoyframcjysrpkbjmfit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveWZyYW1janlzcnBrYmptZml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzA2MTYsImV4cCI6MjEwMDEwNjYxNn0.FZHy-qnZxltXNtHzkQ-bLyEiiW5Kp2fxK9ry5oA-cTY';
 const ROOM_KEY = 'stok-opname-room';
 const CLIENT_ID_KEY = 'stok-opname-client-id';
+
+// ====== Sesi Live Per-Petugas (dipakai fitur "Ambil Alih" di Panel Admin) ======
+// Berbeda dari "Sinkronisasi Tim" (room, harus diaktifkan manual pakai kode):
+// sesi ini OTOMATIS aktif begitu identitas petugas di perangkat ini diketahui
+// (dari pop up "Siapa yang bertugas?"), berjalan diam-diam di latar, dan
+// selalu mengirim state terbaru ke server supaya Panel Admin bisa membuka &
+// mengambil alih tampilan petugas ini kapan saja secara live — termasuk saat
+// petugas sedang offline (data terakhir tetap tersimpan di server, dan
+// perubahan dari admin akan otomatis diterapkan begitu petugas online lagi).
+const PETUGAS_SESSION_TABLE = 'stok_opname_petugas_session';
+let petugasSessionSlug = '';
+let petugasSessionChannel = null;
+let petugasSessionPushTimer = null;
 
 let sb = null;
 let roomCode = '';
@@ -2972,6 +3000,23 @@ function getClientId(){
   }
 }
 const CLIENT_ID = getClientId();
+
+// ====== Mode "Ambil Alih" dari Panel Admin ======
+// Kalau halaman ini dibuka lewat Panel Admin dengan parameter khusus di URL
+// (?admin_takeover=<slug petugas>&nama=<nama petugas>), halaman ini berfungsi
+// sebagai jendela kendali-jarak-jauh atas sesi petugas tersebut secara live:
+// TIDAK memakai localStorage/penyimpanan perangkat ini sama sekali (supaya
+// tidak tercampur dengan data petugas manapun di HP admin), langsung memuat
+// & menampilkan data sesi petugas itu apa adanya (tampilan sama persis
+// seperti aslinya), dan setiap perubahan yang dibuat di sini langsung
+// terkirim live ke HP petugas yang bersangkutan kalau sedang online — atau
+// tersimpan permanen di server kalau petugas sedang offline, dan akan
+// otomatis diterapkan begitu petugas itu online lagi.
+const __urlParams = new URLSearchParams(window.location.search);
+const ADMIN_TAKEOVER_SLUG = (__urlParams.get('admin_takeover') || '').trim();
+const ADMIN_TAKEOVER_NAMA = (__urlParams.get('nama') || '').trim();
+const isAdminTakeoverMode = !!ADMIN_TAKEOVER_SLUG;
+let memoryStorageMap = {}; // dipakai sebagai pengganti localStorage/window.storage KHUSUS saat mode ambil alih
 
 function initSupabaseClient(){
   if(!sb && window.supabase && typeof window.supabase.createClient === 'function'){
@@ -3393,6 +3438,151 @@ function copyInviteLink(){
   });
 }
 
+// ====== Sesi Live Per-Petugas: fungsi-fungsi inti ======
+function slugifyPetugas(name){
+  return (name || '').toString().trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || '';
+}
+
+function currentPetugasSlug(){
+  if(isAdminTakeoverMode) return ADMIN_TAKEOVER_SLUG;
+  const el = document.getElementById('metaPetugas');
+  const nama = ((el ? el.value : '') || devicePetugasName || '').trim();
+  return nama ? slugifyPetugas(nama) : '';
+}
+
+// Kumpulan state yang sama seperti collectCurrentState(), tapi TANPA info
+// kunci/host room tim (session) — supaya sesi per-petugas ini tidak pernah
+// ikut menimpa status kunci room tim yang sedang berjalan di perangkat lain.
+function collectPetugasSessionState(){
+  const state = collectCurrentState();
+  delete state.session;
+  return state;
+}
+
+function setTakeoverStatus(text, mode){
+  const el = document.getElementById('adminTakeoverStatus');
+  if(el) el.textContent = text || '';
+  const banner = document.getElementById('adminTakeoverBanner');
+  if(banner) banner.style.background = mode === 'warn' ? '#b7791b' : '#c0392b';
+}
+
+function showAdminTakeoverBanner(){
+  const banner = document.getElementById('adminTakeoverBanner');
+  const text = document.getElementById('adminTakeoverText');
+  if(text) text.textContent = '🔴 Mode Ambil Alih Admin — ' + (ADMIN_TAKEOVER_NAMA || 'Petugas');
+  if(banner) banner.style.display = 'flex';
+  setTakeoverStatus('Menghubungkan…');
+}
+
+function subscribePetugasSessionChannel(){
+  if(!sb || !petugasSessionSlug) return;
+  if(petugasSessionChannel){ try{ sb.removeChannel(petugasSessionChannel); }catch(e){} petugasSessionChannel = null; }
+  petugasSessionChannel = sb.channel('petugas-session-' + petugasSessionSlug)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: PETUGAS_SESSION_TABLE,
+      filter: `petugas_slug=eq.${petugasSessionSlug}`
+    }, payload => {
+      if(!payload.new || payload.new.updated_by === CLIENT_ID) return;
+      applyRemoteState(payload.new.state);
+      render();
+      if(isAdminTakeoverMode) setTakeoverStatus('Diperbarui live dari HP petugas', 'on');
+    })
+    .subscribe(status => {
+      if(!isAdminTakeoverMode) return;
+      if(status === 'SUBSCRIBED') setTakeoverStatus('Tersambung live • perubahan terkirim langsung ke HP petugas', 'on');
+      else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setTakeoverStatus('Koneksi realtime bermasalah, coba muat ulang.', 'warn');
+    });
+}
+
+// Ambil state terbaru dari server untuk petugas ini dan terapkan (kalau
+// bukan berasal dari perangkat ini sendiri). Dipanggil sebelum push (supaya
+// tidak menimpa perubahan admin/petugas yang lebih baru) dan sekali di awal
+// saat sesi ini pertama kali terhubung (supaya langsung dapat data terbaru,
+// termasuk perubahan yang terjadi selagi perangkat ini offline).
+async function pullPetugasSessionAndMerge(isInitialLoad){
+  if(!sb || !petugasSessionSlug) return null;
+  try{
+    const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('*').eq('petugas_slug', petugasSessionSlug).maybeSingle();
+    if(error) throw error;
+    if(data && data.state && data.updated_by !== CLIENT_ID){
+      applyRemoteState(data.state);
+      render();
+    } else if(isAdminTakeoverMode && isInitialLoad && !data){
+      setTakeoverStatus('Belum ada data tersimpan untuk petugas ini.', 'warn');
+    }
+    return data;
+  } catch(e){
+    console.error('Gagal mengambil sesi live petugas:', e);
+    if(isAdminTakeoverMode) setTakeoverStatus('Gagal memuat data petugas ini. Cek koneksi.', 'warn');
+    return null;
+  }
+}
+
+async function doPushPetugasSessionNow(){
+  const client = initSupabaseClient();
+  if(!client || !petugasSessionSlug) return;
+  await pullPetugasSessionAndMerge();
+  const state = collectPetugasSessionState();
+  const namaEl = document.getElementById('metaPetugas');
+  const namaDisplay = (isAdminTakeoverMode ? ADMIN_TAKEOVER_NAMA : ((namaEl ? namaEl.value : '') || devicePetugasName)) || petugasSessionSlug;
+  try{
+    const { error } = await sb.from(PETUGAS_SESSION_TABLE)
+      .upsert({
+        petugas_slug: petugasSessionSlug,
+        petugas_nama: namaDisplay,
+        state,
+        updated_by: CLIENT_ID,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'petugas_slug' });
+    if(error) throw error;
+    if(isAdminTakeoverMode) setTakeoverStatus('Tersambung live • perubahan terkirim langsung ke HP petugas', 'on');
+  } catch(err){
+    console.error('Gagal sinkron sesi live petugas:', err);
+    if(isAdminTakeoverMode) setTakeoverStatus('Gagal mengirim perubahan. Cek koneksi.', 'warn');
+  }
+}
+
+// Pastikan channel sesi live selalu sesuai dengan identitas petugas yang
+// sedang aktif di perangkat ini. Aman dipanggil berulang kali — tidak
+// melakukan apa-apa kalau identitasnya belum berubah.
+function ensurePetugasSession(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  const slug = currentPetugasSlug();
+  if(!slug || slug === petugasSessionSlug) return;
+  petugasSessionSlug = slug;
+  subscribePetugasSessionChannel();
+  if(!isAdminTakeoverMode) pullPetugasSessionAndMerge(true);
+}
+
+function pushPetugasSession(immediate){
+  ensurePetugasSession();
+  if(!petugasSessionSlug || applyingRemote) return;
+  clearTimeout(petugasSessionPushTimer);
+  if(immediate){ doPushPetugasSessionNow(); return; }
+  petugasSessionPushTimer = setTimeout(doPushPetugasSessionNow, 500);
+}
+
+// Dipanggil sekali di akhir loadState(). Untuk mode ambil alih admin: ambil
+// data petugas target langsung (tanpa menunggu identitas apa pun), tampilkan
+// banner, lalu terus dengarkan live. Untuk pemakaian normal: cukup pasang
+// sesi kalau identitas petugas perangkat ini sudah diketahui (kalau belum,
+// akan otomatis terpasang begitu pop up "Siapa yang bertugas?" diisi).
+async function initPetugasSessionSync(){
+  const client = initSupabaseClient();
+  if(!client) return;
+  if(isAdminTakeoverMode){
+    showAdminTakeoverBanner();
+    petugasSessionSlug = ADMIN_TAKEOVER_SLUG;
+    subscribePetugasSessionChannel();
+    await pullPetugasSessionAndMerge(true);
+  } else {
+    ensurePetugasSession();
+  }
+}
+
 // ====== Layar Tampilan dari Admin (broadcast HTML/video) ======
 // Halaman ini otomatis mendengarkan satu channel siaran global di Supabase
 // (tidak perlu kode apa pun) — begitu admin menampilkan sesuatu lewat
@@ -3606,6 +3796,7 @@ function submitPetugasGate(pickedName){
   closePetugasGate();
   ensurePetugasSaved(name);
   updatePresence();
+  ensurePetugasSession();
 }
 
 // Dipanggil sekali saat halaman dibuka. Kalau perangkat ini sudah pernah
@@ -3619,6 +3810,7 @@ function initPetugasGate(){
     const metaPetugas = document.getElementById('metaPetugas');
     if(metaPetugas && !metaPetugas.value.trim()) metaPetugas.value = saved;
     ensurePetugasSaved(saved);
+    ensurePetugasSession();
   } else {
     openPetugasGate();
   }
@@ -4481,11 +4673,16 @@ function saveState(){
       setSaveStatus('Gagal menyimpan');
     }
     if(roomCode && !applyingRemote) pushToRoom();
+    if(!applyingRemote) pushPetugasSession();
   }, 400);
 }
 
 async function loadState(){
   setSaveStatus('Memuat…');
+  if(isAdminTakeoverMode){
+    const namaEl = document.getElementById('metaPetugas');
+    if(namaEl) namaEl.value = ADMIN_TAKEOVER_NAMA;
+  }
   try{
     const result = await storageGet(STORAGE_KEY);
     if(result && result.value){
@@ -4539,6 +4736,7 @@ async function loadState(){
   initItemMasterListener();
   initStockImportListener();
   initPresence();
+  await initPetugasSessionSync();
 }
 
 function todayISO(){
@@ -4955,7 +5153,7 @@ loadState().then(() => {
   // kalau belum, pop up wajib diisi dulu sebelum halaman bisa dipakai.
   loadPetugasList();
   initPetugasListener();
-  initPetugasGate();
+  if(!isAdminTakeoverMode) initPetugasGate();
 });
 
 /* ======================================================================
