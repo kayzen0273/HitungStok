@@ -642,11 +642,18 @@
   }
   .review-summary-bar span{
     display:inline-flex; align-items:center; gap:3px; background:#f4f4ee; border:1px solid var(--line);
-    border-radius:20px; padding:3px 9px 3px 7px;
+    border-radius:20px; padding:3px 9px 3px 7px; cursor:pointer; user-select:none;
+    transition:box-shadow .12s ease, opacity .12s ease;
   }
+  .review-summary-bar span:hover{box-shadow:0 0 0 1px currentColor inset;}
+  .review-summary-bar span.active{box-shadow:0 0 0 1.5px currentColor inset; font-weight:800;}
+  .review-summary-bar.filtering span:not(.active){opacity:.5;}
   .review-summary-bar span.s-exact{color:var(--klop); background:var(--klop-bg); border-color:#bcdfc9;}
   .review-summary-bar span.s-fuzzy{color:var(--amber); background:#fbf1e0; border-color:#e9d3a6;}
   .review-summary-bar span.s-none{color:var(--ink-soft); background:#f0efe8; border-color:var(--line);}
+  .review-empty-note{
+    font-size:12px; color:var(--ink-soft); text-align:center; padding:16px 8px;
+  }
   .review-list{display:flex; flex-direction:column; gap:5px;}
   .review-item{
     border:1.5px solid var(--line); border-radius:10px; padding:7px 9px;
@@ -2138,7 +2145,74 @@ function parsePasteStokText(text){
 }
 
 function normalizeNamaForMatch(s){
-  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return (s || '')
+    .toLowerCase()
+    // buang tanda baca (titik, koma, kurung, garis miring/hubung, dst) supaya
+    // "Vitamin C-500" / "Vitamin C, 500" / "Vitamin C (500)" dianggap sama
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Pecah nama yang sudah dinormalisasi jadi kata-kata, dipakai untuk
+// pencocokan berbasis kata (bukan cuma huruf per huruf) — supaya nama yang
+// urutan katanya beda atau nama yang disingkat tetap bisa ketebak.
+function tokenizeNamaKey(key){
+  return (key || '').split(' ').filter(Boolean);
+}
+
+// Skor irisan kata (mirip koefisien Dice) antara dua nama: seberapa besar
+// proporsi kata yang sama persis di antara keduanya, tanpa peduli urutan.
+function tokenOverlapScore(tokensA, tokensB){
+  if(!tokensA.length || !tokensB.length) return 0;
+  const sisaB = tokensB.slice();
+  let sama = 0;
+  tokensA.forEach(t => {
+    const idx = sisaB.indexOf(t);
+    if(idx !== -1){ sama++; sisaB.splice(idx, 1); }
+  });
+  return (2 * sama) / (tokensA.length + tokensB.length);
+}
+
+// Skor kemiripan gabungan (0..1) antara dua nama yang SUDAH dinormalisasi:
+// menggabungkan jarak-edit per huruf (nangkep typo ringan), irisan kata
+// (nangkep urutan kata beda / kata tambahan-dikurangi), dan bonus kalau satu
+// nama adalah bagian utuh dari nama lain (nangkep nama yang disingkat, mis.
+// "Azovir" vs "Azovir Cr 5gr"). Dipakai sebagai dasar rekomendasi pencocokan
+// nama barang di fitur "Barang Kosong" & "Tempel & Isi Stok Otomatis".
+function nameSimilarityScore(aKey, bKey){
+  if(!aKey || !bKey) return 0;
+  if(aKey === bKey) return 1;
+  const dist = levenshteinDistance(aKey, bKey);
+  const maxLen = Math.max(aKey.length, bKey.length);
+  const charScore = maxLen ? Math.max(0, 1 - (dist / maxLen)) : 0;
+  const tokensA = tokenizeNamaKey(aKey);
+  const tokensB = tokenizeNamaKey(bKey);
+  const tokenScore = tokenOverlapScore(tokensA, tokensB);
+  let containScore = 0;
+  if(aKey.length >= 3 && bKey.length >= 3 && (aKey.includes(bKey) || bKey.includes(aKey))){
+    containScore = 1;
+  }
+  // Tiga cara pandang kemiripan, diambil yang paling meyakinkan:
+  // - skorKata: kata-katanya sama tapi urutannya beda (mis. "500 Vitamin C"
+  //   vs "Vitamin C 500") — jarak-edit per huruf bakal kelihatan jauh padahal
+  //   isinya identik, jadi kata yang jadi sinyal utama di sini.
+  // - skorHuruf: susunan katanya sama tapi ada typo ringan per huruf.
+  // - gabungan: campuran keduanya buat kasus di tengah-tengah.
+  const skorKata = (tokenScore * 0.8) + (containScore * 0.2);
+  const skorHuruf = charScore;
+  const gabungan = (charScore * 0.4) + (tokenScore * 0.4) + (containScore * 0.2);
+  return Math.max(skorKata, skorHuruf, gabungan);
+}
+
+// Ambang batas skor supaya dianggap "mirip" (fuzzy) — nama pendek butuh skor
+// lebih tinggi (lebih ketat) karena lebih gampang kebetulan mirip sama nama
+// barang lain yang sebenarnya beda; nama panjang bisa lebih longgar karena
+// kemiripan sekecil itu jarang kebetulan.
+function nameMatchThreshold(maxLen){
+  if(maxLen <= 6) return 0.72;
+  if(maxLen <= 12) return 0.62;
+  return 0.55;
 }
 
 // Jarak edit sederhana (Levenshtein) buat bandingin dua nama barang —
@@ -2188,12 +2262,12 @@ function computeBestMatch(namaBaru, scopeRows, usedIds){
     if(!r.nama.trim() || usedIds.has(r.id)) continue;
     const aKey = normalizeNamaForMatch(r.nama);
     if(!aKey) continue;
-    const dist = levenshteinDistance(aKey, bKey);
-    if(dist === 0) return { row:r, dist:0, exact:true };
+    if(aKey === bKey) return { row:r, dist:0, exact:true, score:1 };
+    const score = nameSimilarityScore(aKey, bKey);
     const maxLen = Math.max(aKey.length, bKey.length);
-    const toleransi = Math.max(2, Math.ceil(maxLen * 0.35));
-    if(dist <= toleransi && (!best || dist < best.dist)){
-      best = { row:r, dist, exact:false };
+    const ambang = nameMatchThreshold(maxLen);
+    if(score >= ambang && (!best || score > best.score)){
+      best = { row:r, dist: levenshteinDistance(aKey, bKey), exact:false, score };
     }
   }
   return best;
@@ -2243,7 +2317,7 @@ function normalizeNamaToMaster(namaMentah){
 // - 'none' kalau tidak ada yang mirip — akan dianggap barang baru (bisa diganti manual)
 function analyzePasteStokItems(items, scopeRows){
   const usedIds = new Set();
-  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', row:null, dist:null }));
+  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', row:null, dist:null, score:null }));
 
   // Tahap 1: cocokkan dulu yang namanya sama persis, supaya tidak "direbut"
   // duluan oleh pencocokan mirip punya barang lain.
@@ -2255,11 +2329,13 @@ function analyzePasteStokItems(items, scopeRows){
       res.matchType = 'exact';
       res.row = row;
       res.dist = 0;
+      res.score = 1;
       usedIds.add(row.id);
     }
   });
 
-  // Tahap 2: sisanya dicari barang yang paling mirip (typo ringan).
+  // Tahap 2: sisanya dicari barang yang paling mirip (typo ringan / urutan
+  // kata beda / nama disingkat).
   results.forEach(res => {
     if(res.matchType === 'exact') return;
     const best = computeBestMatch(res.nama, scopeRows, usedIds);
@@ -2267,6 +2343,7 @@ function analyzePasteStokItems(items, scopeRows){
       res.matchType = best.exact ? 'exact' : 'fuzzy';
       res.row = best.row;
       res.dist = best.dist;
+      res.score = best.score;
       usedIds.add(best.row.id);
     }
   });
@@ -2288,6 +2365,7 @@ function openPasteStokReview(target, items){
   pasteStokReviewState = {
     target,
     filterAktif,
+    activeMatchFilter: null,
     optionRows: [...allNamedRows].sort((a, b) => a.nama.trim().toLowerCase().localeCompare(b.nama.trim().toLowerCase(), 'id')),
     items: results.map(res => ({
       ...res,
@@ -2303,9 +2381,18 @@ function closePasteStokReviewModal(){
   if(el) el.classList.remove('show');
 }
 
+// Klik salah satu chip ringkasan (cocok / cek dulu / baru) buat nyaring daftar
+// di bawahnya cuma nampilin baris dengan status itu. Klik chip yang sama lagi
+// buat balik nampilin semua.
+function togglePasteStokFilter(matchType){
+  if(!pasteStokReviewState) return;
+  pasteStokReviewState.activeMatchFilter = (pasteStokReviewState.activeMatchFilter === matchType) ? null : matchType;
+  renderPasteStokReview();
+}
+
 function renderPasteStokReview(){
   if(!pasteStokReviewState) return;
-  const { items, optionRows, filterAktif } = pasteStokReviewState;
+  const { items, optionRows, filterAktif, activeMatchFilter } = pasteStokReviewState;
 
   const noteEl = document.getElementById('reviewFilterNote');
   if(noteEl){
@@ -2321,13 +2408,20 @@ function renderPasteStokReview(){
   const countFuzzy = items.filter(it => it.matchType === 'fuzzy').length;
   const countNone = items.filter(it => it.matchType === 'none').length;
 
-  let html = `<div class="review-summary-bar">
-      <span class="s-exact">✅ ${countExact} cocok</span>
-      <span class="s-fuzzy">🟠 ${countFuzzy} cek dulu</span>
-      <span class="s-none">➕ ${countNone} baru</span>
+  const barClass = activeMatchFilter ? 'review-summary-bar filtering' : 'review-summary-bar';
+  let html = `<div class="${barClass}">
+      <span class="s-exact${activeMatchFilter === 'exact' ? ' active' : ''}" onclick="togglePasteStokFilter('exact')" title="Klik untuk nampilin cuma yang cocok">✅ ${countExact} cocok</span>
+      <span class="s-fuzzy${activeMatchFilter === 'fuzzy' ? ' active' : ''}" onclick="togglePasteStokFilter('fuzzy')" title="Klik untuk nampilin cuma yang perlu dicek">🟠 ${countFuzzy} cek dulu</span>
+      <span class="s-none${activeMatchFilter === 'none' ? ' active' : ''}" onclick="togglePasteStokFilter('none')" title="Klik untuk nampilin cuma yang baru">➕ ${countNone} baru</span>
     </div><div class="review-list">`;
 
-  html += items.map(it => {
+  const shownItems = activeMatchFilter ? items.filter(it => it.matchType === activeMatchFilter) : items;
+
+  if(!shownItems.length){
+    html += `<div class="review-empty-note">Tidak ada baris dengan status ini.</div>`;
+  }
+
+  html += shownItems.map(it => {
     const badgeClass = it.matchType === 'exact' ? 'exact' : it.matchType === 'fuzzy' ? 'fuzzy' : 'none';
     const badgeIco = it.matchType === 'exact' ? '✓' : it.matchType === 'fuzzy' ? '?' : '+';
     const badgeTitle = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Barang baru';
@@ -2343,7 +2437,8 @@ function renderPasteStokReview(){
 
     let hint = '';
     if(it.matchType === 'fuzzy' && it.row){
-      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.row.nama.trim())}</b> (mirip, mungkin typo) — cek benar/salah di bawah.</div>`;
+      const persen = (typeof it.score === 'number') ? ` — ${Math.round(it.score * 100)}% mirip` : '';
+      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.row.nama.trim())}</b>${persen} (kemungkinan typo/beda susunan kata) — cek benar/salah di bawah.</div>`;
     } else if(it.matchType === 'none'){
       hint = `<div class="review-item-hint">Tidak ada yang mirip → jadi barang baru. Kalau sebenarnya sudah ada, pilih manual di bawah.</div>`;
     }
@@ -4901,21 +4996,37 @@ function applyOrderPaste(){
     previewBody.innerHTML = '<b>Tidak ada nama barang</b> yang terbaca dari teks di atas.';
     return;
   }
-  const existingLower = new Set(orderItems.map(o => o.nama.toLowerCase()));
+  // Dedup nama persis pakai normalizeNamaForMatch (tahan beda tanda baca/spasi,
+  // bukan cuma huruf besar-kecil kayak sebelumnya).
+  const existingKeys = new Set(orderItems.map(o => normalizeNamaForMatch(o.nama)));
   let added = 0, skipped = 0;
   let seq = nextOrderSeq();
+  // Nama yang MIRIP (bukan sama persis) sama barang yang sudah ada di daftar —
+  // tetap ditambahkan sebagai baris baru (supaya tidak diam-diam kehilangan
+  // barang beda yang kebetulan namanya mirip), tapi dikasih tau ke pengguna
+  // biar bisa dicek manual siapa tahu itu barang yang sama / typo.
+  const miripList = [];
   names.forEach(nama => {
-    const key = nama.toLowerCase();
-    if(existingLower.has(key)){ skipped++; return; }
-    existingLower.add(key);
+    const key = normalizeNamaForMatch(nama);
+    if(!key) return;
+    if(existingKeys.has(key)){ skipped++; return; }
+    const best = computeBestMatch(nama, orderItems, new Set());
+    if(best && !best.exact) miripList.push({ nama, mirip: best.row.nama.trim(), score: best.score });
+    existingKeys.add(key);
     orderItems.push({ id: genOrderId(), nama, ordered:false, addedAt: Date.now(), orderedAt:null, seq: seq++ });
     added++;
   });
   saveOrderItems();
   preview.classList.remove('warn');
   preview.classList.add('show');
-  previewBody.innerHTML = `<b>${added}</b> barang baru ditambahkan ke daftar.` +
+  let msg = `<b>${added}</b> barang baru ditambahkan ke daftar.` +
     (skipped ? ` ${skipped} nama sudah ada sebelumnya (dilewati).` : '');
+  if(miripList.length){
+    msg += `<div style="margin-top:6px;">⚠️ ${miripList.length} nama mirip barang yang sudah ada di daftar (tetap ditambahkan sebagai baru) — cek dulu, barangkali sebenarnya barang yang sama:<ul style="margin:4px 0 0; padding-left:18px;">` +
+      miripList.map(m => `<li><b>${escapeHtml(m.nama)}</b> mirip <b>${escapeHtml(m.mirip)}</b> (${Math.round(m.score * 100)}% mirip)</li>`).join('') +
+      `</ul></div>`;
+  }
+  previewBody.innerHTML = msg;
   textarea.value = '';
   renderOrderList();
 }
@@ -5216,7 +5327,7 @@ function parseOrderMarkPasteText(text){
 function analyzeOrderMarkItems(items){
   const scope = orderItems.filter(o => o.nama && o.nama.trim());
   const usedIds = new Set();
-  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', item:null, dist:null }));
+  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', item:null, dist:null, score:null }));
 
   results.forEach(res => {
     const bKey = normalizeNamaForMatch(res.nama);
@@ -5226,6 +5337,7 @@ function analyzeOrderMarkItems(items){
       res.matchType = 'exact';
       res.item = item;
       res.dist = 0;
+      res.score = 1;
       usedIds.add(item.id);
     }
   });
@@ -5237,6 +5349,7 @@ function analyzeOrderMarkItems(items){
       res.matchType = best.exact ? 'exact' : 'fuzzy';
       res.item = best.row;
       res.dist = best.dist;
+      res.score = best.score;
       usedIds.add(best.row.id);
     }
   });
@@ -5279,6 +5392,7 @@ function openOrderMarkReview(items){
 
   orderMarkReviewState = {
     optionItems,
+    activeMatchFilter: null,
     items: results.map(res => ({
       ...res,
       choice: res.matchType === 'none' ? '__new__' : String(res.item.id)
@@ -5293,21 +5407,36 @@ function closeOrderMarkReviewModal(){
   document.getElementById('orderMarkReviewOverlay').classList.remove('show');
 }
 
+// Klik salah satu chip ringkasan (cocok / cek dulu / baru) buat nyaring
+// daftar di bawahnya. Klik chip yang sama lagi buat balik nampilin semua.
+function toggleOrderMarkFilter(matchType){
+  if(!orderMarkReviewState) return;
+  orderMarkReviewState.activeMatchFilter = (orderMarkReviewState.activeMatchFilter === matchType) ? null : matchType;
+  renderOrderMarkReview();
+}
+
 function renderOrderMarkReview(){
   if(!orderMarkReviewState) return;
-  const { items, optionItems } = orderMarkReviewState;
+  const { items, optionItems, activeMatchFilter } = orderMarkReviewState;
 
   const countExact = items.filter(it => it.matchType === 'exact').length;
   const countFuzzy = items.filter(it => it.matchType === 'fuzzy').length;
   const countNone = items.filter(it => it.matchType === 'none').length;
 
-  let html = `<div class="review-summary-bar">
-      <span class="s-exact">✅ ${countExact} cocok</span>
-      <span class="s-fuzzy">🟠 ${countFuzzy} cek dulu</span>
-      <span class="s-none">➕ ${countNone} baru</span>
+  const barClass = activeMatchFilter ? 'review-summary-bar filtering' : 'review-summary-bar';
+  let html = `<div class="${barClass}">
+      <span class="s-exact${activeMatchFilter === 'exact' ? ' active' : ''}" onclick="toggleOrderMarkFilter('exact')" title="Klik untuk nampilin cuma yang cocok">✅ ${countExact} cocok</span>
+      <span class="s-fuzzy${activeMatchFilter === 'fuzzy' ? ' active' : ''}" onclick="toggleOrderMarkFilter('fuzzy')" title="Klik untuk nampilin cuma yang perlu dicek">🟠 ${countFuzzy} cek dulu</span>
+      <span class="s-none${activeMatchFilter === 'none' ? ' active' : ''}" onclick="toggleOrderMarkFilter('none')" title="Klik untuk nampilin cuma yang baru">➕ ${countNone} baru</span>
     </div><div class="review-list">`;
 
-  html += items.map(it => {
+  const shownItems = activeMatchFilter ? items.filter(it => it.matchType === activeMatchFilter) : items;
+
+  if(!shownItems.length){
+    html += `<div class="review-empty-note">Tidak ada baris dengan status ini.</div>`;
+  }
+
+  html += shownItems.map(it => {
     const badgeClass = it.matchType === 'exact' ? 'exact' : it.matchType === 'fuzzy' ? 'fuzzy' : 'none';
     const badgeIco = it.matchType === 'exact' ? '✓' : it.matchType === 'fuzzy' ? '?' : '+';
     const badgeTitle = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Tidak ditemukan di daftar';
@@ -5315,7 +5444,8 @@ function renderOrderMarkReview(){
 
     let hint = '';
     if(it.matchType === 'fuzzy' && it.item){
-      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.item.nama.trim())}</b> (mirip, mungkin typo) — cek benar/salah di bawah.</div>`;
+      const persen = (typeof it.score === 'number') ? ` — ${Math.round(it.score * 100)}% mirip` : '';
+      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.item.nama.trim())}</b>${persen} (kemungkinan typo/beda susunan kata) — cek benar/salah di bawah.</div>`;
     } else if(it.matchType === 'none'){
       hint = `<div class="review-item-hint">Tidak ada di daftar barang kosong → kalau memang belum tercatat, jadi barang baru & langsung ditandai sudah order. Kalau sebenarnya sudah ada, ketuk tombol di bawah untuk cari &amp; pilih manual.</div>`;
     }
