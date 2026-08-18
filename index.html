@@ -405,6 +405,11 @@
     box-shadow:0 1px 2px rgba(23,59,54,0.03); transition:background .16s ease, border-color .16s ease;
   }
   .order-row.is-ordered{background:var(--klop-bg); border-color:#bfe0cb; border-left-color:var(--klop);}
+  .order-row .order-no{
+    flex-shrink:0; min-width:20px; text-align:center; font-family:'JetBrains Mono', monospace;
+    font-size:11px; font-weight:700; color:var(--ink-soft);
+  }
+  .order-row.is-ordered .order-no{color:var(--klop);}
   .order-row .order-check{
     flex-shrink:0; width:21px; height:21px; border-radius:7px; border:1.5px solid #a9c9c0;
     background:var(--card); display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -678,6 +683,59 @@
     font-family:inherit; font-size:11.5px; background:var(--card); color:var(--ink);
   }
   .review-item-select:focus{outline:none; border-color:var(--teal);}
+
+  /* Tombol pemicu modal pencarian (pengganti <select> panjang) di kartu review */
+  .review-item-pick-btn{
+    flex:1 1 100%; margin-left:26px; width:calc(100% - 26px);
+    display:flex; align-items:center; gap:7px; text-align:left;
+    padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:12px; font-weight:600; background:var(--card); color:var(--ink);
+    cursor:pointer; transition:border-color .12s ease, background .12s ease;
+  }
+  .review-item-pick-btn:hover{border-color:#a9c9c0; background:var(--mint);}
+  .review-item-pick-btn .ripb-label{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .review-item-pick-btn.is-new .ripb-label{color:var(--teal-deep);}
+  .review-item-pick-btn.is-skip .ripb-label{color:var(--ink-soft);}
+  .review-item-pick-btn svg{width:13px; height:13px; flex-shrink:0; color:#9aada6;}
+
+  /* Modal pencarian barang (dipakai fitur "Tempel daftar sudah order") */
+  .picker-modal{max-width:460px;}
+  .picker-search-wrap{position:relative; margin-bottom:10px;}
+  .picker-search-wrap svg{
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    width:15px; height:15px; color:#9aada6; pointer-events:none;
+  }
+  .picker-search-wrap input{
+    width:100%; padding:10px 12px 10px 33px; border:1.5px solid var(--line); border-radius:10px;
+    font-family:inherit; font-size:13.5px; background:var(--card); color:var(--ink);
+  }
+  .picker-search-wrap input:focus{outline:none; border-color:var(--teal);}
+  .picker-quick-actions{display:flex; flex-direction:column; gap:6px; margin-bottom:10px;}
+  .picker-quick-btn{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:9px 10px; border-radius:9px; font-size:12.5px; font-weight:700;
+    cursor:pointer; font-family:inherit; border:1.5px dashed #a9c9c0;
+    background:var(--mint); color:var(--teal-deep);
+  }
+  .picker-quick-btn:hover{background:#d7ece2;}
+  .picker-quick-btn.skip{border-color:#e4b8ab; background:var(--minus-bg); color:var(--minus);}
+  .picker-quick-btn.skip:hover{background:#f6dbd2;}
+  .picker-list{display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .picker-list-item{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:9px 10px; border-radius:9px; border:1.5px solid transparent;
+    font-family:inherit; font-size:12.5px; color:var(--ink); background:var(--card); cursor:pointer;
+  }
+  .picker-list-item:hover{background:var(--mint); border-color:#a9c9c0;}
+  .picker-list-item.is-selected{border-color:var(--teal); background:var(--mint);}
+  .picker-list-item b{color:var(--amber); background:#fbf1e0;}
+  .picker-list-item .pli-status{
+    margin-left:auto; flex-shrink:0; font-size:9.5px; font-weight:800; text-transform:uppercase;
+    letter-spacing:.03em; padding:2px 7px; border-radius:20px;
+  }
+  .picker-list-item .pli-status.ordered{background:var(--klop-bg); color:var(--klop);}
+  .picker-list-item .pli-status.pending{background:#f0efe8; color:#9aada6;}
+  .picker-empty{font-size:12px; color:var(--ink-soft); text-align:center; padding:22px 10px; line-height:1.6;}
 
   .confirm-overlay{
     display:none; position:fixed; inset:0; background:rgba(15,30,27,0.5); z-index:300;
@@ -1132,6 +1190,10 @@
           <svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg>
           Salin yang belum order
         </button>
+        <button type="button" class="btn-add" onclick="openOrderMarkModal()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Tempel daftar sudah order
+        </button>
         <button type="button" class="btn-add" onclick="clearOrderedItems()">Hapus yang sudah order</button>
         <button type="button" class="btn-add" onclick="clearAllOrderItems()">Hapus semua daftar</button>
       </div>
@@ -1139,8 +1201,73 @@
       <div class="footnote">Tandai ✅ barang yang sudah dipesan/di-order supaya tidak ketukar dengan yang masih perlu dipesan. Data disimpan otomatis di perangkat ini.</div>
     </div>
 
+<div class="history-overlay" id="orderMarkOverlay" onclick="if(event.target===this) closeOrderMarkModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Tempel Daftar Sudah Order</h3>
+      <button class="history-close" onclick="closeOrderMarkModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Tempel daftar barang yang <b>sudah dipesan/di-order</b> ke supplier, satu barang per baris,
+        format <b>Nama barang = jumlah</b> (boleh juga pakai ":" atau "-", dan angkanya boleh
+        tidak ada). Setelah diproses, nama barang akan otomatis dicocokkan ke <b>Daftar Barang
+        Kosong / Perlu Order</b> — <b>termasuk kalau ada typo ringan</b> — lalu muncul halaman
+        <b>review</b> untuk mengecek satu per satu sebelum semuanya benar-benar ditandai ✅
+        sudah order.
+      </div>
+      <textarea id="orderMarkText" class="paste-stok-textarea" placeholder="Azovir cr = 3&#10;Acifar cr = 2&#10;Canesten cr = 2&#10;Krim Pi kang Suang cr = 2&#10;Gentasolon cr = 2&#10;Chloramfecort H cr = 2&#10;Benoson n = 2&#10;Bioplacenton cr = 2&#10;Thrombopop = 1&#10;Thrombogel = 1"></textarea>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-main" onclick="applyOrderMarkConfirm()">Proses &amp; Cocokkan</button>
+      </div>
+      <div class="paste-stok-result" id="orderMarkResult"></div>
+    </div>
   </div>
-  <!-- /#pageOrderView -->
+</div>
+
+<div class="history-overlay" id="orderMarkReviewOverlay" onclick="if(event.target===this) closeOrderMarkReviewModal()" style="z-index:250;">
+  <div class="history-modal review-modal">
+    <div class="history-modal-head">
+      <h3>Review Sebelum Ditandai Sudah Order</h3>
+      <button class="history-close" onclick="closeOrderMarkReviewModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        ✅ <b>Cocok persis</b> langsung ditandai sudah order. 🟠 <b>Mirip (typo)</b> perlu dicek dulu.
+        ➕ <b>Tidak ditemukan</b> di daftar → jadi barang baru yang langsung ditandai sudah order —
+        kalau salah, ketuk tombol nama di bawah lalu cari &amp; pilih barang yang benar, atau lewati.
+      </div>
+      <div id="orderMarkReviewList"></div>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-add" style="border-style:solid;" onclick="closeOrderMarkReviewModal()">Batal</button>
+        <button type="button" class="btn-main" onclick="confirmOrderMarkReview()">Terapkan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="history-overlay" id="orderMarkPickerOverlay" onclick="if(event.target===this) closeOrderMarkPicker()" style="z-index:260;">
+  <div class="history-modal picker-modal">
+    <div class="history-modal-head">
+      <h3>Pilih Barang</h3>
+      <button class="history-close" onclick="closeOrderMarkPicker()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="picker-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="orderMarkPickerSearch" type="text" placeholder="Cari nama barang di daftar..." oninput="renderOrderMarkPickerList()">
+      </div>
+      <div class="picker-quick-actions">
+        <button type="button" class="picker-quick-btn" onclick="selectOrderMarkPickerChoice('__new__')">➕ Tambahkan sebagai barang baru &amp; tandai sudah order</button>
+        <button type="button" class="picker-quick-btn skip" onclick="selectOrderMarkPickerChoice('__skip__')">🗑 Lewati / buang baris ini</button>
+      </div>
+      <div class="picker-list" id="orderMarkPickerList"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<!-- /#pageOrderView -->
 
 
 </div>
@@ -4574,6 +4701,31 @@ function genOrderId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+// Nomor urut internal barang di daftar order (BUKAN nomor tampilan — nomor
+// tampilan dihitung ulang saat render). Dipakai supaya urutan barang di
+// daftar selalu SAMA PERSIS dengan urutan waktu di-paste, walau beberapa
+// barang ditempel dalam waktu yang sangat berdekatan (addedAt bisa sama
+// persis dalam milidetik yang sama sehingga tidak cukup untuk membedakan
+// urutan).
+function nextOrderSeq(){
+  let max = -1;
+  orderItems.forEach(o => { if(typeof o.seq === 'number' && o.seq > max) max = o.seq; });
+  return max + 1;
+}
+
+// Data lama (dibuat sebelum fitur nomor urut ini ada) belum punya field
+// "seq". Isi otomatis berdasarkan urutan terbaik yang masih bisa diketahui
+// (waktu ditambahkan), supaya semua barang akhirnya punya nomor urut yang
+// stabil. Return true kalau ada yang diisi (supaya bisa disimpan ulang).
+function backfillOrderSeq(){
+  const missing = orderItems.filter(o => typeof o.seq !== 'number');
+  if(!missing.length) return false;
+  missing.sort((a, b) => a.addedAt - b.addedAt || String(a.id).localeCompare(String(b.id)));
+  let seq = nextOrderSeq();
+  missing.forEach(o => { o.seq = seq++; });
+  return true;
+}
+
 function loadOrderItems(){
   // Muat cache lokal dulu supaya daftar langsung tampil (instan, termasuk
   // saat offline). Begitu koneksi Supabase siap, initOrderListListener() di
@@ -4583,6 +4735,7 @@ function loadOrderItems(){
     const raw = localStorage.getItem(ORDER_LIST_KEY);
     orderItems = raw ? JSON.parse(raw) : [];
   }catch(e){ orderItems = []; }
+  if(backfillOrderSeq()) saveOrderItemsLocalOnly();
 }
 
 // Simpan HANYA ke localStorage perangkat ini (cache lokal), tanpa mengirim
@@ -4618,6 +4771,7 @@ function applyOrderListRow(row){
   if(!row || !Array.isArray(row.items)) return;
   applyingRemoteOrder = true;
   orderItems = row.items;
+  const backfilled = backfillOrderSeq();
   // Buang perubahan centang yang belum disimpan kalau barangnya sudah tidak
   // ada lagi di versi terbaru (mis. sudah dihapus oleh pengguna lain).
   Object.keys(pendingOrderChanges).forEach(id => {
@@ -4626,6 +4780,10 @@ function applyOrderListRow(row){
   saveOrderItemsLocalOnly();
   renderOrderList();
   applyingRemoteOrder = false;
+  // Kalau ada nomor urut yang baru saja diisi otomatis (data lama), simpan
+  // & sinkronkan supaya nomornya konsisten untuk semua orang, bukan cuma di
+  // perangkat ini.
+  if(backfilled) saveOrderItems();
 }
 
 async function pushOrderListToSupabase(){
@@ -4745,11 +4903,12 @@ function applyOrderPaste(){
   }
   const existingLower = new Set(orderItems.map(o => o.nama.toLowerCase()));
   let added = 0, skipped = 0;
+  let seq = nextOrderSeq();
   names.forEach(nama => {
     const key = nama.toLowerCase();
     if(existingLower.has(key)){ skipped++; return; }
     existingLower.add(key);
-    orderItems.push({ id: genOrderId(), nama, ordered:false, addedAt: Date.now(), orderedAt:null });
+    orderItems.push({ id: genOrderId(), nama, ordered:false, addedAt: Date.now(), orderedAt:null, seq: seq++ });
     added++;
   });
   saveOrderItems();
@@ -4939,8 +5098,19 @@ function renderOrderList(){
   if(clearBtn) clearBtn.classList.toggle('show', !!q);
 
   // Urutan mengikuti urutan saat ditempel/ditambahkan — barang yang sudah
-  // dicentang TIDAK dipindah ke bawah, tetap di posisi aslinya.
-  let list = orderItems.slice().sort((a, b) => a.addedAt - b.addedAt || String(a.id).localeCompare(String(b.id)));
+  // dicentang TIDAK dipindah ke bawah, tetap di posisi aslinya. Dipakai
+  // "seq" (nomor urut internal saat ditambahkan) supaya urutannya presisi
+  // sesuai urutan baris di teks yang ditempel; kalau ada data lama yang
+  // belum punya "seq" (dibuat sebelum fitur nomor urut ini ada), fallback
+  // ke waktu ditambahkan + id.
+  let list = orderItems.slice().sort((a, b) => {
+    const sa = typeof a.seq === 'number' ? a.seq : null;
+    const sb_ = typeof b.seq === 'number' ? b.seq : null;
+    if(sa !== null && sb_ !== null) return sa - sb_;
+    if(sa !== null) return -1;
+    if(sb_ !== null) return 1;
+    return a.addedAt - b.addedAt || String(a.id).localeCompare(String(b.id));
+  });
   if(q) list = list.filter(o => o.nama.toLowerCase().includes(q));
   // Filter pakai status TERSIMPAN (bukan centangan yang belum disimpan), jadi
   // barang yang baru dicentang tetap ada di posisi/filter semula sampai
@@ -4974,11 +5144,16 @@ function renderOrderList(){
     return;
   }
 
-  body.innerHTML = list.map(item => {
+  body.innerHTML = list.map((item, idx) => {
     const eff = getEffectiveOrdered(item);
     const isPending = Object.prototype.hasOwnProperty.call(pendingOrderChanges, item.id);
+    // Nomor urut: pakai "seq" (urutan asli saat ditempel) supaya nomornya
+    // tetap sama walau daftar sedang difilter/dicari — bukan nomor 1..N dari
+    // hasil filter yang bisa berubah-ubah tiap kali difilter.
+    const noUrut = typeof item.seq === 'number' ? item.seq + 1 : idx + 1;
     return `
     <div class="order-row${eff ? ' is-ordered' : ''}${isPending ? ' is-pending' : ''}">
+      <div class="order-no" title="Nomor urut">${noUrut}</div>
       <button type="button" class="order-check" onclick="toggleOrderItem('${item.id}')" title="Centang lalu tekan Simpan">
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -4997,6 +5172,349 @@ function renderOrderList(){
   `;
   }).join('');
   updateOrderSaveBar();
+}
+
+/* ============================================================
+   Tempel Daftar "Sudah Order" — tandai banyak barang jadi ✅ sudah
+   order sekaligus dari teks yang ditempel (format "Nama = angka",
+   boleh juga "Nama : angka" / "Nama - angka" / tanpa angka sama
+   sekali), dengan REVIEW pencocokan nama dulu sebelum benar-benar
+   diterapkan — sama seperti fitur "Tempel & Isi Stok Otomatis" di
+   halaman Stok Opname (pakai fungsi pencocokan nama yang sama:
+   normalizeNamaForMatch() & computeBestMatch()).
+   ============================================================ */
+
+// Menerima baris seperti "Azovir cr = 3", "Azovir cr : 3", atau
+// "Azovir cr - 3" (angka di belakang boleh ada, boleh juga tidak —
+// kalau tidak ada angka, baris tetap dibaca sebagai nama barang saja,
+// nomor urut/bullet di depan otomatis dibuang).
+function parseOrderMarkPasteText(text){
+  const lines = String(text || '').split(/\r?\n/);
+  const items = [];
+  const lineWithQtyRe = /^\s*(?:\d+[.)]\s*)?(.+?)\s*[:=\-]\s*(-?\d+)\s*$/;
+  lines.forEach(line => {
+    let t = line.replace(/\s+/g, ' ').trim();
+    if(!t) return;
+    const m = t.match(lineWithQtyRe);
+    if(m){
+      const nama = m[1].trim();
+      const qty = parseInt(m[2], 10);
+      if(nama) items.push({ nama, qty: isNaN(qty) ? null : qty });
+      return;
+    }
+    t = t.replace(/^[\-•*]\s*/, '');
+    t = t.replace(/^\(?\d{1,3}[.)]\s*/, '').trim();
+    if(t && /[a-zA-Z]/.test(t) && !/:$/.test(t)) items.push({ nama: t, qty: null });
+  });
+  return items;
+}
+
+// Cocokkan tiap baris yang ditempel ke barang yang SUDAH ADA di daftar
+// Barang Kosong / Perlu Order (exact / fuzzy / tidak ketemu) — pakai
+// fungsi computeBestMatch() yang sama dengan fitur "Tempel & Isi Stok
+// Otomatis" di halaman Stok Opname (didefinisikan di atas).
+function analyzeOrderMarkItems(items){
+  const scope = orderItems.filter(o => o.nama && o.nama.trim());
+  const usedIds = new Set();
+  const results = items.map((it, i) => ({ idx:i, nama:it.nama, qty:it.qty, matchType:'none', item:null, dist:null }));
+
+  results.forEach(res => {
+    const bKey = normalizeNamaForMatch(res.nama);
+    if(!bKey) return;
+    const item = scope.find(o => !usedIds.has(o.id) && normalizeNamaForMatch(o.nama) === bKey);
+    if(item){
+      res.matchType = 'exact';
+      res.item = item;
+      res.dist = 0;
+      usedIds.add(item.id);
+    }
+  });
+
+  results.forEach(res => {
+    if(res.matchType === 'exact') return;
+    const best = computeBestMatch(res.nama, scope, usedIds);
+    if(best){
+      res.matchType = best.exact ? 'exact' : 'fuzzy';
+      res.item = best.row;
+      res.dist = best.dist;
+      usedIds.add(best.row.id);
+    }
+  });
+
+  return results;
+}
+
+function openOrderMarkModal(){
+  const ta = document.getElementById('orderMarkText');
+  if(ta) ta.value = '';
+  const resultEl = document.getElementById('orderMarkResult');
+  if(resultEl) resultEl.classList.remove('show');
+  document.getElementById('orderMarkOverlay').classList.add('show');
+}
+
+function closeOrderMarkModal(){
+  document.getElementById('orderMarkOverlay').classList.remove('show');
+}
+
+function applyOrderMarkConfirm(){
+  const text = document.getElementById('orderMarkText').value;
+  const items = parseOrderMarkPasteText(text);
+  const resultEl = document.getElementById('orderMarkResult');
+  resultEl.classList.remove('show');
+  if(!items.length){
+    resultEl.classList.add('show');
+    resultEl.textContent = 'Belum ada baris yang bisa dibaca. Pastikan formatnya "Nama barang = angka" (atau tanpa angka) per baris.';
+    return;
+  }
+  openOrderMarkReview(items);
+}
+
+let orderMarkReviewState = null;
+
+function openOrderMarkReview(items){
+  const results = analyzeOrderMarkItems(items);
+  const optionItems = orderItems
+    .filter(o => o.nama && o.nama.trim())
+    .sort((a, b) => a.nama.trim().toLowerCase().localeCompare(b.nama.trim().toLowerCase(), 'id'));
+
+  orderMarkReviewState = {
+    optionItems,
+    items: results.map(res => ({
+      ...res,
+      choice: res.matchType === 'none' ? '__new__' : String(res.item.id)
+    }))
+  };
+  renderOrderMarkReview();
+  closeOrderMarkModal();
+  document.getElementById('orderMarkReviewOverlay').classList.add('show');
+}
+
+function closeOrderMarkReviewModal(){
+  document.getElementById('orderMarkReviewOverlay').classList.remove('show');
+}
+
+function renderOrderMarkReview(){
+  if(!orderMarkReviewState) return;
+  const { items, optionItems } = orderMarkReviewState;
+
+  const countExact = items.filter(it => it.matchType === 'exact').length;
+  const countFuzzy = items.filter(it => it.matchType === 'fuzzy').length;
+  const countNone = items.filter(it => it.matchType === 'none').length;
+
+  let html = `<div class="review-summary-bar">
+      <span class="s-exact">✅ ${countExact} cocok</span>
+      <span class="s-fuzzy">🟠 ${countFuzzy} cek dulu</span>
+      <span class="s-none">➕ ${countNone} baru</span>
+    </div><div class="review-list">`;
+
+  html += items.map(it => {
+    const badgeClass = it.matchType === 'exact' ? 'exact' : it.matchType === 'fuzzy' ? 'fuzzy' : 'none';
+    const badgeIco = it.matchType === 'exact' ? '✓' : it.matchType === 'fuzzy' ? '?' : '+';
+    const badgeTitle = it.matchType === 'exact' ? 'Cocok persis' : it.matchType === 'fuzzy' ? 'Mirip — cek dulu' : 'Tidak ditemukan di daftar';
+    const itemClass = it.matchType === 'exact' ? 'm-exact' : it.matchType === 'fuzzy' ? 'm-fuzzy' : 'm-none';
+
+    let hint = '';
+    if(it.matchType === 'fuzzy' && it.item){
+      hint = `<div class="review-item-hint">Disarankan: <b>${escapeHtml(it.item.nama.trim())}</b> (mirip, mungkin typo) — cek benar/salah di bawah.</div>`;
+    } else if(it.matchType === 'none'){
+      hint = `<div class="review-item-hint">Tidak ada di daftar barang kosong → kalau memang belum tercatat, jadi barang baru & langsung ditandai sudah order. Kalau sebenarnya sudah ada, ketuk tombol di bawah untuk cari &amp; pilih manual.</div>`;
+    }
+
+    const qtyLabel = (it.qty === null || it.qty === undefined) ? '' : `<span class="review-item-qty">jml: ${it.qty}</span>`;
+
+    // Tombol pemicu modal pencarian, pengganti dropdown <select> panjang —
+    // tampilkan label sesuai pilihan saat ini (nama barang / "barang baru" / "lewati").
+    let pickBtnClass = 'review-item-pick-btn';
+    let pickLabel;
+    if(it.choice === '__new__'){
+      pickBtnClass += ' is-new';
+      pickLabel = '➕ Tambahkan sebagai barang baru & tandai sudah order';
+    } else if(it.choice === '__skip__'){
+      pickBtnClass += ' is-skip';
+      pickLabel = '🗑 Lewati / buang baris ini';
+    } else {
+      const chosen = optionItems.find(o => String(o.id) === it.choice);
+      pickLabel = chosen ? chosen.nama.trim() : '➕ Tambahkan sebagai barang baru & tandai sudah order';
+    }
+
+    return `<div class="review-item ${itemClass}">
+        <div class="review-item-top">
+          <span class="review-badge-ico ${badgeClass}" title="${badgeTitle}">${badgeIco}</span>
+          <span class="review-item-nama">${escapeHtml(it.nama)}</span>
+          ${qtyLabel}
+        </div>
+        ${hint}
+        <button type="button" class="${pickBtnClass}" onclick="openOrderMarkPicker(${it.idx})">
+          <span class="ripb-label">${escapeHtml(pickLabel)}</span>
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>`;
+  }).join('');
+
+  html += `</div>`;
+  document.getElementById('orderMarkReviewList').innerHTML = html;
+}
+
+function onOrderMarkChoiceChange(idx, value){
+  if(!orderMarkReviewState) return;
+  const it = orderMarkReviewState.items.find(x => x.idx === idx);
+  if(it) it.choice = value;
+}
+
+/* ------------------------------------------------------------
+   Modal pencarian barang untuk baris review "Tempel daftar sudah
+   order" — dipakai kalau pencocokan otomatis salah / tidak ketemu,
+   supaya tidak perlu scroll dropdown panjang: tinggal ketik buat
+   cari, tinggal ketuk buat pilih. Pencarian pakai mesin yang sama
+   dengan saran nama di tabel Stok Opname (tokenize/wordSimilarity),
+   jadi tetap toleran typo ringan & highlight kata yang cocok.
+   ------------------------------------------------------------ */
+let orderMarkPickerIdx = null;
+
+function openOrderMarkPicker(idx){
+  if(!orderMarkReviewState) return;
+  orderMarkPickerIdx = idx;
+  const search = document.getElementById('orderMarkPickerSearch');
+  if(search) search.value = '';
+  renderOrderMarkPickerList();
+  document.getElementById('orderMarkPickerOverlay').classList.add('show');
+  if(search) setTimeout(() => search.focus(), 50);
+}
+
+function closeOrderMarkPicker(){
+  document.getElementById('orderMarkPickerOverlay').classList.remove('show');
+  orderMarkPickerIdx = null;
+}
+
+function renderOrderMarkPickerList(){
+  if(orderMarkPickerIdx === null || !orderMarkReviewState) return;
+  const it = orderMarkReviewState.items.find(x => x.idx === orderMarkPickerIdx);
+  const { optionItems } = orderMarkReviewState;
+  const listEl = document.getElementById('orderMarkPickerList');
+  if(!it || !listEl) return;
+
+  const searchEl = document.getElementById('orderMarkPickerSearch');
+  const qTokens = tokenize(searchEl ? searchEl.value : '');
+
+  let scored;
+  if(qTokens.length === 0){
+    // Belum ada pencarian -> tampilkan semua barang urut abjad, barang yang
+    // disarankan otomatis (kalau ada) tetap dinaikkan ke atas.
+    scored = optionItems.map(o => ({ item:o, cTokens:null, score:0 }));
+    if(it.matchType !== 'none' && it.item){
+      scored.sort((a, b) => {
+        if(a.item.id === it.item.id) return -1;
+        if(b.item.id === it.item.id) return 1;
+        return 0;
+      });
+    }
+  } else {
+    scored = [];
+    optionItems.forEach(o => {
+      const m = scoreAgainstQuery(o.nama.trim(), qTokens);
+      if(!m) return;
+      scored.push({ item:o, cTokens:m.cTokens, score:m.score });
+    });
+    scored.sort((a, b) => a.score - b.score || a.cTokens.length - b.cTokens.length || a.item.nama.length - b.item.nama.length);
+  }
+
+  if(!scored.length){
+    listEl.innerHTML = `<div class="picker-empty">Tidak ada barang yang cocok dengan pencarian ini. Pilih "Tambahkan sebagai barang baru" di atas kalau memang belum tercatat.</div>`;
+    return;
+  }
+
+  const highlight = (nama, cTokens) => {
+    if(!cTokens) return escapeHtml(nama);
+    return nama.split(/(\s+)/).map(part => {
+      if(/^\s+$/.test(part) || part === '') return escapeHtml(part);
+      const norm = part.toLowerCase();
+      const isMatch = qTokens.some(qt => wordSimilarity(qt, norm) !== null);
+      return isMatch ? '<b>' + escapeHtml(part) + '</b>' : escapeHtml(part);
+    }).join('');
+  };
+
+  const SHOW_LIMIT = 60;
+  listEl.innerHTML = scored.slice(0, SHOW_LIMIT).map(s => {
+    const o = s.item;
+    const isSelected = it.choice === String(o.id);
+    const statusHtml = o.ordered
+      ? `<span class="pli-status ordered">Sudah order</span>`
+      : `<span class="pli-status pending">Belum order</span>`;
+    return `<button type="button" class="picker-list-item${isSelected ? ' is-selected' : ''}" onclick="selectOrderMarkPickerChoice('${o.id}')">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${highlight(o.nama.trim(), s.cTokens)}</span>
+        ${statusHtml}
+      </button>`;
+  }).join('') + (scored.length > SHOW_LIMIT ? `<div class="picker-empty">+${scored.length - SHOW_LIMIT} barang lain, persempit pencarian untuk melihatnya.</div>` : '');
+}
+
+function selectOrderMarkPickerChoice(value){
+  if(orderMarkPickerIdx === null || !orderMarkReviewState) return;
+  const it = orderMarkReviewState.items.find(x => x.idx === orderMarkPickerIdx);
+  if(it) it.choice = value;
+  closeOrderMarkPicker();
+  renderOrderMarkReview();
+}
+
+async function confirmOrderMarkReview(){
+  if(!orderMarkReviewState) return;
+  const { items } = orderMarkReviewState;
+
+  // Kalau ada lebih dari satu baris yang dicocokkan ke barang yang sama,
+  // ingatkan dulu supaya tidak salah kira.
+  const pickCount = new Map();
+  items.forEach(it => {
+    if(it.choice !== '__new__' && it.choice !== '__skip__'){
+      pickCount.set(it.choice, (pickCount.get(it.choice) || 0) + 1);
+    }
+  });
+  const adaDuplikat = [...pickCount.values()].some(c => c > 1);
+  if(adaDuplikat){
+    const lanjut = await customConfirm(
+      'Ada lebih dari satu baris yang dicocokkan ke barang yang sama di daftar. Barang itu akan tetap cuma ditandai sudah order sekali.\n\nLanjutkan?',
+      'Lanjutkan', 'Batal'
+    );
+    if(!lanjut) return;
+  }
+
+  let marked = 0, added = 0, skipped = 0;
+  const byId = new Map(orderItems.map(o => [o.id, o]));
+  let seq = nextOrderSeq();
+
+  items.forEach(it => {
+    if(it.choice === '__skip__'){
+      skipped++;
+      return;
+    }
+    if(it.choice === '__new__'){
+      const now = Date.now();
+      const newItem = { id: genOrderId(), nama: it.nama, ordered:true, addedAt: now, orderedAt: now, seq: seq++ };
+      orderItems.push(newItem);
+      byId.set(newItem.id, newItem);
+      added++;
+      return;
+    }
+    const item = byId.get(it.choice);
+    if(!item) return;
+    item.ordered = true;
+    item.orderedAt = Date.now();
+    delete pendingOrderChanges[item.id];
+    marked++;
+  });
+
+  saveOrderItems();
+  renderOrderList();
+  closeOrderMarkReviewModal();
+  orderMarkReviewState = null;
+
+  let msg = `✓ ${marked + added} dari ${items.length} barang ditandai sudah order.`;
+  if(marked) msg += `\n• ${marked} mencocokkan barang yang sudah ada di daftar.`;
+  if(added) msg += `\n• ${added} ditambahkan sebagai barang baru.`;
+  if(skipped) msg += `\n• ${skipped} baris dilewati / dibuang.`;
+  const resultEl = document.getElementById('orderMarkResult');
+  if(resultEl){
+    resultEl.classList.add('show');
+    resultEl.textContent = msg;
+  }
 }
 
 loadOrderItems();
