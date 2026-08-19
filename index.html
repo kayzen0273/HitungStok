@@ -3510,7 +3510,29 @@ function findPetugasIdByName(name){
 
 async function initPetugasListListener(){
   await loadPetugasListFromServer();
+  backfillMyPetugasIdIfMissing();
   subscribePetugasListChannel();
+}
+
+// HP yang sudah pernah pakai halaman ini SEBELUM fitur pencocokan-ulang-id
+// ini ada tidak akan punya PETUGAS_ID_KEY tersimpan (nama dulu tersimpan
+// sebagai teks polos saja). Kalau dibiarkan, begitu admin mengubah nama HP
+// itu SAAT HP-nya offline, HP tersebut tidak akan pernah tahu (karena tidak
+// tahu id-nya sendiri untuk dicocokkan) — namanya yang lama justru akan
+// otomatis DIDAFTARKAN LAGI sebagai baris baru oleh
+// maybeShowPetugasIdentityModal()/registerPetugasNameIfNew() saat HP itu
+// dibuka lagi, menghasilkan nama duplikat. Untuk menutup celah ini, begitu
+// daftar petugas dimuat dan HP ini punya nama tersimpan tapi belum punya id,
+// segera cocokkan & simpan id-nya SEKARANG (mumpung namanya belum sempat
+// diubah admin) supaya pencocokan-ulang ke depannya selalu bisa jalan.
+function backfillMyPetugasIdIfMissing(){
+  if(IS_ADMIN_TAKEOVER) return;
+  if(getMyPetugasId()) return;
+  const metaEl = document.getElementById('metaPetugas');
+  const current = metaEl ? metaEl.value.trim() : '';
+  if(!current) return;
+  const id = findPetugasIdByName(current);
+  if(id) setMyPetugasId(id);
 }
 
 // Kalau nama petugas di HP ini (tersimpan atau baru diketik manual) belum
@@ -3631,12 +3653,12 @@ async function reconcilePetugasIdentity(){
 // dari Panel Admin.
 function openPetugasIdentityModal(){
   const listEl = document.getElementById('petugasIdentityList');
-  if(petugasList.length === 0){
+  if(petugasRowsFull.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
-    listEl.innerHTML = petugasList.map(name => `
-      <button type="button" class="modal-option" onclick="submitPetugasIdentity('${name.replace(/'/g, "\\'")}')">
-        <span class="dot"></span>${escapeHtml(name)}
+    listEl.innerHTML = petugasRowsFull.map(row => `
+      <button type="button" class="modal-option" onclick="submitPetugasIdentity('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id})">
+        <span class="dot"></span>${escapeHtml(row.nama || '')}
       </button>
     `).join('');
   }
@@ -4914,12 +4936,12 @@ function openPetugasModal(e){
   if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
   closeTokoModal();
   const listEl = document.getElementById('petugasList');
-  if(petugasList.length === 0){
+  if(petugasRowsFull.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
-    listEl.innerHTML = petugasList.map(name => `
-      <button type="button" class="modal-option" onclick="selectPetugas('${name.replace(/'/g, "\\'")}')">
-        <span class="dot"></span>${escapeHtml(name)}
+    listEl.innerHTML = petugasRowsFull.map(row => `
+      <button type="button" class="modal-option" onclick="selectPetugas('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id})">
+        <span class="dot"></span>${escapeHtml(row.nama || '')}
       </button>
     `).join('');
   }
