@@ -2927,6 +2927,20 @@ const SUPABASE_URL = 'https://hoyframcjysrpkbjmfit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveWZyYW1janlzcnBrYmptZml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzA2MTYsImV4cCI6MjEwMDEwNjYxNn0.FZHy-qnZxltXNtHzkQ-bLyEiiW5Kp2fxK9ry5oA-cTY';
 const ROOM_KEY = 'stok-opname-room';
 const CLIENT_ID_KEY = 'stok-opname-client-id';
+// Menyimpan id baris petugas (tabel stok_opname_petugas) yang jadi identitas
+// HP ini, TERPISAH dari nama yang tersimpan (yang bisa berubah). Dipakai
+// supaya HP ini tetap bisa mengenali diri sendiri walau namanya diubah admin
+// sementara HP ini offline (lihat reconcilePetugasIdentity()).
+const PETUGAS_ID_KEY = 'stok-opname-petugas-id';
+function getMyPetugasId(){
+  try{ return localStorage.getItem(PETUGAS_ID_KEY) || null; }catch(e){ return null; }
+}
+function setMyPetugasId(id){
+  try{
+    if(id) localStorage.setItem(PETUGAS_ID_KEY, String(id));
+    else localStorage.removeItem(PETUGAS_ID_KEY);
+  }catch(e){ /* abaikan */ }
+}
 
 let sb = null;
 let roomCode = '';
@@ -3467,6 +3481,10 @@ function subscribeSettingsChannel(){
 // langsung muncul di dropdown "Petugas" halaman ini tanpa perlu reload.
 const PETUGAS_TABLE = 'stok_opname_petugas';
 let petugasListChannel = null;
+// Salinan lengkap baris petugas (id + nama) dari server, dipakai untuk
+// mencocokkan id <-> nama (petugasList di bawah cuma daftar nama, dipakai
+// utk render pilihan).
+let petugasRowsFull = [];
 
 async function loadPetugasListFromServer(){
   const client = initSupabaseClient();
@@ -3474,10 +3492,20 @@ async function loadPetugasListFromServer(){
   try{
     const { data, error } = await sb.from(PETUGAS_TABLE).select('*').order('nama', { ascending: true });
     if(error) throw error;
-    if(data) petugasList = data.map(r => r.nama).filter(Boolean);
+    if(data){
+      petugasRowsFull = data;
+      petugasList = data.map(r => r.nama).filter(Boolean);
+    }
   } catch(e){
     console.error('Gagal memuat daftar nama petugas dari server, pakai daftar cadangan:', e);
   }
+}
+
+function findPetugasIdByName(name){
+  const n = (name || '').toString().trim().toLowerCase();
+  if(!n) return null;
+  const row = petugasRowsFull.find(r => (r.nama || '').trim().toLowerCase() === n);
+  return row ? row.id : null;
 }
 
 async function initPetugasListListener(){
@@ -3490,21 +3518,30 @@ async function initPetugasListListener(){
 // juga muncul di kartu "Kelola Nama Petugas" pada Panel Admin — mencegah
 // situasi HP terlihat online di "Pengguna Aktif Sekarang" tapi namanya tidak
 // pernah tercatat di daftar pilihan pusat.
+// Mengembalikan id baris petugas ini di server (yang sudah ada, atau yang
+// baru saja dibuat) -- dipakai supaya HP ini bisa mengingat id-nya sendiri
+// (lihat PETUGAS_ID_KEY), bukan cuma namanya.
 async function registerPetugasNameIfNew(name){
   const client = initSupabaseClient();
-  if(!client) return;
+  if(!client) return null;
   const trimmed = (name || '').toString().trim();
-  if(!trimmed) return;
-  const already = petugasList.some(n => (n || '').toLowerCase() === trimmed.toLowerCase());
-  if(already) return;
+  if(!trimmed) return null;
+  const already = petugasRowsFull.find(r => (r.nama || '').toLowerCase() === trimmed.toLowerCase());
+  if(already) return already.id;
   try{
-    const { error } = await sb.from(PETUGAS_TABLE).insert({ nama: trimmed });
+    const { data, error } = await sb.from(PETUGAS_TABLE).insert({ nama: trimmed }).select().single();
     if(error) throw error;
-    // petugasList akan otomatis ter-update lewat subscribePetugasListChannel()
+    if(data){
+      petugasRowsFull.push(data);
+      petugasList = petugasRowsFull.map(r => r.nama).filter(Boolean);
+    }
+    // petugasList akan ikut ter-update lagi lewat subscribePetugasListChannel()
+    return data ? data.id : null;
   } catch(err){
     // Kemungkinan besar cuma race (nama sudah sempat ditambahkan device lain
-    // di saat bersamaan) -- aman diabaikan.
+    // di saat bersamaan) -- coba cari lagi id-nya dari daftar terbaru.
     console.error('Gagal mendaftarkan nama petugas ke daftar pusat:', err);
+    return findPetugasIdByName(trimmed);
   }
 }
 
@@ -3536,13 +3573,53 @@ async function handlePetugasRenameSync(payload){
   const current = metaEl.value.trim();
   if(current !== oldNama.trim()) return;
 
+  await applyPetugasRename(newNama, payload.new && payload.new.id);
+}
+
+// Diterapkan begitu tahu (lewat event realtime ATAU lewat reconcilePetugasIdentity
+// di bawah) bahwa nama petugas HP ini sudah diubah admin: ganti nama yang
+// tersimpan di HP ini dan pindahkan sesi live-nya ke slug baru (membawa data
+// yang sedang berjalan) supaya tidak putus/hilang.
+async function applyPetugasRename(newNama, id){
+  const metaEl = document.getElementById('metaPetugas');
+  if(!metaEl) return;
   const oldSlug = petugasSessionSlug;
   metaEl.value = newNama;
+  if(id) setMyPetugasId(id);
   saveState();
   if(typeof updatePresence === 'function') updatePresence();
   await startPetugasSession(newNama);
   if(oldSlug && oldSlug !== petugasSessionSlug){
     try{ await sb.from(PETUGAS_SESSION_TABLE).delete().eq('petugas_slug', oldSlug); }catch(e){ /* abaikan, bukan fatal */ }
+  }
+}
+
+// Jaring pengaman kalau HP ini sedang OFFLINE persis pada saat admin
+// mengubah namanya lewat Panel Admin -- event realtime di atas (postgres_changes)
+// cuma dikirim ke perangkat yang online saat itu juga, jadi TIDAK akan
+// tersimpan untuk dikirim ulang nanti. Fungsi ini dipanggil begitu HP online
+// lagi: mencocokkan ulang nama tersimpan di HP ini terhadap nama TERBARU di
+// server berdasarkan id baris petugas (bukan berdasarkan teks nama, supaya
+// tetap akurat walau namanya sudah berubah). Kalau beda, berarti sempat
+// diubah admin saat offline -> terapkan di sini juga.
+async function reconcilePetugasIdentity(){
+  if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
+  const metaEl = document.getElementById('metaPetugas');
+  if(!metaEl) return;
+  const myId = getMyPetugasId();
+  if(!myId) return; // HP lama / belum pernah tercatat id-nya, tidak ada cara pasti mencocokkan
+  const client = initSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await sb.from(PETUGAS_TABLE).select('*').eq('id', myId).maybeSingle();
+    if(error) throw error;
+    if(!data) return; // baris petugas ini sudah dihapus admin, biarkan nama lokal apa adanya
+    const serverNama = (data.nama || '').trim();
+    const current = metaEl.value.trim();
+    if(!serverNama || serverNama === current) return;
+    await applyPetugasRename(serverNama, data.id);
+  } catch(e){
+    console.error('Gagal mencocokkan ulang identitas petugas:', e);
   }
 }
 
@@ -3572,16 +3649,17 @@ function closePetugasIdentityModal(){
   if(overlay) overlay.classList.remove('show');
 }
 
-function submitPetugasIdentityManual(){
+async function submitPetugasIdentityManual(){
   const input = document.getElementById('petugasIdentityManualInput');
   const val = input ? input.value.trim() : '';
   if(!val) return;
-  registerPetugasNameIfNew(val);
-  submitPetugasIdentity(val);
+  const id = await registerPetugasNameIfNew(val);
+  submitPetugasIdentity(val, id);
 }
 
-function submitPetugasIdentity(name){
+function submitPetugasIdentity(name, id){
   document.getElementById('metaPetugas').value = name;
+  setMyPetugasId(id || findPetugasIdByName(name));
   saveState();
   updatePresence();
   startPetugasSession(name);
@@ -4584,10 +4662,10 @@ async function resyncRoomIfNeeded(){
 }
 
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); }
+  if(document.visibilityState === 'visible'){ resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); reconcilePetugasIdentity(); updatePresence(); }
 });
-window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); });
-window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); updatePresence(); });
+window.addEventListener('focus', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); reconcilePetugasIdentity(); updatePresence(); });
+window.addEventListener('online', () => { resyncRoomIfNeeded(); resyncScreenIfNeeded(); resyncDrawIfNeeded(); resyncPetugasSessionIfNeeded(); reconcilePetugasIdentity(); updatePresence(); });
 
 let screenResyncInFlight = false;
 async function resyncScreenIfNeeded(){
@@ -4732,6 +4810,7 @@ async function loadState(){
 
   updateRoomUI();
   await initPetugasListListener();
+  await reconcilePetugasIdentity();
   await autoJoinFromStartup();
 
   initBroadcastListener();
@@ -4852,19 +4931,20 @@ function closePetugasModal(){
   document.getElementById('petugasModal').classList.remove('show');
 }
 
-function selectPetugas(name){
+function selectPetugas(name, id){
   document.getElementById('metaPetugas').value = name;
+  setMyPetugasId(id || findPetugasIdByName(name));
   saveState();
   closePetugasModal();
   updatePresence();
   startPetugasSession(name);
 }
 
-function submitManualPetugas(){
+async function submitManualPetugas(){
   const val = document.getElementById('petugasManualInput').value.trim();
   if(!val) return;
-  registerPetugasNameIfNew(val);
-  selectPetugas(val);
+  const id = await registerPetugasNameIfNew(val);
+  selectPetugas(val, id);
 }
 
 document.addEventListener('click', function(e){
