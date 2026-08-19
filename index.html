@@ -3716,6 +3716,13 @@ let petugasSessionChannel = null;
 let petugasSessionPushTimer = null;
 let applyingPetugasSession = false;
 let petugasSessionResyncInFlight = false;
+// Waktu terakhir HP ini sendiri (bukan admin/perangkat lain) mengedit data
+// sesi ini. Dipakai untuk memutuskan, saat HP ini online lagi, apakah edit
+// dari Panel Admin yang tersimpan di server "lebih baru" daripada edit lokal
+// yang belum sempat terkirim -- kalau lebih baru, edit admin itu diterapkan
+// (supaya tersinkron); kalau tidak (HP ini sempat mengedit sendiri lebih
+// belakangan saat offline), edit lokal itu yang dipertahankan & dikirim.
+let petugasLocalEditAt = 0;
 
 function slugifyPetugas(name){
   return (name || '').toString().trim().toLowerCase()
@@ -3812,13 +3819,41 @@ async function startPetugasSession(nama){
       setSaveStatus('Gagal memuat data petugas ini, cek koneksi.');
     }
   } else {
-    // HP petugas: langsung kirim kondisi saat ini supaya kalau Panel Admin
-    // sedang menunggu buka "Ambil Alih", datanya langsung ada -- tidak perlu
-    // menunggu sampai ada perubahan berikutnya.
-    pushPetugasSession(true);
+    // HP petugas: kalau ada edit dari Panel Admin (lewat "Ambil Alih") yang
+    // tersimpan di server SELAGI HP ini offline, tarik & terapkan itu dulu
+    // supaya tersinkron -- baru kalau tidak ada, kirim kondisi lokal sekarang
+    // juga supaya kalau Panel Admin sedang menunggu buka "Ambil Alih",
+    // datanya langsung ada.
+    const applied = await pullPetugasSessionIfNewer();
+    if(!applied) pushPetugasSession(true);
   }
 
   subscribePetugasSessionChannel();
+}
+
+// Menarik sesi live terbaru dari server dan menerapkannya di HP ini KALAU
+// itu memang datang dari pihak lain (Panel Admin, updated_by beda) DAN lebih
+// baru daripada edit lokal terakhir HP ini (petugasLocalEditAt) -- supaya
+// edit admin yang terjadi selagi HP ini offline langsung tersinkron begitu
+// online lagi, tanpa menimpa edit lokal HP ini sendiri yang belum sempat
+// terkirim. Mengembalikan true kalau ada state yang diterapkan.
+async function pullPetugasSessionIfNewer(){
+  if(!petugasSessionSlug) return false;
+  const client = initSupabaseClient();
+  if(!client) return false;
+  try{
+    const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('*').eq('petugas_slug', petugasSessionSlug).maybeSingle();
+    if(error) throw error;
+    if(!data || !data.state || !data.updated_by || data.updated_by === CLIENT_ID) return false;
+    const remoteAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+    if(remoteAt && remoteAt <= petugasLocalEditAt) return false; // edit lokal HP ini lebih baru, jangan ditimpa
+    applyPetugasSessionState(data.state);
+    saveState();
+    return true;
+  } catch(e){
+    console.error('Gagal menarik sesi live terbaru:', e);
+    return false;
+  }
 }
 
 function subscribePetugasSessionChannel(){
@@ -3845,6 +3880,11 @@ async function resyncPetugasSessionIfNeeded(){
     if(IS_ADMIN_TAKEOVER){
       const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('*').eq('petugas_slug', petugasSessionSlug).maybeSingle();
       if(!error && data && data.state) applyPetugasSessionState(data.state);
+    } else {
+      // Kalau sempat ada edit dari admin (lewat "Ambil Alih") selagi HP ini
+      // offline/koneksi realtime putus, tarik & terapkan sekarang supaya
+      // tersinkron begitu online lagi (lihat pullPetugasSessionIfNewer()).
+      await pullPetugasSessionIfNewer();
     }
     if(petugasSessionChannel){ try{ await sb.removeChannel(petugasSessionChannel); }catch(e){} petugasSessionChannel = null; }
     subscribePetugasSessionChannel();
@@ -4748,7 +4788,7 @@ function saveState(){
       setSaveStatus('Gagal menyimpan');
     }
     if(roomCode && !applyingRemote) pushToRoom();
-    if(petugasSessionSlug && !applyingRemote) pushPetugasSession();
+    if(petugasSessionSlug && !applyingRemote){ petugasLocalEditAt = Date.now(); pushPetugasSession(); }
   }, 400);
 }
 
