@@ -3485,6 +3485,29 @@ async function initPetugasListListener(){
   subscribePetugasListChannel();
 }
 
+// Kalau nama petugas di HP ini (tersimpan atau baru diketik manual) belum
+// ada di tabel pusat stok_opname_petugas, otomatis daftarkan di sini supaya
+// juga muncul di kartu "Kelola Nama Petugas" pada Panel Admin — mencegah
+// situasi HP terlihat online di "Pengguna Aktif Sekarang" tapi namanya tidak
+// pernah tercatat di daftar pilihan pusat.
+async function registerPetugasNameIfNew(name){
+  const client = initSupabaseClient();
+  if(!client) return;
+  const trimmed = (name || '').toString().trim();
+  if(!trimmed) return;
+  const already = petugasList.some(n => (n || '').toLowerCase() === trimmed.toLowerCase());
+  if(already) return;
+  try{
+    const { error } = await sb.from(PETUGAS_TABLE).insert({ nama: trimmed });
+    if(error) throw error;
+    // petugasList akan otomatis ter-update lewat subscribePetugasListChannel()
+  } catch(err){
+    // Kemungkinan besar cuma race (nama sudah sempat ditambahkan device lain
+    // di saat bersamaan) -- aman diabaikan.
+    console.error('Gagal mendaftarkan nama petugas ke daftar pusat:', err);
+  }
+}
+
 function subscribePetugasListChannel(){
   if(!sb) return;
   if(petugasListChannel){ try{ sb.removeChannel(petugasListChannel); }catch(e){} petugasListChannel = null; }
@@ -3553,6 +3576,7 @@ function submitPetugasIdentityManual(){
   const input = document.getElementById('petugasIdentityManualInput');
   const val = input ? input.value.trim() : '';
   if(!val) return;
+  registerPetugasNameIfNew(val);
   submitPetugasIdentity(val);
 }
 
@@ -3571,6 +3595,7 @@ function submitPetugasIdentity(name){
 function maybeShowPetugasIdentityModal(){
   const val = document.getElementById('metaPetugas').value.trim();
   if(val){
+    registerPetugasNameIfNew(val);
     startPetugasSession(val);
     return;
   }
@@ -4838,6 +4863,7 @@ function selectPetugas(name){
 function submitManualPetugas(){
   const val = document.getElementById('petugasManualInput').value.trim();
   if(!val) return;
+  registerPetugasNameIfNew(val);
   selectPetugas(val);
 }
 
