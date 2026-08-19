@@ -3489,10 +3489,38 @@ function subscribePetugasListChannel(){
   if(!sb) return;
   if(petugasListChannel){ try{ sb.removeChannel(petugasListChannel); }catch(e){} petugasListChannel = null; }
   petugasListChannel = sb.channel('petugas-list-stok-opname')
-    .on('postgres_changes', { event: '*', schema: 'public', table: PETUGAS_TABLE }, () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: PETUGAS_TABLE }, payload => {
       loadPetugasListFromServer();
+      handlePetugasRenameSync(payload);
     })
     .subscribe();
+}
+
+// Kalau nama petugas HP ini sendiri diubah oleh admin lewat tombol "Ubah" di
+// kartu "Kelola Nama Petugas", HP ini otomatis ikut ganti nama (tanpa perlu
+// reload) dan sesi live-nya (dipakai fitur Ambil Alih) ikut dipindah ke slug
+// baru, membawa data yang sedang berjalan supaya tidak hilang. Butuh REPLICA
+// IDENTITY FULL di tabel stok_opname_petugas (lihat komentar SQL di
+// paneladmin.html) supaya payload.old.nama tersedia.
+async function handlePetugasRenameSync(payload){
+  if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
+  if(!payload || payload.eventType !== 'UPDATE') return;
+  const oldNama = payload.old && payload.old.nama;
+  const newNama = payload.new && payload.new.nama;
+  if(!oldNama || !newNama || oldNama === newNama) return;
+  const metaEl = document.getElementById('metaPetugas');
+  if(!metaEl) return;
+  const current = metaEl.value.trim();
+  if(current !== oldNama.trim()) return;
+
+  const oldSlug = petugasSessionSlug;
+  metaEl.value = newNama;
+  saveState();
+  if(typeof updatePresence === 'function') updatePresence();
+  await startPetugasSession(newNama);
+  if(oldSlug && oldSlug !== petugasSessionSlug){
+    try{ await sb.from(PETUGAS_SESSION_TABLE).delete().eq('petugas_slug', oldSlug); }catch(e){ /* abaikan, bukan fatal */ }
+  }
 }
 
 // ====== Popup wajib "Siapa yang bertugas?" ======
