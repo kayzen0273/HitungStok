@@ -5100,12 +5100,30 @@ async function pushHistoryEntryRemote(entry){
   }
 }
 
+// Kirim ulang SEMUA riwayat lokal ke Supabase (bukan cuma yang baru dibuat
+// setelah fitur ini ada). Dipakai supaya riwayat lama -- yang sebelumnya
+// cuma tersimpan di HP sebelum sinkronisasi jarak jauh ini ditambahkan --
+// ikut muncul di jendela "Riwayat" Panel Admin. Aman dipanggil berkali-kali:
+// pakai upsert (petugas_slug + entry_id), jadi entri yang sudah ada di
+// server tidak dobel, cuma "disegarkan" saja.
+async function backfillHistoryToRemote(){
+  try{
+    const list = await getHistoryList();
+    for(const entry of list){
+      await pushHistoryEntryRemote(entry);
+    }
+  } catch(err){
+    console.error('Gagal sinkronkan riwayat lama ke server:', err);
+  }
+}
+
 async function openHistoryModal(){
   document.getElementById('historyOverlay').classList.add('show');
   const body = document.getElementById('historyListBody');
   body.innerHTML = '<div class="history-empty">Memuat riwayat…</div>';
   const list = await getHistoryList();
   renderHistoryList(list);
+  backfillHistoryToRemote();
 }
 
 function closeHistoryModal(){
@@ -5372,6 +5390,12 @@ async function deleteHistoryEntryRemote(entry){
 }
 
 loadState();
+
+// Sinkronkan riwayat lama ke server sekali saat halaman ini dibuka --
+// supaya tidak perlu nunggu petugas buka jendela "Riwayat" dulu baru
+// riwayat lamanya kekirim. Ditunda sebentar (setTimeout) supaya tidak
+// mengganggu proses loadState() / render awal halaman.
+setTimeout(backfillHistoryToRemote, 1500);
 
 /* ======================================================================
    Halaman "Barang Kosong / Perlu Order"
