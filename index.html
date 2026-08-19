@@ -3856,8 +3856,11 @@ async function pullPetugasSessionIfNewer(){
   }
 }
 
+let petugasSessionPollTimer = null;
+
 function subscribePetugasSessionChannel(){
   if(!sb || !petugasSessionSlug) return;
+  const slugAtSubscribe = petugasSessionSlug;
   petugasSessionChannel = sb.channel('petugas-session-' + petugasSessionSlug)
     .on('postgres_changes', {
       event: '*', schema: 'public', table: PETUGAS_SESSION_TABLE, filter: `petugas_slug=eq.${petugasSessionSlug}`
@@ -3865,7 +3868,31 @@ function subscribePetugasSessionChannel(){
       if(!payload.new || payload.new.updated_by === CLIENT_ID) return;
       applyPetugasSessionState(payload.new.state);
     })
-    .subscribe();
+    .subscribe(status => {
+      // 'SUBSCRIBED' berarti koneksi realtime BENAR-BENAR baru saja
+      // tersambung -- baik pertama kali maupun setelah sempat putus (HP
+      // sempat offline dsb). Ini penanda yang lebih pasti daripada event
+      // browser online/focus/visibilitychange (yang di sejumlah HP/webview
+      // tidak selalu terpicu). Begitu status ini muncul, langsung tarik
+      // ulang data terbaru supaya edit dari Panel Admin selagi HP ini
+      // offline pasti tersinkron begitu benar-benar tersambung lagi.
+      if(status === 'SUBSCRIBED' && !IS_ADMIN_TAKEOVER && petugasSessionSlug === slugAtSubscribe){
+        pullPetugasSessionIfNewer();
+      }
+    });
+
+  // Jaring pengaman tambahan: cek berkala ke server (di luar event realtime
+  // & event browser online/focus/visibilitychange, yang di sejumlah
+  // HP/webview kadang tidak terpicu) supaya edit dari Panel Admin selagi HP
+  // ini offline TETAP tersinkron begitu koneksi data kembali, selambat-
+  // lambatnya dalam waktu singkat -- bukan menunggu HP ini direstart/dibuka
+  // ulang manual.
+  if(!IS_ADMIN_TAKEOVER){
+    clearInterval(petugasSessionPollTimer);
+    petugasSessionPollTimer = setInterval(() => {
+      if(petugasSessionSlug === slugAtSubscribe) pullPetugasSessionIfNewer();
+    }, 20000);
+  }
 }
 
 // Sama seperti resyncRoomIfNeeded() -- kalau koneksi realtime sempat putus
