@@ -2562,6 +2562,11 @@ async function confirmPasteStokReview(){
 
 const STORAGE_KEY = 'stok-opname-state';
 const HISTORY_KEY = 'stok-opname-history';
+// Nama tabel Supabase tempat riwayat laporan JUGA dikirim (selain tersimpan
+// lokal di HP ini), supaya bisa dilihat/dimuat ulang dari jarak jauh lewat
+// tombol "Riwayat" di jendela Ambil Alih Panel Admin. Lihat setup SQL di
+// komentar bagian atas paneladmin.html.
+const PETUGAS_HISTORY_TABLE = 'stok_opname_petugas_history';
 const PRE_HISTORY_KEY = 'stok-opname-pre-history';
 const hasClaudeStorage = (typeof window !== 'undefined') && window.storage && typeof window.storage.get === 'function';
 
@@ -4839,6 +4844,37 @@ async function saveHistoryEntry(entry){
   list.unshift(entry);
   if(list.length > 50) list.length = 50;
   await setHistoryList(list);
+  pushHistoryEntryRemote(entry);
+}
+
+// Kirim salinan riwayat ini ke Supabase (selain tersimpan lokal di atas),
+// supaya bisa dibaca dari jarak jauh lewat tombol "Riwayat" di jendela
+// Ambil Alih Panel Admin. Gagal kirim (mis. offline) tidak menghentikan
+// alur utama -- riwayat lokal di HP ini tetap tersimpan seperti biasa.
+async function pushHistoryEntryRemote(entry){
+  try{
+    const client = initSupabaseClient();
+    if(!client) return;
+    const slug = slugifyPetugas(entry.petugas || '');
+    if(!slug) return;
+    const { error } = await sb.from(PETUGAS_HISTORY_TABLE).upsert({
+      petugas_slug: slug,
+      entry_id: entry.id,
+      petugas_nama: entry.petugas || '',
+      toko: entry.toko || '',
+      waktu: entry.waktu || '',
+      tgl: entry.tgl || '',
+      saved_at: entry.savedAt || new Date().toISOString(),
+      rows: entry.rows || [],
+      hide_toko: entry.hideToko || {},
+      text_content: entry.text || '',
+      edited_from: entry.editedFrom || null,
+      updated_by: CLIENT_ID
+    }, { onConflict: 'petugas_slug,entry_id' });
+    if(error) throw error;
+  } catch(err){
+    console.error('Gagal kirim riwayat ke server (tersimpan lokal saja):', err);
+  }
 }
 
 async function openHistoryModal(){
@@ -5089,9 +5125,27 @@ async function deleteHistoryEntry(id){
   }
   if(!confirm('Hapus riwayat ini? Tindakan ini tidak bisa dibatalkan.')) return;
   let list = await getHistoryList();
+  const entry = list.find(h => h.id === id);
   list = list.filter(h => h.id !== id);
   await setHistoryList(list);
   renderHistoryList(list);
+  if(entry) deleteHistoryEntryRemote(entry);
+}
+
+// Hapus juga salinan riwayat ini di Supabase (pasangan dari pushHistoryEntryRemote
+// di atas), supaya tetap konsisten sama daftar riwayat lokal di HP ini.
+async function deleteHistoryEntryRemote(entry){
+  try{
+    const client = initSupabaseClient();
+    if(!client) return;
+    const slug = slugifyPetugas(entry.petugas || '');
+    if(!slug) return;
+    const { error } = await sb.from(PETUGAS_HISTORY_TABLE).delete()
+      .eq('petugas_slug', slug).eq('entry_id', entry.id);
+    if(error) throw error;
+  } catch(err){
+    console.error('Gagal hapus riwayat di server:', err);
+  }
 }
 
 loadState();
