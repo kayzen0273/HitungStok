@@ -6486,7 +6486,7 @@ initOrderListListener();
 
 
 <!-- ============================================================================
-     AI Agent (Groq) — asisten mengambang yang bisa membaca & MENGUBAH
+     AI Agent (NVIDIA) — asisten mengambang yang bisa membaca & MENGUBAH
      data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
      perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
      variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
@@ -6495,7 +6495,7 @@ initOrderListListener();
      Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
 ============================================================================ -->
 <style>
-  /* ================= AI Agent (Groq) — widget styles =================
+  /* ================= AI Agent (NVIDIA) — widget styles =================
      Namespaced with "bba-" so it never collides with the app's own CSS.
      Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
      so it feels native instead of bolted-on. */
@@ -6804,7 +6804,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   'use strict';
 
   // =====================================================================
-  // AI Agent (Groq) — asisten mengambang untuk aplikasi Stok Opname.
+  // AI Agent (NVIDIA) — asisten mengambang untuk aplikasi Stok Opname.
   // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
   // langsung lewat variabel/fungsi global yang sudah ada di file ini
   // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
@@ -6815,13 +6815,18 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // ---------------------------------------------------------------------
   // Config / penyimpanan lokal
   // ---------------------------------------------------------------------
-  var LS_KEY_APIKEY  = 'groq_agent_api_key_v4';
-  var LS_KEY_MODEL   = 'groq_agent_model_v4';
+  var LS_KEY_APIKEY  = 'nvidia_agent_api_key_v4';
+  var LS_KEY_MODEL   = 'nvidia_agent_model_v4';
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
-  var DEFAULT_MODEL  = 'llama-3.3-70b-versatile';
-  var DEFAULT_API_KEY = '';
-  var API_ORIGIN     = 'https://api.groq.com/openai/v1';
+  var DEFAULT_MODEL  = 'meta/llama-3.3-70b-instruct';
+  // Key NVIDIA TIDAK disimpan di sini lagi — sudah dipindah ke proxy
+  // (Cloudflare Worker) supaya aman & supaya browser bisa memanggilnya
+  // (integrate.api.nvidia.com menolak permintaan langsung dari browser).
+  // Ganti PROXY_URL di bawah dengan URL worker kamu sendiri setelah deploy.
+  var DEFAULT_API_KEY = 'via-proxy';
+  var PROXY_URL      = 'https://GANTIhttps://nvidia-proxy.bengb7479.workers.dev/';
+  var API_ORIGIN     = PROXY_URL;
   var API_URL        = API_ORIGIN + '/chat/completions';
   var MODELS_URL     = API_ORIGIN + '/models';
   var MAX_TOOL_LOOPS = 8;
@@ -6904,7 +6909,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Tool schema (OpenAI-compatible function calling, dipakai Groq)
+  // Tool schema (OpenAI-compatible function calling, dipakai NVIDIA)
   // ---------------------------------------------------------------------
   var TOOLS = [
     {
@@ -7543,7 +7548,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
   // (biar hemat kuota/token & muat di localStorage), lalu diubah jadi data URL
   // yang dikirim sebagai content type "image_url" ke API (format vision
-  // OpenAI-compatible, dipakai juga oleh Groq).
+  // OpenAI-compatible, dipakai juga oleh NVIDIA).
   // ---------------------------------------------------------------------
   function fileToCompressedDataUrl(file, maxDim, quality) {
     return new Promise(function (resolve, reject) {
@@ -7587,7 +7592,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // Buang field internal (non-standar) sebelum dikirim ke API, agar body request
-  // tetap sesuai skema chat-completions yang diharapkan Groq.
+  // tetap sesuai skema chat-completions yang diharapkan NVIDIA.
   function sanitizeForApi(m) {
     var out = { role: m.role, content: m.content };
     if (m.tool_calls) out.tool_calls = m.tool_calls;
@@ -7662,7 +7667,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('NVIDIA API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -7685,7 +7690,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('NVIDIA API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -7871,7 +7876,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
     } catch (e) {
       if (e && e.code === 'NO_API_KEY') {
-        addBubble('error', 'API Key Groq belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
+        addBubble('error', 'API Key NVIDIA belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
         openKeyModal();
       } else if (e && e.status === 400 && /model/i.test((e.message || ''))) {
         addBubble('error', 'Model "' + getModel() + '" tidak dikenali oleh API Key ini.\n\nKlik ikon kunci 🔑 → tombol "Muat Model" untuk melihat daftar model yang benar-benar valid untuk akun kamu, lalu pilih salah satu.\n\nDetail: ' + e.message);
@@ -7985,7 +7990,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(headIco);
     var headTxt = el('div', 'bba-head-txt');
     var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
-    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Groq';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · NVIDIA';
     var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
     headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
     headLeft.appendChild(headTxt);
@@ -8027,11 +8032,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var modal = el('div', 'bba-modal');
 
     var mTitle = el('h3'); mTitle.textContent = '🔑 Pengaturan AI Agent';
-    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Groq.';
+    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain NVIDIA.';
     var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
     mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
 
-    var lblKey = el('label'); lblKey.textContent = 'Groq API Key';
+    var lblKey = el('label'); lblKey.textContent = 'NVIDIA API Key';
     var keyRow = el('div', 'bba-field-row');
     var keyInput = el('input', '', { type: 'password', placeholder: 'sk-xxxxxxxxxxxxxxxx' });
     var toggleShow = el('button', 'bba-eye', { type: 'button', tabindex: '-1' }); toggleShow.textContent = '👁';
