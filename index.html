@@ -270,7 +270,7 @@
 
   .footnote{font-size:11.5px; color:var(--ink-soft); margin-top:10px; line-height:1.5;}
 
-  #metaPetugas{cursor:pointer; background:var(--card);}
+  #metaPetugas{cursor:default; background:var(--card);}
   #metaPetugas::placeholder{color:#9aada6;}
 
   .field-dropdown{position:relative;}
@@ -985,7 +985,7 @@
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
       <div class="field field-dropdown"><label>Petugas</label>
-        <input id="metaPetugas" placeholder="Pilih petugas" readonly onclick="openPetugasModal(event)">
+        <input id="metaPetugas" placeholder="Pilih petugas" readonly>
         <div class="field-dropdown-panel" id="petugasModal">
           <div class="modal-list" id="petugasList"></div>
           <div class="modal-manual">
