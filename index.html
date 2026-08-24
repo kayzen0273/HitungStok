@@ -512,6 +512,81 @@
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
   .history-overlay.show{display:flex;}
+
+  /* ===== Catatan Kode JS — gaya code manager yang padat & profesional ===== */
+  .jsnote-toolbar{display:flex; gap:8px; margin-bottom:2px;}
+  .jsnote-search{
+    flex:1; min-width:0; padding:7px 10px; border:1.5px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:12.5px; color:var(--ink); background:var(--paper);
+  }
+  .jsnote-search:focus{outline:none; border-color:var(--teal);}
+  .jsnote-add-btn{
+    width:32px; height:32px; border-radius:8px; border:1.5px solid var(--teal); background:var(--teal);
+    color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .jsnote-add-btn:hover{background:var(--teal-deep); border-color:var(--teal-deep);}
+  .jsnote-add-btn svg{width:16px; height:16px;}
+
+  .jsnote-list{
+    border:1px solid var(--line); border-radius:10px; margin-top:10px; overflow:hidden; background:var(--card);
+  }
+  .jsnote-item{border-bottom:1px solid var(--line);}
+  .jsnote-item:last-child{border-bottom:none;}
+  .jsnote-row{
+    display:flex; align-items:center; gap:7px; padding:7px 8px; cursor:pointer;
+  }
+  .jsnote-item.open .jsnote-row{background:var(--mint);}
+  .jsnote-chevron{
+    width:16px; height:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    color:#9aada6; transition:transform .15s;
+  }
+  .jsnote-item.open .jsnote-chevron{transform:rotate(90deg); color:var(--teal);}
+  .jsnote-lang-tag{
+    flex-shrink:0; font-family:'JetBrains Mono', monospace; font-size:9px; font-weight:700; letter-spacing:.02em;
+    color:var(--amber); background:#f4e9d8; border-radius:5px; padding:2.5px 5px; line-height:1;
+  }
+  .jsnote-row-main{flex:1; min-width:0;}
+  .jsnote-title-input{
+    width:100%; border:1px solid transparent; border-radius:6px; padding:2px 5px; margin:-2px -5px;
+    font-size:12.5px; font-weight:600; color:var(--ink); background:transparent; font-family:inherit;
+  }
+  .jsnote-title-input:hover{border-color:var(--line);}
+  .jsnote-title-input:focus{border-color:var(--teal); background:var(--card); outline:none;}
+  .jsnote-meta{font-size:10px; color:var(--ink-soft); margin-top:1px; padding-left:5px; font-family:'JetBrains Mono', monospace;}
+  .jsnote-row-actions{display:flex; align-items:center; gap:0px; flex-shrink:0;}
+  .jsnote-save-dot{
+    width:6px; height:6px; border-radius:50%; background:var(--klop); margin-right:6px; flex-shrink:0;
+    opacity:0; transition:opacity .2s;
+  }
+  .jsnote-save-dot.show{opacity:1;}
+  .jsnote-icon-btn{
+    width:26px; height:26px; border-radius:7px; border:none; background:transparent; color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .jsnote-icon-btn:hover{background:#d7ece2; color:var(--teal);}
+  .jsnote-icon-btn.copied{color:var(--klop);}
+  .jsnote-icon-btn.del-icon:hover{background:var(--minus-bg); color:var(--minus);}
+  .jsnote-icon-btn svg{width:14px; height:14px;}
+
+  .jsnote-body{max-height:0; overflow:hidden; transition:max-height .18s ease; background:#1c2b29;}
+  .jsnote-item.open .jsnote-body{max-height:280px;}
+  .jsnote-editor-bar{
+    display:flex; align-items:center; justify-content:space-between; padding:5px 10px;
+    background:#16211f; border-top:1px solid #2a3d3a;
+  }
+  .jsnote-editor-bar span{font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#7fa89c; letter-spacing:.03em;}
+  .jsnote-code{
+    display:block; width:100%; height:210px; resize:none; border:none; box-sizing:border-box;
+    padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6;
+    color:#d8ece5; background:#1c2b29; white-space:pre; overflow:auto; tab-size:2;
+  }
+  .jsnote-code::placeholder{color:#4f6a64;}
+  .jsnote-code:focus{outline:none;}
+  .jsnote-empty-hint{font-size:11px; color:var(--ink-soft); text-align:center; padding:4px 0 0;}
+  .jsnote-count-badge{
+    font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--mint); border-radius:20px;
+    padding:2px 8px; margin-left:6px;
+  }
   .history-modal{
     background:var(--card); border-radius:16px; width:100%; max-width:560px; max-height:82vh;
     display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(15,30,27,0.3);
@@ -889,6 +964,7 @@
       <a class="link-btn rekap-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" style="display:inline-block; color:var(--teal); text-decoration:underline;">Rekap Setoran</a>
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
+      <button class="link-btn riwayat-btn" onclick="openJsNotesModal()">Catatan JS</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
@@ -1294,6 +1370,24 @@
       <button class="history-close" onclick="closeHistoryModal()">✕</button>
     </div>
     <div class="history-modal-body" id="historyListBody"></div>
+  </div>
+</div>
+
+<div class="history-overlay" id="jsNotesOverlay" onclick="if(event.target===this) closeJsNotesModal()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Catatan Kode JS<span class="jsnote-count-badge" id="jsNotesCountBadge">0</span></h3>
+      <button class="history-close" onclick="closeJsNotesModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="jsnote-toolbar">
+        <input type="text" class="jsnote-search" id="jsNotesSearchInput" placeholder="Cari nama catatan..." oninput="renderJsNotesList()">
+        <button type="button" class="jsnote-add-btn" title="Tambah catatan baru" onclick="addJsNote()">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="jsNotesListBody"></div>
+    </div>
   </div>
 </div>
 
@@ -6486,7 +6580,7 @@ initOrderListListener();
 
 
 <!-- ============================================================================
-     AI Agent (NVIDIA) — asisten mengambang yang bisa membaca & MENGUBAH
+     AI Agent (Groq) — asisten mengambang yang bisa membaca & MENGUBAH
      data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
      perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
      variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
@@ -6495,7 +6589,7 @@ initOrderListListener();
      Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
 ============================================================================ -->
 <style>
-  /* ================= AI Agent (NVIDIA) — widget styles =================
+  /* ================= AI Agent (Groq) — widget styles =================
      Namespaced with "bba-" so it never collides with the app's own CSS.
      Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
      so it feels native instead of bolted-on. */
@@ -6804,7 +6898,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   'use strict';
 
   // =====================================================================
-  // AI Agent (NVIDIA) — asisten mengambang untuk aplikasi Stok Opname.
+  // AI Agent (Groq) — asisten mengambang untuk aplikasi Stok Opname.
   // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
   // langsung lewat variabel/fungsi global yang sudah ada di file ini
   // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
@@ -6815,18 +6909,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // ---------------------------------------------------------------------
   // Config / penyimpanan lokal
   // ---------------------------------------------------------------------
-  var LS_KEY_APIKEY  = 'nvidia_agent_api_key_v4';
-  var LS_KEY_MODEL   = 'nvidia_agent_model_v4';
+  var LS_KEY_APIKEY  = 'groq_agent_api_key_v4';
+  var LS_KEY_MODEL   = 'groq_agent_model_v4';
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
-  var DEFAULT_MODEL  = 'meta/llama-3.3-70b-instruct';
-  // Key NVIDIA TIDAK disimpan di sini lagi — sudah dipindah ke proxy
-  // (Cloudflare Worker) supaya aman & supaya browser bisa memanggilnya
-  // (integrate.api.nvidia.com menolak permintaan langsung dari browser).
-  // Ganti PROXY_URL di bawah dengan URL worker kamu sendiri setelah deploy.
-  var DEFAULT_API_KEY = 'via-proxy';
-  var PROXY_URL      = 'https://GANTIhttps://nvidia-proxy.bengb7479.workers.dev/';
-  var API_ORIGIN     = PROXY_URL;
+  var DEFAULT_MODEL  = 'llama-3.3-70b-versatile';
+  var DEFAULT_API_KEY = '';
+  var API_ORIGIN     = 'https://api.groq.com/openai/v1';
   var API_URL        = API_ORIGIN + '/chat/completions';
   var MODELS_URL     = API_ORIGIN + '/models';
   var MAX_TOOL_LOOPS = 8;
@@ -6909,7 +6998,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Tool schema (OpenAI-compatible function calling, dipakai NVIDIA)
+  // Tool schema (OpenAI-compatible function calling, dipakai Groq)
   // ---------------------------------------------------------------------
   var TOOLS = [
     {
@@ -7548,7 +7637,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
   // (biar hemat kuota/token & muat di localStorage), lalu diubah jadi data URL
   // yang dikirim sebagai content type "image_url" ke API (format vision
-  // OpenAI-compatible, dipakai juga oleh NVIDIA).
+  // OpenAI-compatible, dipakai juga oleh Groq).
   // ---------------------------------------------------------------------
   function fileToCompressedDataUrl(file, maxDim, quality) {
     return new Promise(function (resolve, reject) {
@@ -7592,7 +7681,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // Buang field internal (non-standar) sebelum dikirim ke API, agar body request
-  // tetap sesuai skema chat-completions yang diharapkan NVIDIA.
+  // tetap sesuai skema chat-completions yang diharapkan Groq.
   function sanitizeForApi(m) {
     var out = { role: m.role, content: m.content };
     if (m.tool_calls) out.tool_calls = m.tool_calls;
@@ -7667,7 +7756,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('NVIDIA API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -7690,7 +7779,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
     if (!res.ok) {
       var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
-      var apiErr = new Error('NVIDIA API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
       apiErr.status = res.status;
       throw apiErr;
     }
@@ -7876,7 +7965,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
     } catch (e) {
       if (e && e.code === 'NO_API_KEY') {
-        addBubble('error', 'API Key NVIDIA belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
+        addBubble('error', 'API Key Groq belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
         openKeyModal();
       } else if (e && e.status === 400 && /model/i.test((e.message || ''))) {
         addBubble('error', 'Model "' + getModel() + '" tidak dikenali oleh API Key ini.\n\nKlik ikon kunci 🔑 → tombol "Muat Model" untuk melihat daftar model yang benar-benar valid untuk akun kamu, lalu pilih salah satu.\n\nDetail: ' + e.message);
@@ -7990,7 +8079,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(headIco);
     var headTxt = el('div', 'bba-head-txt');
     var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
-    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · NVIDIA';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Groq';
     var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
     headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
     headLeft.appendChild(headTxt);
@@ -8032,11 +8121,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var modal = el('div', 'bba-modal');
 
     var mTitle = el('h3'); mTitle.textContent = '🔑 Pengaturan AI Agent';
-    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain NVIDIA.';
+    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Groq.';
     var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
     mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
 
-    var lblKey = el('label'); lblKey.textContent = 'NVIDIA API Key';
+    var lblKey = el('label'); lblKey.textContent = 'Groq API Key';
     var keyRow = el('div', 'bba-field-row');
     var keyInput = el('input', '', { type: 'password', placeholder: 'sk-xxxxxxxxxxxxxxxx' });
     var toggleShow = el('button', 'bba-eye', { type: 'button', tabindex: '-1' }); toggleShow.textContent = '👁';
@@ -8190,6 +8279,196 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mount();
   }
 })();
+</script>
+
+<script>
+  // ======================================================
+  // Catatan Kode JS: daftar snippet JavaScript bernama yang
+  // disimpan lokal (localStorage) di perangkat ini. Tampilan
+  // ringkas (collapsed) — tap judul untuk buka/tutup dan edit.
+  // Kode otomatis tersimpan sambil mengetik (autosave, ada
+  // jeda singkat) dan ditandai centang "Tersimpan".
+  // ======================================================
+  const JS_NOTES_KEY = 'jsNotesList_v1';
+  let jsNotesOpenId = null;      // id catatan yang sedang terbuka (hanya satu sekaligus, biar rapi)
+  const jsNotesSaveTimers = {};  // debounce timer per catatan
+
+  const ICO_CHEVRON = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICO_COPY = '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg>';
+  const ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICO_TRASH = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function getJsNotes(){
+    try{
+      const raw = localStorage.getItem(JS_NOTES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){ return []; }
+  }
+
+  function saveJsNotes(list){
+    try{ localStorage.setItem(JS_NOTES_KEY, JSON.stringify(list)); }catch(e){ /* abaikan */ }
+  }
+
+  function openJsNotesModal(){
+    document.getElementById('jsNotesOverlay').classList.add('show');
+    document.getElementById('jsNotesSearchInput').value = '';
+    renderJsNotesList();
+  }
+
+  function closeJsNotesModal(){
+    document.getElementById('jsNotesOverlay').classList.remove('show');
+  }
+
+  function jsNoteCodeStats(code){
+    const lines = code ? code.split('\n').length : 0;
+    const chars = code ? code.length : 0;
+    if(!code) return 'kosong';
+    return lines + ' baris, ' + chars + ' char';
+  }
+
+  function renderJsNotesList(){
+    const body = document.getElementById('jsNotesListBody');
+    const badge = document.getElementById('jsNotesCountBadge');
+    const q = (document.getElementById('jsNotesSearchInput').value || '').trim().toLowerCase();
+    const allNotes = getJsNotes();
+    badge.textContent = allNotes.length;
+
+    const notes = q ? allNotes.filter(function(n){ return (n.title || '').toLowerCase().includes(q); }) : allNotes;
+
+    if(!allNotes.length){
+      body.innerHTML = '<div class="history-empty">Belum ada catatan kode.<br>Tekan tombol + di atas untuk membuat catatan baru.</div>';
+      return;
+    }
+    if(!notes.length){
+      body.innerHTML = '<div class="history-empty">Tidak ada catatan dengan nama itu.</div>';
+      return;
+    }
+
+    const rows = notes.map(function(note){
+      const isOpen = note.id === jsNotesOpenId;
+      return `
+        <div class="jsnote-item ${isOpen ? 'open' : ''}" id="jsnote-${note.id}">
+          <div class="jsnote-row" onclick="toggleJsNote(${note.id}, event)">
+            <span class="jsnote-chevron">${ICO_CHEVRON}</span>
+            <span class="jsnote-lang-tag">JS</span>
+            <div class="jsnote-row-main">
+              <input type="text" class="jsnote-title-input" value="${escapeHtml(note.title)}"
+                     onclick="event.stopPropagation()"
+                     onchange="renameJsNote(${note.id}, this.value)" placeholder="Nama Javascript">
+              <div class="jsnote-meta" id="jsnote-stats-${note.id}">${jsNoteCodeStats(note.code)}</div>
+            </div>
+            <div class="jsnote-row-actions">
+              <span class="jsnote-save-dot" id="jsnote-saved-${note.id}" title="Tersimpan"></span>
+              <button type="button" class="jsnote-icon-btn" id="jsnote-copybtn-${note.id}" title="Salin kode" onclick="event.stopPropagation(); copyJsNote(${note.id})">${ICO_COPY}</button>
+              <button type="button" class="jsnote-icon-btn del-icon" title="Hapus" onclick="event.stopPropagation(); deleteJsNote(${note.id})">${ICO_TRASH}</button>
+            </div>
+          </div>
+          <div class="jsnote-body">
+            <div class="jsnote-editor-bar"><span>${escapeHtml(note.title || 'javascript')}.js</span><span>UTF-8</span></div>
+            <textarea class="jsnote-code" id="jsnote-code-${note.id}" spellcheck="false"
+                      oninput="updateJsNoteCode(${note.id}, this.value)"
+                      placeholder="Tempel atau tulis kode JavaScript di sini...">${escapeHtml(note.code)}</textarea>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    body.innerHTML = '<div class="jsnote-list">' + rows + '</div>';
+  }
+
+  function toggleJsNote(id, evt){
+    if(evt && evt.target && evt.target.closest('.jsnote-title-input')) return;
+    jsNotesOpenId = (jsNotesOpenId === id) ? null : id;
+    renderJsNotesList();
+    if(jsNotesOpenId === id){
+      setTimeout(function(){
+        const el = document.getElementById('jsnote-code-' + id);
+        if(el) el.focus();
+      }, 60);
+    }
+  }
+
+  function addJsNote(){
+    const notes = getJsNotes();
+    const nextIndex = notes.length + 1;
+    const newNote = { id: Date.now(), title: 'Javascript ' + nextIndex, code: '' };
+    notes.unshift(newNote);
+    saveJsNotes(notes);
+    jsNotesOpenId = newNote.id;
+    document.getElementById('jsNotesSearchInput').value = '';
+    renderJsNotesList();
+    setTimeout(function(){
+      const el = document.getElementById('jsnote-code-' + newNote.id);
+      if(el) el.focus();
+    }, 60);
+  }
+
+  function renameJsNote(id, newTitle){
+    const notes = getJsNotes();
+    const note = notes.find(function(n){ return n.id === id; });
+    if(note){ note.title = newTitle || 'Tanpa nama'; saveJsNotes(notes); flashJsNoteSaved(id); }
+  }
+
+  // Autosave: nyimpen ke localStorage dengan jeda singkat biar nggak nyimpen
+  // di setiap ketukan huruf, tapi kelihatan "hidup" (badge Tersimpan muncul).
+  function updateJsNoteCode(id, newCode){
+    clearTimeout(jsNotesSaveTimers[id]);
+    jsNotesSaveTimers[id] = setTimeout(function(){
+      const notes = getJsNotes();
+      const note = notes.find(function(n){ return n.id === id; });
+      if(note){
+        note.code = newCode;
+        saveJsNotes(notes);
+        const statsEl = document.getElementById('jsnote-stats-' + id);
+        if(statsEl) statsEl.textContent = jsNoteCodeStats(newCode);
+        flashJsNoteSaved(id);
+      }
+    }, 400);
+  }
+
+  function flashJsNoteSaved(id){
+    const badge = document.getElementById('jsnote-saved-' + id);
+    if(!badge) return;
+    badge.classList.add('show');
+    clearTimeout(badge._hideTimer);
+    badge._hideTimer = setTimeout(function(){ badge.classList.remove('show'); }, 1400);
+  }
+
+  function deleteJsNote(id){
+    if(!confirm('Hapus catatan kode ini?')) return;
+    let notes = getJsNotes();
+    notes = notes.filter(function(n){ return n.id !== id; });
+    saveJsNotes(notes);
+    if(jsNotesOpenId === id) jsNotesOpenId = null;
+    renderJsNotesList();
+  }
+
+  function copyJsNote(id){
+    const notes = getJsNotes();
+    const note = notes.find(function(n){ return n.id === id; });
+    if(!note) return;
+    const finish = function(ok){
+      const btn = document.getElementById('jsnote-copybtn-' + id);
+      if(btn){
+        btn.innerHTML = ok ? ICO_CHECK : ICO_COPY;
+        btn.classList.toggle('copied', ok);
+        setTimeout(function(){ btn.innerHTML = ICO_COPY; btn.classList.remove('copied'); }, 1400);
+      }
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(note.code).then(function(){ finish(true); }).catch(function(){ finish(false); });
+    } else {
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = note.code; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        finish(true);
+      }catch(e){ finish(false); }
+    }
+  }
 </script>
 
 </body>
