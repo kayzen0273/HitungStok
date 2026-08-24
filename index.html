@@ -3829,10 +3829,16 @@ async function pushPetugasSessionNow(){
   if(!client || !petugasSessionSlug) return;
   const namaEl = document.getElementById('metaPetugas');
   try{
+    // Catatan JS ikut dititipkan di dalam state sesi live ini (bukan lewat
+    // collectCurrentState(), supaya sinkronisasi Room/Tim yang juga memakai
+    // collectCurrentState() tidak ikut kebawa) -- supaya Catatan JS di HP
+    // petugas ini sama persis dengan yang tampil di jendela Ambil Alih admin.
+    const state = collectCurrentState();
+    state.jsNotes = getJsNotes();
     const { error } = await sb.from(PETUGAS_SESSION_TABLE).upsert({
       petugas_slug: petugasSessionSlug,
       petugas_nama: namaEl ? namaEl.value.trim() : '',
-      state: collectCurrentState(),
+      state,
       updated_by: CLIENT_ID,
       updated_at: new Date().toISOString()
     }, { onConflict: 'petugas_slug' });
@@ -3871,6 +3877,14 @@ function applyPetugasSessionState(state){
   }
   hideToko = state.hideToko || { t1:false, t2:false };
   editingFromId = state.editingFromId || null;
+  // Catatan JS: terapkan versi terbaru dari sesi live (bisa datang dari
+  // jendela Ambil Alih admin, atau dari HP petugas ini sendiri di tab lain)
+  // supaya daftar catatan kode selalu sama di kedua sisi.
+  if(Array.isArray(state.jsNotes)){
+    saveJsNotes(state.jsNotes);
+    const jsNotesOverlayEl = document.getElementById('jsNotesOverlay');
+    if(jsNotesOverlayEl && jsNotesOverlayEl.classList.contains('show')) renderJsNotesList();
+  }
   updateHideTokoUI();
   render();
   applyingRemote = false;
@@ -8395,6 +8409,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     const newNote = { id: Date.now(), title: 'Javascript ' + nextIndex, code: '' };
     notes.unshift(newNote);
     saveJsNotes(notes);
+    syncJsNotesToPetugasSession(true);
     jsNotesOpenId = newNote.id;
     document.getElementById('jsNotesSearchInput').value = '';
     renderJsNotesList();
@@ -8407,7 +8422,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function renameJsNote(id, newTitle){
     const notes = getJsNotes();
     const note = notes.find(function(n){ return n.id === id; });
-    if(note){ note.title = newTitle || 'Tanpa nama'; saveJsNotes(notes); flashJsNoteSaved(id); }
+    if(note){ note.title = newTitle || 'Tanpa nama'; saveJsNotes(notes); syncJsNotesToPetugasSession(true); flashJsNoteSaved(id); }
   }
 
   // Autosave: nyimpen ke localStorage dengan jeda singkat biar nggak nyimpen
@@ -8420,6 +8435,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if(note){
         note.code = newCode;
         saveJsNotes(notes);
+        syncJsNotesToPetugasSession();
         const statsEl = document.getElementById('jsnote-stats-' + id);
         if(statsEl) statsEl.textContent = jsNoteCodeStats(newCode);
         flashJsNoteSaved(id);
@@ -8440,8 +8456,20 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     let notes = getJsNotes();
     notes = notes.filter(function(n){ return n.id !== id; });
     saveJsNotes(notes);
+    syncJsNotesToPetugasSession(true);
     if(jsNotesOpenId === id) jsNotesOpenId = null;
     renderJsNotesList();
+  }
+
+  // Kirim daftar Catatan JS terbaru ke sesi live petugas (tabel
+  // stok_opname_petugas_session) supaya jendela "Ambil Alih" di Panel Admin
+  // langsung melihat perubahan yang sama, dan sebaliknya. Dijaga supaya
+  // tidak ikut terkirim balik saat perubahan ini justru baru datang DARI
+  // sesi live itu sendiri (lihat applyPetugasSessionState()).
+  function syncJsNotesToPetugasSession(immediate){
+    if(typeof petugasSessionSlug === 'undefined' || !petugasSessionSlug) return;
+    if(typeof applyingPetugasSession !== 'undefined' && applyingPetugasSession) return;
+    if(typeof pushPetugasSession === 'function') pushPetugasSession(immediate);
   }
 
   function copyJsNote(id){
