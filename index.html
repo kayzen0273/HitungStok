@@ -533,27 +533,28 @@
   .jsnote-item{border-bottom:1px solid var(--line);}
   .jsnote-item:last-child{border-bottom:none;}
   .jsnote-row{
-    display:flex; align-items:center; gap:7px; padding:7px 8px; cursor:pointer;
+    display:flex; align-items:flex-start; gap:7px; padding:7px 8px; cursor:pointer;
   }
   .jsnote-item.open .jsnote-row{background:var(--mint);}
   .jsnote-chevron{
     width:16px; height:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-    color:#9aada6; transition:transform .15s;
+    color:#9aada6; transition:transform .15s; margin-top:2px;
   }
   .jsnote-item.open .jsnote-chevron{transform:rotate(90deg); color:var(--teal);}
   .jsnote-lang-tag{
     flex-shrink:0; font-family:'JetBrains Mono', monospace; font-size:9px; font-weight:700; letter-spacing:.02em;
-    color:var(--amber); background:#f4e9d8; border-radius:5px; padding:2.5px 5px; line-height:1;
+    color:var(--amber); background:#f4e9d8; border-radius:5px; padding:2.5px 5px; line-height:1; margin-top:2px;
   }
   .jsnote-row-main{flex:1; min-width:0;}
   .jsnote-title-input{
-    width:100%; border:1px solid transparent; border-radius:6px; padding:2px 5px; margin:-2px -5px;
+    display:block; width:100%; border:1px solid transparent; border-radius:6px; padding:2px 5px; margin:-2px -5px;
     font-size:12.5px; font-weight:600; color:var(--ink); background:transparent; font-family:inherit;
+    resize:none; overflow:hidden; white-space:pre-wrap; word-break:break-word; line-height:1.35;
   }
   .jsnote-title-input:hover{border-color:var(--line);}
   .jsnote-title-input:focus{border-color:var(--teal); background:var(--card); outline:none;}
   .jsnote-meta{font-size:10px; color:var(--ink-soft); margin-top:1px; padding-left:5px; font-family:'JetBrains Mono', monospace;}
-  .jsnote-row-actions{display:flex; align-items:center; gap:0px; flex-shrink:0;}
+  .jsnote-row-actions{display:flex; align-items:center; gap:0px; flex-shrink:0; margin-top:1px;}
   .jsnote-save-dot{
     width:6px; height:6px; border-radius:50%; background:var(--klop); margin-right:6px; flex-shrink:0;
     opacity:0; transition:opacity .2s;
@@ -572,9 +573,11 @@
   .jsnote-item.open .jsnote-body{max-height:280px;}
   .jsnote-editor-bar{
     display:flex; align-items:center; justify-content:space-between; padding:5px 10px;
-    background:#16211f; border-top:1px solid #2a3d3a;
+    background:#16211f; border-top:1px solid #2a3d3a; gap:8px;
   }
   .jsnote-editor-bar span{font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#7fa89c; letter-spacing:.03em;}
+  .jsnote-editor-bar span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1;}
+  .jsnote-editor-bar span:last-child{flex-shrink:0;}
   .jsnote-code{
     display:block; width:100%; height:210px; resize:none; border:none; box-sizing:border-box;
     padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6;
@@ -8367,9 +8370,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
             <span class="jsnote-chevron">${ICO_CHEVRON}</span>
             <span class="jsnote-lang-tag">JS</span>
             <div class="jsnote-row-main">
-              <input type="text" class="jsnote-title-input" value="${escapeHtml(note.title)}"
+              <textarea class="jsnote-title-input" rows="1"
                      onclick="event.stopPropagation()"
-                     onchange="renameJsNote(${note.id}, this.value)" placeholder="Nama Javascript">
+                     oninput="autoGrowJsNoteTitle(this)"
+                     onkeydown="if(event.key==='Enter'){ event.preventDefault(); this.blur(); }"
+                     onchange="renameJsNote(${note.id}, this.value)" placeholder="Nama Javascript">${escapeHtml(note.title)}</textarea>
               <div class="jsnote-meta" id="jsnote-stats-${note.id}">${jsNoteCodeStats(note.code)}</div>
             </div>
             <div class="jsnote-row-actions">
@@ -8379,7 +8384,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
             </div>
           </div>
           <div class="jsnote-body">
-            <div class="jsnote-editor-bar"><span>${escapeHtml(note.title || 'javascript')}.js</span><span>UTF-8</span></div>
+            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><span>UTF-8</span></div>
             <textarea class="jsnote-code" id="jsnote-code-${note.id}" spellcheck="false"
                       oninput="updateJsNoteCode(${note.id}, this.value)"
                       placeholder="Tempel atau tulis kode JavaScript di sini...">${escapeHtml(note.code)}</textarea>
@@ -8389,6 +8394,15 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }).join('');
 
     body.innerHTML = '<div class="jsnote-list">' + rows + '</div>';
+    body.querySelectorAll('.jsnote-title-input').forEach(autoGrowJsNoteTitle);
+  }
+
+  // Nyesuaikan tinggi kotak nama catatan otomatis sesuai isinya (bisa
+  // melipat ke beberapa baris) supaya nama panjang tidak kepotong.
+  function autoGrowJsNoteTitle(el){
+    if(!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
   }
 
   function toggleJsNote(id, evt){
@@ -8422,7 +8436,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function renameJsNote(id, newTitle){
     const notes = getJsNotes();
     const note = notes.find(function(n){ return n.id === id; });
-    if(note){ note.title = newTitle || 'Tanpa nama'; saveJsNotes(notes); syncJsNotesToPetugasSession(true); flashJsNoteSaved(id); }
+    const cleaned = (newTitle || '').replace(/\s*\r?\n\s*/g, ' ').trim();
+    if(note){ note.title = cleaned || 'Tanpa nama'; saveJsNotes(notes); syncJsNotesToPetugasSession(true); flashJsNoteSaved(id); }
   }
 
   // Autosave: nyimpen ke localStorage dengan jeda singkat biar nggak nyimpen
