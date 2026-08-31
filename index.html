@@ -3071,6 +3071,21 @@ function setMyPetugasId(id){
   }catch(e){ /* abaikan */ }
 }
 
+// Menyimpan id baris petugas yang PASSWORD-nya sudah pernah diverifikasi/
+// dibuat di HP ini -- terpisah dari PETUGAS_ID_KEY supaya HP lama (yang
+// sudah punya nama tersimpan dari SEBELUM fitur password ini ada) tetap
+// diwajibkan verifikasi/buat password sekali sebelum dianggap "sudah login".
+const PETUGAS_AUTH_OK_KEY = 'stok-opname-petugas-auth-ok-id';
+function getPetugasAuthOkId(){
+  try{ return localStorage.getItem(PETUGAS_AUTH_OK_KEY) || null; }catch(e){ return null; }
+}
+function setPetugasAuthOkId(id){
+  try{
+    if(id) localStorage.setItem(PETUGAS_AUTH_OK_KEY, String(id));
+    else localStorage.removeItem(PETUGAS_AUTH_OK_KEY);
+  }catch(e){ /* abaikan */ }
+}
+
 let sb = null;
 let roomCode = '';
 let realtimeChannel = null;
@@ -3898,14 +3913,21 @@ function closePetugasAuthOverlay(){
 }
 
 function backPetugasAuth(){
+  const context = petugasAuthState ? petugasAuthState.context : 'identity';
   closePetugasAuthOverlay();
   petugasAuthState = null;
+  // Konteks 'identity': selalu tampilkan lagi daftar pilihan nama (baik
+  // ini dibuka dari popup "Siapa yang bertugas?" maupun langsung diarahkan
+  // ke sini dari HP yang sudah punya nama tersimpan tapi belum verifikasi
+  // password) -- supaya popup wajib ini tidak pernah kosong tanpa aksi.
+  if(context === 'identity') openPetugasIdentityModal();
 }
 
 function finishPetugasAuth(name, id){
   const context = petugasAuthState ? petugasAuthState.context : 'identity';
   closePetugasAuthOverlay();
   petugasAuthState = null;
+  if(id) setPetugasAuthOkId(id);
   if(context === 'dropdown') selectPetugas(name, id);
   else submitPetugasIdentity(name, id);
 }
@@ -4008,8 +4030,28 @@ async function submitPetugasAuth(){
 function maybeShowPetugasIdentityModal(){
   const val = document.getElementById('metaPetugas').value.trim();
   if(val){
-    registerPetugasNameIfNew(val);
-    startPetugasSession(val);
+    const myId = getMyPetugasId();
+    const authOkId = getPetugasAuthOkId();
+    const alreadyAuthed = myId && authOkId && String(myId) === String(authOkId);
+    if(alreadyAuthed){
+      registerPetugasNameIfNew(val);
+      startPetugasSession(val);
+      return;
+    }
+    // HP ini punya nama petugas tersimpan tapi belum pernah lolos
+    // verifikasi/pembuatan password (misalnya HP lama dari sebelum fitur
+    // password ini ada) -- wajib verifikasi/buat password dulu sebelum
+    // lanjut memakai halaman ini.
+    const row = myId
+      ? petugasRowsFull.find(r => String(r.id) === String(myId))
+      : petugasRowsFull.find(r => (r.nama || '').trim().toLowerCase() === val.toLowerCase());
+    if(row){
+      openPetugasAuthStep(row.nama, row.id, 'identity');
+    } else {
+      registerPetugasNameIfNew(val).then(id => {
+        openPetugasAuthStep(val, id, 'identity');
+      });
+    }
     return;
   }
   openPetugasIdentityModal();
