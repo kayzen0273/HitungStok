@@ -1516,6 +1516,38 @@
   </div>
 </div>
 
+<!-- Popup password — muncul setelah nama dipilih/diketik, baik dari popup
+     "Siapa yang bertugas?" (login pertama kali di HP ini) maupun dari
+     dropdown "Petugas" di form. Nama yang SUDAH ADA di daftar tapi belum
+     pernah punya password akan diminta MEMBUAT password baru (cukup isi
+     password, nama tidak diulang). Nama yang sudah punya password diminta
+     MEMASUKKAN password itu untuk masuk. Nama yang BENAR-BENAR BARU (belum
+     ada di daftar) wajib mengisi nama + password sekaligus. Passwordnya
+     sendiri TIDAK disimpan mentah di localStorage -- yang tersimpan cuma
+     hash SHA-256-nya, langsung di tabel stok_opname_petugas di Supabase,
+     dan dicocokkan ke server setiap kali login. -->
+<div class="history-overlay" id="petugasAuthOverlay" style="z-index:410;" onclick="event.stopPropagation()">
+  <div class="history-modal" style="max-width:360px;">
+    <div class="history-modal-head">
+      <h3 id="petugasAuthTitle">Password</h3>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" id="petugasAuthHint" style="margin-top:0;"></div>
+      <div class="field" style="margin-top:10px;">
+        <input type="password" id="petugasAuthPassInput" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter'){ event.preventDefault(); petugasAuthNextField(); }">
+      </div>
+      <div class="field" id="petugasAuthConfirmWrap" style="margin-top:8px; display:none;">
+        <input type="password" id="petugasAuthConfirmInput" placeholder="Ulangi password" autocomplete="off" onkeydown="if(event.key==='Enter'){ event.preventDefault(); submitPetugasAuth(); }">
+      </div>
+      <div id="petugasAuthError" style="display:none; font-size:12px; color:var(--minus); font-weight:600; margin-top:8px; line-height:1.5;"></div>
+      <div class="modal-manual" style="margin-top:14px; border-top:none; padding-top:0;">
+        <button type="button" class="modal-add" style="flex:1; padding:9px 13px;" onclick="submitPetugasAuth()" id="petugasAuthSubmitBtn">Masuk</button>
+      </div>
+      <button type="button" id="petugasAuthBackBtn" onclick="backPetugasAuth()" style="margin-top:12px; background:none; border:none; color:var(--ink-soft); font-size:12px; font-weight:600; cursor:pointer; padding:4px 0;">‹ Pilih nama lain</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
 const TOKO_LIST = ['Rafa 1', 'Rafa 2'];
@@ -3754,7 +3786,7 @@ function openPetugasIdentityModal(){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
     listEl.innerHTML = petugasRowsFull.map(row => `
-      <button type="button" class="modal-option" onclick="submitPetugasIdentity('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id})">
+      <button type="button" class="modal-option" onclick="openPetugasAuthStep('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id}, 'identity')">
         <span class="dot"></span>${escapeHtml(row.nama || '')}
       </button>
     `).join('');
@@ -3768,12 +3800,13 @@ function closePetugasIdentityModal(){
   if(overlay) overlay.classList.remove('show');
 }
 
-async function submitPetugasIdentityManual(){
+function submitPetugasIdentityManual(){
   const input = document.getElementById('petugasIdentityManualInput');
   const val = input ? input.value.trim() : '';
   if(!val) return;
-  const id = await registerPetugasNameIfNew(val);
-  submitPetugasIdentity(val, id);
+  const existing = petugasRowsFull.find(r => (r.nama || '').trim().toLowerCase() === val.toLowerCase());
+  if(existing) openPetugasAuthStep(existing.nama, existing.id, 'identity');
+  else openPetugasAuthStep(val, null, 'identity');
 }
 
 function submitPetugasIdentity(name, id){
@@ -3783,6 +3816,189 @@ function submitPetugasIdentity(name, id){
   updatePresence();
   startPetugasSession(name);
   closePetugasIdentityModal();
+}
+
+// ====== Popup Password Petugas ======
+// Dipakai dari 2 tempat: popup wajib "Siapa yang bertugas?" (context
+// 'identity') dan dropdown "Petugas" di form (context 'dropdown'). Cek/simpan
+// password-nya langsung ke kolom password_hash tabel stok_opname_petugas di
+// Supabase (bukan localStorage) -- lihat komentar SQL di paneladmin.html.
+let petugasAuthState = null; // { name, id, mode: 'verify'|'setPassword'|'createNew', context }
+
+async function hashPetugasPassword(pw){
+  const enc = new TextEncoder().encode(pw || '');
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function showPetugasAuthError(msg){
+  const errEl = document.getElementById('petugasAuthError');
+  if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+
+function petugasAuthNextField(){
+  const confirmWrap = document.getElementById('petugasAuthConfirmWrap');
+  const confirmInput = document.getElementById('petugasAuthConfirmInput');
+  if(confirmWrap && confirmWrap.style.display === 'block' && confirmInput){
+    confirmInput.focus();
+  } else {
+    submitPetugasAuth();
+  }
+}
+
+function renderPetugasAuthStep(){
+  if(!petugasAuthState) return;
+  const title = document.getElementById('petugasAuthTitle');
+  const hint = document.getElementById('petugasAuthHint');
+  const confirmWrap = document.getElementById('petugasAuthConfirmWrap');
+  const submitBtn = document.getElementById('petugasAuthSubmitBtn');
+  const passInput = document.getElementById('petugasAuthPassInput');
+  const confirmInput = document.getElementById('petugasAuthConfirmInput');
+  const errEl = document.getElementById('petugasAuthError');
+  if(passInput) passInput.value = '';
+  if(confirmInput) confirmInput.value = '';
+  if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+  if(title) title.textContent = petugasAuthState.name;
+  if(petugasAuthState.mode === 'verify'){
+    if(hint) hint.textContent = 'Masukkan password kamu untuk masuk.';
+    if(confirmWrap) confirmWrap.style.display = 'none';
+    if(submitBtn) submitBtn.textContent = 'Masuk';
+  } else if(petugasAuthState.mode === 'setPassword'){
+    if(hint) hint.textContent = 'Akun ini belum punya password. Buat password baru untuk akun kamu (dipakai lagi saat login berikutnya).';
+    if(confirmWrap) confirmWrap.style.display = 'block';
+    if(submitBtn) submitBtn.textContent = 'Simpan & Masuk';
+  } else {
+    if(hint) hint.textContent = 'Nama baru — buat password untuk akun ini.';
+    if(confirmWrap) confirmWrap.style.display = 'block';
+    if(submitBtn) submitBtn.textContent = 'Simpan & Masuk';
+  }
+  setTimeout(() => { if(passInput) passInput.focus(); }, 50);
+}
+
+// name: nama yang dipilih/diketik. id: id baris di stok_opname_petugas kalau
+// sudah ada di daftar, null kalau nama benar-benar baru. context: 'identity'
+// atau 'dropdown', menentukan apa yang dijalankan setelah password berhasil.
+function openPetugasAuthStep(name, id, context){
+  const row = id ? petugasRowsFull.find(r => r.id === id) : null;
+  const hasPassword = !!(row && row.password_hash);
+  petugasAuthState = {
+    name: name,
+    id: id || null,
+    context: context,
+    mode: !row ? 'createNew' : (hasPassword ? 'verify' : 'setPassword')
+  };
+  renderPetugasAuthStep();
+  const overlay = document.getElementById('petugasAuthOverlay');
+  if(overlay) overlay.classList.add('show');
+}
+
+function closePetugasAuthOverlay(){
+  const overlay = document.getElementById('petugasAuthOverlay');
+  if(overlay) overlay.classList.remove('show');
+}
+
+function backPetugasAuth(){
+  closePetugasAuthOverlay();
+  petugasAuthState = null;
+}
+
+function finishPetugasAuth(name, id){
+  const context = petugasAuthState ? petugasAuthState.context : 'identity';
+  closePetugasAuthOverlay();
+  petugasAuthState = null;
+  if(context === 'dropdown') selectPetugas(name, id);
+  else submitPetugasIdentity(name, id);
+}
+
+async function submitPetugasAuth(){
+  if(!petugasAuthState) return;
+  const passInput = document.getElementById('petugasAuthPassInput');
+  const confirmInput = document.getElementById('petugasAuthConfirmInput');
+  const submitBtn = document.getElementById('petugasAuthSubmitBtn');
+  const pw = passInput ? passInput.value : '';
+  const errEl = document.getElementById('petugasAuthError');
+  if(errEl) errEl.style.display = 'none';
+  const client = initSupabaseClient();
+  if(!client){ showPetugasAuthError('Tidak ada koneksi ke server. Cek internet lalu coba lagi.'); return; }
+
+  if(petugasAuthState.mode === 'verify'){
+    if(!pw){ showPetugasAuthError('Masukkan password.'); return; }
+    if(submitBtn) submitBtn.disabled = true;
+    try{
+      const hash = await hashPetugasPassword(pw);
+      // Ambil data terbaru langsung dari server (bukan cache lokal) supaya
+      // tidak tertipu password yang barusan direset admin.
+      const { data, error } = await sb.from(PETUGAS_TABLE).select('*').eq('id', petugasAuthState.id).maybeSingle();
+      if(error) throw error;
+      if(!data){ showPetugasAuthError('Nama petugas ini sudah tidak ada di daftar.'); return; }
+      const idx = petugasRowsFull.findIndex(r => r.id === data.id);
+      if(idx >= 0) petugasRowsFull[idx] = data;
+      if(!data.password_hash){
+        petugasAuthState.mode = 'setPassword';
+        renderPetugasAuthStep();
+        showPetugasAuthError('Password akun ini baru saja direset admin. Buat password baru di bawah.');
+        return;
+      }
+      if(hash !== data.password_hash){
+        showPetugasAuthError('Password salah, coba lagi.');
+        if(passInput){ passInput.value = ''; passInput.focus(); }
+        return;
+      }
+      finishPetugasAuth(petugasAuthState.name, petugasAuthState.id);
+    } catch(e){
+      console.error('Gagal memverifikasi password petugas:', e);
+      showPetugasAuthError('Gagal memeriksa password. Cek koneksi lalu coba lagi.');
+    } finally {
+      if(submitBtn) submitBtn.disabled = false;
+    }
+    return;
+  }
+
+  // mode 'setPassword' (nama lama, belum punya password) atau 'createNew'
+  // (nama benar-benar baru) -- keduanya perlu isi password + konfirmasi.
+  const confirmPw = confirmInput ? confirmInput.value : '';
+  if(!pw || pw.length < 4){ showPetugasAuthError('Password minimal 4 karakter.'); return; }
+  if(pw !== confirmPw){ showPetugasAuthError('Konfirmasi password tidak cocok.'); return; }
+  if(submitBtn) submitBtn.disabled = true;
+  try{
+    const hash = await hashPetugasPassword(pw);
+    if(petugasAuthState.mode === 'createNew'){
+      const already = petugasRowsFull.find(r => (r.nama || '').trim().toLowerCase() === petugasAuthState.name.trim().toLowerCase());
+      if(already){
+        // Race: nama ini baru saja didaftarkan perangkat lain -- perlakukan
+        // seperti nama yang sudah ada (jangan bikin duplikat).
+        petugasAuthState.id = already.id;
+        petugasAuthState.mode = already.password_hash ? 'verify' : 'setPassword';
+        renderPetugasAuthStep();
+        if(petugasAuthState.mode === 'verify'){
+          showPetugasAuthError('Nama ini baru saja terdaftar dari HP lain. Masukkan passwordnya.');
+        }
+        return;
+      }
+      const { data, error } = await sb.from(PETUGAS_TABLE).insert({ nama: petugasAuthState.name, password_hash: hash }).select().single();
+      if(error) throw error;
+      if(data){
+        petugasRowsFull.push(data);
+        petugasList = petugasRowsFull.map(r => r.nama).filter(Boolean);
+      }
+      finishPetugasAuth(petugasAuthState.name, data ? data.id : null);
+    } else {
+      const { error } = await sb.from(PETUGAS_TABLE).update({ password_hash: hash }).eq('id', petugasAuthState.id);
+      if(error) throw error;
+      const row = petugasRowsFull.find(r => r.id === petugasAuthState.id);
+      if(row) row.password_hash = hash;
+      finishPetugasAuth(petugasAuthState.name, petugasAuthState.id);
+    }
+  } catch(err){
+    console.error('Gagal menyimpan password petugas:', err);
+    if(err && err.code === '23505'){
+      showPetugasAuthError('Nama ini sudah dipakai. Coba pilih dari daftar.');
+    } else {
+      showPetugasAuthError('Gagal menyimpan password. Cek koneksi lalu coba lagi.');
+    }
+  } finally {
+    if(submitBtn) submitBtn.disabled = false;
+  }
 }
 
 // Dipanggil setelah data tersimpan & room (kalau ada) selesai dimuat. Kalau
@@ -5118,7 +5334,7 @@ function openPetugasModal(e){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
   } else {
     listEl.innerHTML = petugasRowsFull.map(row => `
-      <button type="button" class="modal-option" onclick="selectPetugas('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id})">
+      <button type="button" class="modal-option" onclick="openPetugasAuthStep('${(row.nama || '').replace(/'/g, "\\'")}', ${row.id}, 'dropdown')">
         <span class="dot"></span>${escapeHtml(row.nama || '')}
       </button>
     `).join('');
@@ -5140,11 +5356,12 @@ function selectPetugas(name, id){
   startPetugasSession(name);
 }
 
-async function submitManualPetugas(){
+function submitManualPetugas(){
   const val = document.getElementById('petugasManualInput').value.trim();
   if(!val) return;
-  const id = await registerPetugasNameIfNew(val);
-  selectPetugas(val, id);
+  const existing = petugasRowsFull.find(r => (r.nama || '').trim().toLowerCase() === val.toLowerCase());
+  if(existing) openPetugasAuthStep(existing.nama, existing.id, 'dropdown');
+  else openPetugasAuthStep(val, null, 'dropdown');
 }
 
 document.addEventListener('click', function(e){
