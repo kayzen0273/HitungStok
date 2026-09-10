@@ -212,19 +212,21 @@
     position:absolute; left:10px; top:50%; transform:translateY(-50%);
     width:13px; height:13px; color:var(--ink-soft); pointer-events:none;
   }
-  #statusFilter{
+  .status-filter-trigger{
     appearance:none; -webkit-appearance:none; background:var(--card); color:var(--ink-soft);
     border:1.5px solid var(--line); border-radius:20px; padding:6px 26px 6px 30px;
     font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
   }
-  #statusFilter:focus{outline:none; border-color:var(--teal);}
+  .status-filter-trigger:focus{outline:none; border-color:var(--teal);}
   .status-filter-wrap::after{
     content:''; position:absolute; right:10px; top:50%; transform:translateY(-50%);
     width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
     border-top:5px solid #9aada6; pointer-events:none;
   }
-  #statusFilter.f-minus{border-color:#e4b8ab; background:var(--minus-bg); color:var(--minus);}
-  #statusFilter.f-plus{border-color:#c3d9ee; background:var(--plus-bg); color:var(--plus);}
+  .status-filter-trigger.f-minus{border-color:#e4b8ab; background:var(--minus-bg); color:var(--minus);}
+  .status-filter-trigger.f-plus{border-color:#c3d9ee; background:var(--plus-bg); color:var(--plus);}
+  .status-filter-trigger.f-minus.f-plus{border-color:var(--amber); background:linear-gradient(90deg, var(--minus-bg) 50%, var(--plus-bg) 50%); color:var(--ink);}
+  .status-filter-panel{width:172px;}
   .empty-row-msg{text-align:center; padding:28px 10px; color:var(--ink-soft); font-size:13px;}
 
   .pagination-bar{
@@ -289,7 +291,16 @@
     cursor:pointer; display:flex; align-items:center; gap:9px; width:100%;
   }
   .modal-option:hover, .modal-option:active{background:var(--mint); border-color:#a9c9c0;}
+  .modal-option.active{background:var(--mint); border-color:var(--teal); color:var(--teal);}
   .modal-option .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); flex-shrink:0;}
+  .modal-option.checkbox-item:hover, .modal-option.checkbox-item:active, .modal-option.checkbox-item.active{
+    background:#fafaf6; border-color:var(--line); color:var(--ink);
+  }
+  .checkbox-box{
+    width:17px; height:17px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-size:13px; line-height:1; opacity:0; transition:opacity .1s;
+  }
+  .modal-option.active .checkbox-box{opacity:1;}
   .modal-empty{font-size:12px; color:var(--ink-soft); padding:4px 2px 8px;}
   .modal-manual{display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--line);}
   .modal-manual input{
@@ -1117,13 +1128,19 @@
         <svg class="eye" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
         Belum dicek saja
       </button>
-      <div class="status-filter-wrap">
+      <div class="status-filter-wrap field-dropdown" id="statusFilterField">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <select id="statusFilter" onchange="onStatusFilterChange(this.value)">
-          <option value="all">Filter: semua</option>
-          <option value="minus">Filter: minus</option>
-          <option value="plus">Filter: plus</option>
-        </select>
+        <button type="button" class="status-filter-trigger" id="statusFilterBtn" onclick="openStatusFilterModal(event)">
+          <span id="statusFilterLabel">Filter: semua</span>
+        </button>
+        <div class="field-dropdown-panel status-filter-panel" id="statusFilterModal">
+          <div class="modal-list" id="statusFilterList">
+            <button type="button" class="modal-option checkbox-item" data-val="all" onclick="selectStatusFilter('all')"><span class="checkbox-box">✅</span>Semua</button>
+            <button type="button" class="modal-option checkbox-item" data-val="minus" onclick="selectStatusFilter('minus')"><span class="checkbox-box">✅</span>Minus</button>
+            <button type="button" class="modal-option checkbox-item" data-val="plus" onclick="selectStatusFilter('plus')"><span class="checkbox-box">✅</span>Plus</button>
+          </div>
+          <div style="padding:4px 2px 0; font-size:10.5px; color:var(--ink-soft); line-height:1.4;">Minus &amp; Plus bisa dipilih bareng.</div>
+        </div>
       </div>
       <span class="visible-count" id="visibleCountLabel"></span>
     </div>
@@ -1590,7 +1607,7 @@ let hideToko = { t1:false, t2:false };
 let editingFromId = null;
 let searchQuery = '';
 let showOnlyUnchecked = false;
-let statusFilter = 'all';
+let statusFilter = []; // array kosong = "semua"; isinya bisa 'minus' dan/atau 'plus' sekaligus
 let currentPage = 1;
 const PAGE_SIZE = 50;
 
@@ -1646,7 +1663,7 @@ function loadActiveSesiIntoGlobals(){
 function resetViewStateForSesiSwitch(){
   searchQuery = '';
   showOnlyUnchecked = false;
-  statusFilter = 'all';
+  statusFilter = [];
   currentPage = 1;
   const searchInput = document.getElementById('searchInput');
   if(searchInput) searchInput.value = '';
@@ -1830,9 +1847,9 @@ function statusOf(r){
 function getVisibleRows(){
   return rows.filter(r => {
     if(showOnlyUnchecked && isChecked(r)) return false;
-    if(statusFilter !== 'all'){
+    if(statusFilter.length){
       const st = statusOf(r);
-      if(!st || st.type !== statusFilter) return false;
+      if(!st || !statusFilter.includes(st.type)) return false;
     }
     if(searchQuery && !r.nama.toLowerCase().includes(searchQuery)) return false;
     return true;
@@ -1846,7 +1863,7 @@ function getVisibleRows(){
 // seperti biasa. "Salin ke WhatsApp" sengaja TIDAK memakai ini — itu selalu
 // memakai semua barang apa pun filternya.
 function isAnyFilterActive(){
-  return !!searchQuery || showOnlyUnchecked || statusFilter !== 'all';
+  return !!searchQuery || showOnlyUnchecked || statusFilter.length > 0;
 }
 function getWorkingRows(){
   return isAnyFilterActive() ? getVisibleRows() : rows;
@@ -1874,14 +1891,53 @@ function toggleUncheckedFilter(){
   render();
 }
 
-function onStatusFilterChange(val){
-  statusFilter = val;
-  const sel = document.getElementById('statusFilter');
-  sel.classList.remove('f-minus', 'f-plus');
-  if(val === 'minus') sel.classList.add('f-minus');
-  if(val === 'plus') sel.classList.add('f-plus');
+const STATUS_FILTER_LABELS = { all:'Filter: semua', minus:'Filter: minus', plus:'Filter: plus' };
+
+function openStatusFilterModal(e){
+  if(e) e.stopPropagation();
+  closeTokoModal();
+  closePetugasModal();
+  refreshStatusFilterModalUI();
+  document.getElementById('statusFilterModal').classList.add('show');
+}
+
+function closeStatusFilterModal(){
+  document.getElementById('statusFilterModal').classList.remove('show');
+}
+
+// Modal "Filter" sekarang bekerja seperti checkbox: Minus dan Plus bisa
+// dipilih bersamaan (dua-duanya sekaligus), bukan cuma salah satu.
+// Tombol "Semua" mengosongkan pilihan (menampilkan semua status lagi).
+// Sengaja TIDAK menutup modal setiap kali dipilih, supaya pengguna bisa
+// menekan lebih dari satu pilihan sebelum menutupnya sendiri.
+function selectStatusFilter(val){
+  if(val === 'all'){
+    statusFilter = [];
+  } else {
+    const idx = statusFilter.indexOf(val);
+    if(idx === -1) statusFilter.push(val); else statusFilter.splice(idx, 1);
+  }
+  refreshStatusFilterModalUI();
   currentPage = 1;
   render();
+}
+
+function refreshStatusFilterModalUI(){
+  document.querySelectorAll('#statusFilterList .modal-option').forEach(btn => {
+    const val = btn.dataset.val;
+    const isActive = val === 'all' ? statusFilter.length === 0 : statusFilter.includes(val);
+    btn.classList.toggle('active', isActive);
+  });
+  const btn = document.getElementById('statusFilterBtn');
+  if(btn){
+    btn.classList.toggle('f-minus', statusFilter.includes('minus'));
+    btn.classList.toggle('f-plus', statusFilter.includes('plus'));
+  }
+  const label = document.getElementById('statusFilterLabel');
+  if(label){
+    if(!statusFilter.length) label.textContent = STATUS_FILTER_LABELS.all;
+    else label.textContent = 'Filter: ' + statusFilter.map(v => v === 'minus' ? 'minus' : 'plus').join(' + ');
+  }
 }
 
 function goToPage(p){
@@ -5525,7 +5581,7 @@ async function resetAll(){
   try{ localStorage.setItem(ACTIVE_SESI_KEY, '1'); }catch(e){}
   searchQuery = '';
   showOnlyUnchecked = false;
-  statusFilter = 'all';
+  statusFilter = [];
   pendingEditIds.clear();
   pendingDeleteIds.clear();
   hideRestoreBanner();
@@ -5541,8 +5597,10 @@ async function resetAll(){
   if(clearBtn) clearBtn.classList.remove('show');
   const uncheckedBtn = document.getElementById('uncheckedToggleBtn');
   if(uncheckedBtn) uncheckedBtn.classList.remove('active');
-  const statusFilterSel = document.getElementById('statusFilter');
-  if(statusFilterSel){ statusFilterSel.value = 'all'; statusFilterSel.classList.remove('f-minus', 'f-plus'); }
+  const statusFilterBtn = document.getElementById('statusFilterBtn');
+  if(statusFilterBtn) statusFilterBtn.classList.remove('f-minus', 'f-plus');
+  const statusFilterLabel = document.getElementById('statusFilterLabel');
+  if(statusFilterLabel) statusFilterLabel.textContent = STATUS_FILTER_LABELS.all;
   updateHideTokoUI();
   renderSesiTabs();
   document.getElementById('preview').className = 'preview empty';
@@ -5558,6 +5616,7 @@ function openTokoModal(e){
   if(e) e.stopPropagation();
   if(isViewOnlyForMe()) return;
   closePetugasModal();
+  closeStatusFilterModal();
   const listEl = document.getElementById('tokoList');
   if(TOKO_LIST.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada toko di daftar. Ketik nama secara manual di bawah.</div>';
@@ -5594,6 +5653,7 @@ function openPetugasModal(e){
   if(isViewOnlyForMe()) return;
   if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
   closeTokoModal();
+  closeStatusFilterModal();
   const listEl = document.getElementById('petugasList');
   if(petugasRowsFull.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
@@ -8998,4 +9058,3 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
 </body>
 </html>
-l
