@@ -148,6 +148,15 @@
   .badge.klop{background:var(--klop-bg); color:var(--klop);}
   .badge.unchecked{background:#f0efe8; color:#9aada6; font-weight:700;}
   .badge.partial{background:#fbf1e0; color:var(--amber);}
+  .note-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; margin-left:4px; padding:0; vertical-align:middle;
+    background:none; border:1.5px dashed #c2c9c4; border-radius:7px; color:#9aada6;
+  }
+  .note-btn svg{width:12px;height:12px;}
+  .note-btn:hover{border-color:var(--teal); color:var(--teal);}
+  .note-btn.has-note{border-style:solid; border-color:var(--amber); background:#fbf1e0; color:var(--amber);}
+  td.status-cell{white-space:nowrap;}
   .del-btn{
     background:none; border:none; cursor:pointer; color:#c2c9c4; padding:4px; border-radius:6px;
     display:flex; align-items:center; justify-content:center;
@@ -1235,7 +1244,7 @@
       <span class="copied-msg" id="copiedMsgNama">Tersalin ✓ nama barang siap ditempel</span>
     </div>
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
-    <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak.</div>
+    <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak. Untuk barang minus/plus, ada tombol catatan (ikon pensil) di sebelah badge untuk isi keterangan opsional kenapa selisihnya terjadi.</div>
   </div>
   </div>
 
@@ -1769,7 +1778,7 @@ function updateHideTokoUI(){
 }
 
 function newRow(){
-  return { id: idCounter++, nama:'', t1:'', t2:'', apk:'' };
+  return { id: idCounter++, nama:'', t1:'', t2:'', apk:'', catatan:'' };
 }
 
 function addRow(){
@@ -1810,6 +1819,30 @@ function updateField(id, field, value){
   saveState();
 }
 
+// Catatan opsional untuk menjelaskan kenapa barang selisih minus/plus
+// (mis. "barang rusak", "salah input toko", "belum di-input admin", dst).
+// Disimpan per baris di r.catatan dan ikut tersimpan/sync seperti field lain.
+function editCatatan(id){
+  if(isViewOnlyForMe()) return;
+  const r = rows.find(r => r.id === id);
+  if(!r) return;
+  const val = prompt(`Catatan untuk "${r.nama.trim() || 'barang ini'}" (kenapa minus/plus?):`, r.catatan || '');
+  if(val === null) return; // batal
+  r.catatan = val.trim();
+  pendingEditIds.add(id);
+  const statusEl = document.getElementById(`status-${id}`);
+  if(statusEl) statusEl.innerHTML = checkBadgeHtml(r);
+  saveState();
+}
+
+function catatanNoteHtml(r){
+  const has = r.catatan && r.catatan.trim();
+  const title = has ? `Catatan: ${r.catatan.trim()}` : 'Tambah catatan (opsional)';
+  return `<button type="button" class="note-btn ${has ? 'has-note' : ''}" title="${escapeHtml(title)}" onclick="editCatatan(${r.id})">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 17.5V20h2.5l11.3-11.3-2.5-2.5L4 17.5Zm14.7-9.9c.4-.4.4-1 0-1.4l-1.9-1.9c-.4-.4-1-.4-1.4 0l-1.5 1.5 3.3 3.3 1.5-1.5Z" fill="currentColor"/></svg>
+  </button>`;
+}
+
 function badgeHtml(st){
   if(!st) return '<span style="color:#c2c9c4;font-size:12px;">—</span>';
   if(st.type === 'klop') return '<span class="badge klop">KLOP ✓</span>';
@@ -1824,8 +1857,8 @@ function checkBadgeHtml(r){
   const st = statusOf(r);
   if(!st) return '<span class="badge partial">Fisik terisi</span>';
   if(st.type === 'klop') return '<span class="badge klop">KLOP ✓</span>';
-  if(st.type === 'minus') return `<span class="badge minus">${st.selisih}</span>`;
-  return `<span class="badge plus">+${st.selisih}</span>`;
+  if(st.type === 'minus') return `<span class="badge minus">${st.selisih}</span>${catatanNoteHtml(r)}`;
+  return `<span class="badge plus">+${st.selisih}</span>${catatanNoteHtml(r)}`;
 }
 
 function fisikOf(r){
@@ -2242,8 +2275,8 @@ function generate(doCopy){
     const apk = parseInt(r.apk) || 0;
     const t1 = parseInt(r.t1) || 0;
     const t2 = parseInt(r.t2) || 0;
-    if(st.type === 'minus') minusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
-    else if(st.type === 'plus') plusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2});
+    if(st.type === 'minus') minusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2, catatan:(r.catatan||'').trim()});
+    else if(st.type === 'plus') plusList.push({nama:r.nama.trim(), selisih:st.selisih, apk, fisik, t1, t2, catatan:(r.catatan||'').trim()});
     else klopList.push({nama:r.nama.trim(), t1, t2});
   });
 
@@ -2259,14 +2292,14 @@ function generate(doCopy){
   if(minusList.length){
     out += `\n *YANG -* \n`;
     minusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
+      out += `${i+1}. ${it.nama} (${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}${it.catatan ? ` (*${it.catatan}*)` : ''}\n`;
     });
   }
 
   if(plusList.length){
     out += `\n *YANG +* \n`;
     plusList.forEach((it, i) => {
-      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}\n`;
+      out += `${i+1}. ${it.nama} (+${it.selisih}) web ${it.apk} fisik ${it.fisik}${breakdownText(it.t1, it.t2)}${it.catatan ? ` (*${it.catatan}*)` : ''}\n`;
     });
   }
 
@@ -2959,7 +2992,8 @@ async function exportExcel(){
       { key:'fisik', width:11 },
       { key:'apk', width:12 },
       { key:'selisih', width:11 },
-      { key:'status', width:15 }
+      { key:'status', width:15 },
+      { key:'catatan', width:28 }
     ];
     ws.columns = COLS;
 
@@ -2975,7 +3009,7 @@ async function exportExcel(){
     const BORDER = { style:'thin', color:{argb:'FFE0E4E2'} };
 
     // Judul
-    ws.mergeCells('A1:H1');
+    ws.mergeCells('A1:I1');
     const titleCell = ws.getCell('A1');
     titleCell.value = 'STOK OPNAME — ' + (toko ? toko.toUpperCase() : 'APOTEK RAFA');
     titleCell.font = { name: FONT, size: 14, bold: true, color: { argb: TEAL } };
@@ -2983,7 +3017,7 @@ async function exportExcel(){
     ws.getRow(1).height = 24;
 
     // Baris info
-    ws.mergeCells('A2:H2');
+    ws.mergeCells('A2:I2');
     const infoCell = ws.getCell('A2');
     infoCell.value = `Tanggal: ${tglLabel}   |   Waktu: ${waktu || '-'}   |   Petugas: ${petugas || '-'}`;
     infoCell.font = { name: FONT, size: 10.5, color: { argb: 'FF5A6460' } };
@@ -2992,14 +3026,14 @@ async function exportExcel(){
     ws.getRow(3).height = 6;
 
     // Header tabel (baris 4)
-    const headerLabels = ['No','Nama Barang','Rafa 1','Rafa 2','Fisik','Web/Apk','Selisih','Status'];
+    const headerLabels = ['No','Nama Barang','Rafa 1','Rafa 2','Fisik','Web/Apk','Selisih','Status','Catatan'];
     const headerRow = ws.getRow(4);
     headerLabels.forEach((label, idx) => {
       const cell = headerRow.getCell(idx + 1);
       cell.value = label;
       cell.font = { name: FONT, size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: TEAL} };
-      cell.alignment = { horizontal: idx === 1 ? 'left' : 'center', vertical:'middle' };
+      cell.alignment = { horizontal: (idx === 1 || idx === 8) ? 'left' : 'center', vertical:'middle' };
       cell.border = { top:BORDER, left:BORDER, right:BORDER, bottom:BORDER };
     });
     headerRow.height = 20;
@@ -3039,39 +3073,40 @@ async function exportExcel(){
         checked || fisik ? fisik : null,
         r.apk === '' ? null : Number(r.apk),
         selisihVal,
-        statusLabel
+        statusLabel,
+        (r.catatan || '').trim() || null
       ];
 
       values.forEach((val, idx) => {
         const cell = row.getCell(idx + 1);
         cell.value = val;
         cell.font = { name: FONT, size: 10 };
-        cell.alignment = { horizontal: idx === 1 ? 'left' : 'center', vertical:'middle' };
+        cell.alignment = { horizontal: (idx === 1 || idx === 8) ? 'left' : 'center', vertical:'middle' };
         cell.border = { top:BORDER, left:BORDER, right:BORDER, bottom:BORDER };
       });
 
       // Selang-seling warna baris supaya rapi dan mudah dibaca
       if(i % 2 === 1){
-        for(let c = 1; c <= 8; c++){
+        for(let c = 1; c <= 9; c++){
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFF6F8F7'} };
         }
       }
 
-      // Warna khusus: minus merah, plus biru — mewarnai satu baris penuh dari Nama Barang sampai Status
+      // Warna khusus: minus merah, plus biru — mewarnai satu baris penuh dari Nama Barang sampai Catatan
       if(colorType === 'minus'){
-        for(let c = 2; c <= 8; c++){
+        for(let c = 2; c <= 9; c++){
           const isEmph = (c === 7 || c === 8);
           row.getCell(c).font = { name: FONT, size: 10, bold: isEmph, color:{argb: RED} };
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: RED_BG} };
         }
       } else if(colorType === 'plus'){
-        for(let c = 2; c <= 8; c++){
+        for(let c = 2; c <= 9; c++){
           const isEmph = (c === 7 || c === 8);
           row.getCell(c).font = { name: FONT, size: 10, bold: isEmph, color:{argb: BLUE} };
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: BLUE_BG} };
         }
       } else if(colorType === 'klop'){
-        for(let c = 2; c <= 8; c++){
+        for(let c = 2; c <= 9; c++){
           row.getCell(c).font = { name: FONT, size: 10, bold: (c === 8), color:{argb: GREEN} };
           row.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:{argb: GREEN_BG} };
         }
@@ -3084,7 +3119,7 @@ async function exportExcel(){
 
     // Ringkasan di bawah tabel
     const sumRowIdx = 5 + sorted.length + 1;
-    ws.mergeCells(`A${sumRowIdx}:H${sumRowIdx}`);
+    ws.mergeCells(`A${sumRowIdx}:I${sumRowIdx}`);
     const sumHeadCell = ws.getCell(`A${sumRowIdx}`);
     sumHeadCell.value = 'RINGKASAN';
     sumHeadCell.font = { name: FONT, size: 11, bold: true, color:{argb: TEAL} };
@@ -3112,7 +3147,7 @@ async function exportExcel(){
     });
 
     // Filter otomatis di header tabel
-    ws.autoFilter = { from: 'A4', to: 'H4' };
+    ws.autoFilter = { from: 'A4', to: 'I4' };
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
