@@ -949,6 +949,29 @@
   .room-locked-banner svg{flex-shrink:0; margin-top:1px;}
   .rlb-title{font-weight:800; font-size:14px; margin-bottom:2px;}
   .rlb-sub{font-size:12.5px; font-weight:600; opacity:.9;}
+
+  .sesi-tabs{
+    display:flex; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    margin-bottom:14px; padding-bottom:2px; scrollbar-width:none;
+  }
+  .sesi-tabs::-webkit-scrollbar{display:none;}
+  .sesi-tab{
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    padding:8px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--card);
+    font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink-soft);
+    cursor:pointer; white-space:nowrap;
+  }
+  .sesi-tab.active{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .sesi-tab-del{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:50%; font-size:12px; line-height:1; font-weight:700;
+    background:rgba(0,0,0,0.08); color:inherit; margin-left:2px;
+  }
+  .sesi-tab.active .sesi-tab-del{background:rgba(255,255,255,0.22);}
+  .sesi-tab-add{
+    width:34px; height:34px; padding:0; justify-content:center; font-size:17px;
+    color:var(--teal); border-style:dashed;
+  }
 </style>
 </head>
 <body>
@@ -1043,6 +1066,8 @@
   </div>
 
   <div id="lockableContent">
+
+  <div class="sesi-tabs" id="sesiTabsWrap"></div>
 
   <div class="card">
     <h2>Info Update</h2>
@@ -1568,6 +1593,141 @@ let showOnlyUnchecked = false;
 let statusFilter = 'all';
 let currentPage = 1;
 const PAGE_SIZE = 50;
+
+// ====== Sesi Hitung Terpisah (mis. "Sesi 1", "Sesi 2") ======
+// Satu opname (toko/tanggal/petugas yang sama) bisa dipecah jadi beberapa
+// sesi hitung yang datanya (daftar barang & jumlah) benar-benar terpisah,
+// misalnya sesi pagi vs sesi sore. `sesiList` menyimpan semua sesi dan IKUT
+// disinkronkan real-time ke tim (lewat collectCurrentState/applyRemoteState),
+// tapi `activeSesiId` (sesi mana yang lagi dilihat) itu murni pilihan lokal
+// per HP -- supaya tiap anggota tim bebas melihat sesi yang berbeda-beda
+// tanpa saling menimpa tampilan satu sama lain. Variabel global `rows`,
+// `idCounter`, `hideToko`, `editingFromId` SELALU mencerminkan sesi yang
+// sedang aktif saat ini, supaya semua fungsi lama yang sudah pakai `rows`
+// tetap jalan tanpa perlu diubah satu-satu.
+const ACTIVE_SESI_KEY = 'stok-opname-active-sesi';
+let sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+let activeSesiId = 1;
+let sesiIdCounter = 2;
+
+function getActiveSesiIndex(){
+  let idx = sesiList.findIndex(s => s.id === activeSesiId);
+  if(idx === -1){
+    idx = 0;
+    activeSesiId = sesiList[0] ? sesiList[0].id : 1;
+  }
+  return idx;
+}
+
+// Salin kondisi global (rows dkk) yang sedang dipakai layar ke dalam slot
+// sesi aktif di sesiList -- dipanggil sebelum sesiList dikirim/disimpan atau
+// sebelum pindah ke sesi lain, supaya perubahan yang belum "resmi" tersimpan
+// tidak hilang.
+function syncGlobalsIntoActiveSesi(){
+  const idx = getActiveSesiIndex();
+  if(!sesiList[idx]) return;
+  sesiList[idx].rows = rows;
+  sesiList[idx].idCounter = idCounter;
+  sesiList[idx].hideToko = hideToko;
+  sesiList[idx].editingFromId = editingFromId;
+}
+
+// Muat data sesi aktif (dari sesiList) ke variabel global rows dkk supaya
+// tampil di layar.
+function loadActiveSesiIntoGlobals(){
+  const idx = getActiveSesiIndex();
+  const s = sesiList[idx] || sesiList[0] || { rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null };
+  rows = s.rows || [];
+  idCounter = s.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+  hideToko = s.hideToko || { t1:false, t2:false };
+  editingFromId = s.editingFromId || null;
+}
+
+function resetViewStateForSesiSwitch(){
+  searchQuery = '';
+  showOnlyUnchecked = false;
+  statusFilter = 'all';
+  currentPage = 1;
+  const searchInput = document.getElementById('searchInput');
+  if(searchInput) searchInput.value = '';
+  pendingEditIds.clear();
+  pendingDeleteIds.clear();
+}
+
+function switchSesi(id){
+  if(id === activeSesiId) return;
+  syncGlobalsIntoActiveSesi();
+  activeSesiId = id;
+  loadActiveSesiIntoGlobals();
+  resetViewStateForSesiSwitch();
+  updateHideTokoUI();
+  renderSesiTabs();
+  render();
+  try{ localStorage.setItem(ACTIVE_SESI_KEY, String(activeSesiId)); }catch(e){}
+}
+
+function addSesi(){
+  if(isViewOnlyForMe()) return;
+  const suggested = 'Sesi ' + (sesiList.length + 1);
+  const name = prompt('Nama sesi baru:', suggested);
+  if(name === null) return;
+  const nama = name.trim() || suggested;
+  syncGlobalsIntoActiveSesi();
+  const newId = sesiIdCounter++;
+  sesiList.push({ id:newId, nama, rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null });
+  activeSesiId = newId;
+  loadActiveSesiIntoGlobals();
+  resetViewStateForSesiSwitch();
+  updateHideTokoUI();
+  renderSesiTabs();
+  render();
+  try{ localStorage.setItem(ACTIVE_SESI_KEY, String(activeSesiId)); }catch(e){}
+  saveState();
+}
+
+function renameSesi(id){
+  if(isViewOnlyForMe()) return;
+  const s = sesiList.find(x => x.id === id);
+  if(!s) return;
+  const name = prompt('Ganti nama sesi:', s.nama);
+  if(name === null) return;
+  s.nama = name.trim() || s.nama;
+  renderSesiTabs();
+  saveState();
+}
+
+async function deleteSesi(id){
+  if(isViewOnlyForMe()) return;
+  if(sesiList.length <= 1){ alert('Minimal harus ada satu sesi.'); return; }
+  const s = sesiList.find(x => x.id === id);
+  if(!s) return;
+  const ok = await customConfirm(`Hapus "${s.nama}"? Semua data barang di sesi ini akan hilang.`, 'Hapus', 'Batal');
+  if(!ok) return;
+  sesiList = sesiList.filter(x => x.id !== id);
+  if(activeSesiId === id){
+    activeSesiId = sesiList[0].id;
+    loadActiveSesiIntoGlobals();
+    resetViewStateForSesiSwitch();
+    updateHideTokoUI();
+    render();
+    try{ localStorage.setItem(ACTIVE_SESI_KEY, String(activeSesiId)); }catch(e){}
+  }
+  renderSesiTabs();
+  saveState();
+}
+
+function renderSesiTabs(){
+  const wrap = document.getElementById('sesiTabsWrap');
+  if(!wrap) return;
+  const tabsHtml = sesiList.map(s => `
+    <button type="button" class="sesi-tab ${s.id === activeSesiId ? 'active' : ''}" onclick="switchSesi(${s.id})" ondblclick="renameSesi(${s.id})" title="Klik dua kali untuk ganti nama">
+      ${escapeHtml(s.nama)}
+      ${sesiList.length > 1 ? `<span class="sesi-tab-del" onclick="event.stopPropagation(); deleteSesi(${s.id})" title="Hapus sesi">&times;</span>` : ''}
+    </button>
+  `).join('');
+  const addHtml = isViewOnlyForMe() ? '' : `<button type="button" class="sesi-tab sesi-tab-add" onclick="addSesi()" title="Tambah sesi">+</button>`;
+  wrap.innerHTML = tabsHtml + addHtml;
+}
 
 
 function isChecked(r){
@@ -3335,6 +3495,7 @@ async function disableViewOnlyForTeam(){
 }
 
 function collectCurrentState(){
+  syncGlobalsIntoActiveSesi();
   return {
     meta: {
       toko: document.getElementById('metaToko').value,
@@ -3342,7 +3503,12 @@ function collectCurrentState(){
       tgl: document.getElementById('metaTgl').value,
       petugas: document.getElementById('metaPetugas').value
     },
+    // rows/idCounter/hideToko/editingFromId di sini adalah cerminan sesi yang
+    // sedang aktif -- dipertahankan untuk kompatibilitas kode lama & sesi live
+    // per-petugas (yang belum tentu paham konsep multi-sesi). Data lengkap
+    // semua sesi ada di `sesiList`.
     rows, idCounter, hideToko, editingFromId,
+    sesiList, activeSesiId,
     session: { active: sessionActive, hostClientId: hostClientId, viewOnly: viewOnlyForTeam }
   };
 }
@@ -3350,39 +3516,64 @@ function collectCurrentState(){
 function applyRemoteState(state){
   if(!state) return;
   applyingRemote = true;
-  const remoteRows = state.rows || [];
 
-  if(pendingEditIds.size === 0 && pendingDeleteIds.size === 0){
-    // Tidak ada perubahan lokal yang belum tersimpan -> aman untuk pakai data terbaru dari server apa adanya.
-    rows = remoteRows;
+  if(Array.isArray(state.sesiList) && state.sesiList.length){
+    // Format baru (multi-sesi): gabungkan sesi dari server, tapi tetap jaga
+    // perubahan lokal yang belum terkirim di sesi yang SEDANG dilihat di HP ini.
+    let remoteSesiList = state.sesiList.map(s => ({
+      id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
+      idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
+      editingFromId: s.editingFromId || null
+    }));
+    const activeIdx = remoteSesiList.findIndex(s => s.id === activeSesiId);
+    if(activeIdx !== -1 && (pendingEditIds.size > 0 || pendingDeleteIds.size > 0)){
+      const remoteActive = remoteSesiList[activeIdx];
+      const remoteRows = remoteActive.rows || [];
+      const localById = new Map(rows.map(r => [r.id, r]));
+      const remoteIds = new Set(remoteRows.map(r => r.id));
+      let mergedRows = remoteRows
+        .filter(rr => !pendingDeleteIds.has(rr.id))
+        .map(rr => pendingEditIds.has(rr.id) && localById.has(rr.id) ? localById.get(rr.id) : rr);
+      localById.forEach((r, id) => {
+        if(pendingEditIds.has(id) && !remoteIds.has(id) && !pendingDeleteIds.has(id)) mergedRows.push(r);
+      });
+      remoteSesiList[activeIdx] = {
+        ...remoteActive, rows: mergedRows,
+        idCounter: Math.max(remoteActive.idCounter || 0, mergedRows.length ? Math.max(...mergedRows.map(r => r.id)) + 1 : 0)
+      };
+    }
+    sesiList = remoteSesiList;
+    if(!sesiList.some(s => s.id === activeSesiId)) activeSesiId = sesiList[0].id;
+    sesiIdCounter = Math.max(sesiIdCounter, Math.max(0, ...sesiList.map(s => s.id)) + 1);
+    loadActiveSesiIntoGlobals();
   } else {
-    // Ada perubahan lokal yang belum sempat dikirim (masih dalam antrean/lagi dikirim).
-    // Supaya tidak tertimpa data lama dari rekan tim lain, pertahankan versi lokal
-    // untuk baris yang sedang diedit/dihapus, dan pakai versi server untuk sisanya.
-    const localById = new Map(rows.map(r => [r.id, r]));
-    const remoteIds = new Set(remoteRows.map(r => r.id));
-
-    rows = remoteRows
-      .filter(rr => !pendingDeleteIds.has(rr.id))
-      .map(rr => pendingEditIds.has(rr.id) && localById.has(rr.id) ? localById.get(rr.id) : rr);
-
-    // Baris baru yang ditambahkan lokal tapi belum ada di server, tetap dipertahankan.
-    localById.forEach((r, id) => {
-      if(pendingEditIds.has(id) && !remoteIds.has(id) && !pendingDeleteIds.has(id)){
-        rows.push(r);
-      }
-    });
+    // Format lama (sebelum ada multi-sesi): satu daftar barang flat.
+    const remoteRows = state.rows || [];
+    if(pendingEditIds.size === 0 && pendingDeleteIds.size === 0){
+      rows = remoteRows;
+    } else {
+      const localById = new Map(rows.map(r => [r.id, r]));
+      const remoteIds = new Set(remoteRows.map(r => r.id));
+      rows = remoteRows
+        .filter(rr => !pendingDeleteIds.has(rr.id))
+        .map(rr => pendingEditIds.has(rr.id) && localById.has(rr.id) ? localById.get(rr.id) : rr);
+      localById.forEach((r, id) => {
+        if(pendingEditIds.has(id) && !remoteIds.has(id) && !pendingDeleteIds.has(id)) rows.push(r);
+      });
+    }
+    idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
+    hideToko = state.hideToko || { t1:false, t2:false };
+    editingFromId = state.editingFromId || null;
+    const idx = getActiveSesiIndex();
+    sesiList[idx] = { id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId };
   }
 
-  idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
   if(state.meta){
     document.getElementById('metaToko').value = state.meta.toko || '';
     document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
     document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
     document.getElementById('metaPetugas').value = state.meta.petugas || '';
   }
-  hideToko = state.hideToko || { t1:false, t2:false };
-  editingFromId = state.editingFromId || null;
   if(state.session){
     sessionActive = state.session.active !== false;
     hostClientId = state.session.hostClientId || hostClientId;
@@ -3390,9 +3581,11 @@ function applyRemoteState(state){
   }
   updateHideTokoUI();
   updateSessionUI();
+  renderSesiTabs();
+  render();
   applyingRemote = false;
   // simpan juga ke cache lokal supaya tetap ada kalau offline
-  try{ storageSet(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  try{ storageSet(STORAGE_KEY, JSON.stringify(collectCurrentState())); }catch(e){}
 }
 
 async function joinRoom(rawCode){
@@ -4124,9 +4317,24 @@ function applyPetugasSessionState(state){
   if(!state) return;
   applyingPetugasSession = true;
   applyingRemote = true; // pinjam guard yang sama supaya saveState() tidak memicu kirim balik
-  const remoteRows = state.rows || [];
-  rows = remoteRows;
-  idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
+  if(Array.isArray(state.sesiList) && state.sesiList.length){
+    sesiList = state.sesiList.map(s => ({
+      id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
+      idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
+      editingFromId: s.editingFromId || null
+    }));
+    activeSesiId = (state.activeSesiId && sesiList.some(s => s.id === state.activeSesiId)) ? state.activeSesiId : sesiList[0].id;
+    sesiIdCounter = Math.max(sesiIdCounter, Math.max(0, ...sesiList.map(s => s.id)) + 1);
+    loadActiveSesiIntoGlobals();
+  } else {
+    // Format lama, belum ada sesiList.
+    rows = state.rows || [];
+    idCounter = Math.max(state.idCounter || 0, rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0, idCounter || 0);
+    hideToko = state.hideToko || { t1:false, t2:false };
+    editingFromId = state.editingFromId || null;
+    const idx = getActiveSesiIndex();
+    sesiList[idx] = { id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId };
+  }
   if(state.meta){
     document.getElementById('metaToko').value = state.meta.toko || '';
     document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
@@ -4136,8 +4344,6 @@ function applyPetugasSessionState(state){
     // dengan nama yang sedang diambil alih.
     if(IS_ADMIN_TAKEOVER) document.getElementById('metaPetugas').value = state.meta.petugas || ADMIN_TAKEOVER_NAMA;
   }
-  hideToko = state.hideToko || { t1:false, t2:false };
-  editingFromId = state.editingFromId || null;
   // Catatan JS: terapkan versi terbaru dari sesi live (bisa datang dari
   // jendela Ambil Alih admin, atau dari HP petugas ini sendiri di tab lain)
   // supaya daftar catatan kode selalu sama di kedua sisi.
@@ -4147,6 +4353,7 @@ function applyPetugasSessionState(state){
     if(jsNotesOverlayEl && jsNotesOverlayEl.classList.contains('show')) renderJsNotesList();
   }
   updateHideTokoUI();
+  renderSesiTabs();
   render();
   applyingRemote = false;
   applyingPetugasSession = false;
@@ -4174,11 +4381,15 @@ async function startPetugasSession(nama){
         applyPetugasSessionState(data.state);
         setSaveStatus('Tersambung ke sesi live ' + (ADMIN_TAKEOVER_NAMA || nama));
       } else {
-        rows = []; idCounter = 0; hideToko = { t1:false, t2:false }; editingFromId = null;
+        sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+        activeSesiId = 1;
+        sesiIdCounter = 2;
+        loadActiveSesiIntoGlobals();
         document.getElementById('metaToko').value = '';
         document.getElementById('metaWaktu').value = 'siang';
         document.getElementById('metaTgl').value = todayISO();
         updateHideTokoUI();
+        renderSesiTabs();
         render();
         await pushPetugasSessionNow();
         setSaveStatus('Sesi baru dibuat untuk ' + (ADMIN_TAKEOVER_NAMA || nama));
@@ -5158,18 +5369,7 @@ function saveState(){
       if(!applyingRemote) pushPetugasSession(true);
       return;
     }
-    const state = {
-      meta: {
-        toko: document.getElementById('metaToko').value,
-        waktu: document.getElementById('metaWaktu').value,
-        tgl: document.getElementById('metaTgl').value,
-        petugas: document.getElementById('metaPetugas').value
-      },
-      rows,
-      idCounter,
-      hideToko,
-      editingFromId
-    };
+    const state = collectCurrentState();
     try{
       const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
       if(result){
@@ -5196,10 +5396,10 @@ async function loadState(){
     // perangkat ini sama sekali. Semua data datang dari & tersinkron ke
     // sesi live milik petugas yang sedang diambil alih (lihat
     // startPetugasSession()). Nama petugas dikunci sesuai parameter URL.
-    rows = [];
-    idCounter = 0;
-    hideToko = { t1:false, t2:false };
-    editingFromId = null;
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+    activeSesiId = 1;
+    sesiIdCounter = 2;
+    loadActiveSesiIntoGlobals();
     document.getElementById('metaToko').value = '';
     document.getElementById('metaWaktu').value = 'siang';
     document.getElementById('metaTgl').value = todayISO();
@@ -5209,6 +5409,7 @@ async function loadState(){
     const takeoverBanner = document.getElementById('takeoverBanner');
     if(takeoverBanner){ takeoverBanner.style.display = 'flex'; document.getElementById('takeoverBannerNama').textContent = ADMIN_TAKEOVER_NAMA; }
     updateHideTokoUI();
+    renderSesiTabs();
     render();
     updateRoomUI();
 
@@ -5228,8 +5429,22 @@ async function loadState(){
       const state = JSON.parse(result.value);
       // Pakai apa adanya dari data tersimpan, termasuk kalau memang sengaja
       // dikosongkan (misalnya lewat tombol reset).
-      rows = state.rows || [];
-      idCounter = state.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
+      if(Array.isArray(state.sesiList) && state.sesiList.length){
+        sesiList = state.sesiList.map(s => ({
+          id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
+          idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
+          editingFromId: s.editingFromId || null
+        }));
+      } else {
+        // Data lama sebelum fitur multi-sesi ada -- jadikan "Sesi 1".
+        sesiList = [ { id:1, nama:'Sesi 1', rows: state.rows || [], idCounter: state.idCounter || 0, hideToko: state.hideToko || {t1:false,t2:false}, editingFromId: state.editingFromId || null } ];
+      }
+      sesiIdCounter = Math.max(2, ...sesiList.map(s => s.id + 1));
+      let savedActiveId = null;
+      try{ savedActiveId = parseInt(localStorage.getItem(ACTIVE_SESI_KEY), 10); }catch(e){}
+      activeSesiId = (state.activeSesiId && sesiList.some(s => s.id === state.activeSesiId)) ? state.activeSesiId : sesiList[0].id;
+      if(savedActiveId && sesiList.some(s => s.id === savedActiveId)) activeSesiId = savedActiveId;
+      loadActiveSesiIntoGlobals();
       if(state.meta){
         document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
         document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
@@ -5238,25 +5453,28 @@ async function loadState(){
       } else {
         document.getElementById('metaTgl').value = todayISO();
       }
-      if(state.hideToko){
-        hideToko = { t1: !!state.hideToko.t1, t2: !!state.hideToko.t2 };
-      }
-      editingFromId = state.editingFromId || null;
       setSaveStatus('Data tersimpan dimuat');
     } else {
-      rows = [];
+      sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+      activeSesiId = 1;
+      sesiIdCounter = 2;
+      loadActiveSesiIntoGlobals();
       document.getElementById('metaToko').value = 'Rafa 1';
       document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
-    rows = [];
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+    activeSesiId = 1;
+    sesiIdCounter = 2;
+    loadActiveSesiIntoGlobals();
     document.getElementById('metaToko').value = 'Rafa 1';
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
   updateHideTokoUI();
+  renderSesiTabs();
   render();
 
   try{
@@ -5301,6 +5519,10 @@ async function resetAll(){
   idCounter = 0;
   hideToko = { t1:false, t2:false };
   editingFromId = null;
+  sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+  activeSesiId = 1;
+  sesiIdCounter = 2;
+  try{ localStorage.setItem(ACTIVE_SESI_KEY, '1'); }catch(e){}
   searchQuery = '';
   showOnlyUnchecked = false;
   statusFilter = 'all';
@@ -5322,6 +5544,7 @@ async function resetAll(){
   const statusFilterSel = document.getElementById('statusFilter');
   if(statusFilterSel){ statusFilterSel.value = 'all'; statusFilterSel.classList.remove('f-minus', 'f-plus'); }
   updateHideTokoUI();
+  renderSesiTabs();
   document.getElementById('preview').className = 'preview empty';
   document.getElementById('preview').textContent = 'Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.';
   render();
@@ -8775,3 +8998,4 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
 </body>
 </html>
+l
