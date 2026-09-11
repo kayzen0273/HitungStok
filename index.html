@@ -1632,7 +1632,7 @@ const PAGE_SIZE = 50;
 // sedang aktif saat ini, supaya semua fungsi lama yang sudah pakai `rows`
 // tetap jalan tanpa perlu diubah satu-satu.
 const ACTIVE_SESI_KEY = 'stok-opname-active-sesi';
-let sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+let sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
 let activeSesiId = 1;
 let sesiIdCounter = 2;
 
@@ -1656,17 +1656,33 @@ function syncGlobalsIntoActiveSesi(){
   sesiList[idx].idCounter = idCounter;
   sesiList[idx].hideToko = hideToko;
   sesiList[idx].editingFromId = editingFromId;
+  // Toko, tanggal, dan shift sekarang murni milik masing-masing sesi --
+  // disalin dari input yang sedang tampil ke slot sesi aktif ini.
+  const elTokoSync = document.getElementById('metaToko');
+  const elTglSync = document.getElementById('metaTgl');
+  const elWaktuSync = document.getElementById('metaWaktu');
+  if(elTokoSync) sesiList[idx].toko = elTokoSync.value;
+  if(elTglSync) sesiList[idx].tgl = elTglSync.value;
+  if(elWaktuSync) sesiList[idx].waktu = elWaktuSync.value;
 }
 
 // Muat data sesi aktif (dari sesiList) ke variabel global rows dkk supaya
 // tampil di layar.
 function loadActiveSesiIntoGlobals(){
   const idx = getActiveSesiIndex();
-  const s = sesiList[idx] || sesiList[0] || { rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null };
+  const s = sesiList[idx] || sesiList[0] || { rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' };
   rows = s.rows || [];
   idCounter = s.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
   hideToko = s.hideToko || { t1:false, t2:false };
   editingFromId = s.editingFromId || null;
+  // Toko, tanggal, dan shift ikut sesi ini -- tampilkan ke input begitu
+  // pindah/buat/hapus sesi, supaya benar-benar terpisah per sesi.
+  const elTokoLoad = document.getElementById('metaToko');
+  const elTglLoad = document.getElementById('metaTgl');
+  const elWaktuLoad = document.getElementById('metaWaktu');
+  if(elTokoLoad) elTokoLoad.value = (s.toko !== undefined && s.toko !== null) ? s.toko : '';
+  if(elTglLoad) elTglLoad.value = s.tgl || todayISO();
+  if(elWaktuLoad) elWaktuLoad.value = s.waktu || 'siang';
 }
 
 function resetViewStateForSesiSwitch(){
@@ -1700,7 +1716,7 @@ function addSesi(){
   const nama = name.trim() || suggested;
   syncGlobalsIntoActiveSesi();
   const newId = sesiIdCounter++;
-  sesiList.push({ id:newId, nama, rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null });
+  sesiList.push({ id:newId, nama, rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:todayISO(), waktu:'siang' });
   activeSesiId = newId;
   loadActiveSesiIntoGlobals();
   resetViewStateForSesiSwitch();
@@ -3614,7 +3630,8 @@ function applyRemoteState(state){
     let remoteSesiList = state.sesiList.map(s => ({
       id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
       idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
-      editingFromId: s.editingFromId || null
+      editingFromId: s.editingFromId || null,
+      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
     }));
     const activeIdx = remoteSesiList.findIndex(s => s.id === activeSesiId);
     if(activeIdx !== -1 && (pendingEditIds.size > 0 || pendingDeleteIds.size > 0)){
@@ -3656,13 +3673,20 @@ function applyRemoteState(state){
     hideToko = state.hideToko || { t1:false, t2:false };
     editingFromId = state.editingFromId || null;
     const idx = getActiveSesiIndex();
-    sesiList[idx] = { id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId };
+    sesiList[idx] = {
+      id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId,
+      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang'
+    };
+    if(state.meta){
+      document.getElementById('metaToko').value = state.meta.toko || '';
+      document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+      document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+    }
   }
-
+  // Catatan: untuk format sesiList baru, toko/tanggal/shift SUDAH ditampilkan
+  // oleh loadActiveSesiIntoGlobals() di atas (nilai milik sesi aktif masing-
+  // masing) -- jangan ditimpa lagi di sini dengan satu nilai "meta" global.
   if(state.meta){
-    document.getElementById('metaToko').value = state.meta.toko || '';
-    document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
-    document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
     document.getElementById('metaPetugas').value = state.meta.petugas || '';
   }
   if(state.session){
@@ -4412,7 +4436,8 @@ function applyPetugasSessionState(state){
     sesiList = state.sesiList.map(s => ({
       id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
       idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
-      editingFromId: s.editingFromId || null
+      editingFromId: s.editingFromId || null,
+      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
     }));
     activeSesiId = (state.activeSesiId && sesiList.some(s => s.id === state.activeSesiId)) ? state.activeSesiId : sesiList[0].id;
     sesiIdCounter = Math.max(sesiIdCounter, Math.max(0, ...sesiList.map(s => s.id)) + 1);
@@ -4424,12 +4449,19 @@ function applyPetugasSessionState(state){
     hideToko = state.hideToko || { t1:false, t2:false };
     editingFromId = state.editingFromId || null;
     const idx = getActiveSesiIndex();
-    sesiList[idx] = { id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId };
+    sesiList[idx] = {
+      id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId,
+      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang'
+    };
+    if(state.meta){
+      document.getElementById('metaToko').value = state.meta.toko || '';
+      document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+      document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+    }
   }
+  // Catatan: format sesiList baru sudah menampilkan toko/tanggal/shift milik
+  // sesi aktif masing-masing lewat loadActiveSesiIntoGlobals() di atas.
   if(state.meta){
-    document.getElementById('metaToko').value = state.meta.toko || '';
-    document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
-    document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
     // Nama petugas TIDAK diikutkan di HP petugas asli sendiri (nama itu milik
     // device ini), tapi diterapkan di jendela Ambil Alih supaya selalu sama
     // dengan nama yang sedang diambil alih.
@@ -4472,7 +4504,7 @@ async function startPetugasSession(nama){
         applyPetugasSessionState(data.state);
         setSaveStatus('Tersambung ke sesi live ' + (ADMIN_TAKEOVER_NAMA || nama));
       } else {
-        sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+        sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
         activeSesiId = 1;
         sesiIdCounter = 2;
         loadActiveSesiIntoGlobals();
@@ -5487,7 +5519,7 @@ async function loadState(){
     // perangkat ini sama sekali. Semua data datang dari & tersinkron ke
     // sesi live milik petugas yang sedang diambil alih (lihat
     // startPetugasSession()). Nama petugas dikunci sesuai parameter URL.
-    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
     activeSesiId = 1;
     sesiIdCounter = 2;
     loadActiveSesiIntoGlobals();
@@ -5520,15 +5552,18 @@ async function loadState(){
       const state = JSON.parse(result.value);
       // Pakai apa adanya dari data tersimpan, termasuk kalau memang sengaja
       // dikosongkan (misalnya lewat tombol reset).
+      let usedLegacyFlatSesi = false;
       if(Array.isArray(state.sesiList) && state.sesiList.length){
         sesiList = state.sesiList.map(s => ({
           id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
           idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
-          editingFromId: s.editingFromId || null
+          editingFromId: s.editingFromId || null,
+          toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
         }));
       } else {
         // Data lama sebelum fitur multi-sesi ada -- jadikan "Sesi 1".
-        sesiList = [ { id:1, nama:'Sesi 1', rows: state.rows || [], idCounter: state.idCounter || 0, hideToko: state.hideToko || {t1:false,t2:false}, editingFromId: state.editingFromId || null } ];
+        sesiList = [ { id:1, nama:'Sesi 1', rows: state.rows || [], idCounter: state.idCounter || 0, hideToko: state.hideToko || {t1:false,t2:false}, editingFromId: state.editingFromId || null, toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang' } ];
+        usedLegacyFlatSesi = true;
       }
       sesiIdCounter = Math.max(2, ...sesiList.map(s => s.id + 1));
       let savedActiveId = null;
@@ -5536,17 +5571,23 @@ async function loadState(){
       activeSesiId = (state.activeSesiId && sesiList.some(s => s.id === state.activeSesiId)) ? state.activeSesiId : sesiList[0].id;
       if(savedActiveId && sesiList.some(s => s.id === savedActiveId)) activeSesiId = savedActiveId;
       loadActiveSesiIntoGlobals();
+      // Toko/tanggal/shift format sesiList baru sudah ditampilkan oleh
+      // loadActiveSesiIntoGlobals() di atas (milik sesi aktif masing-masing);
+      // untuk data lama (flat) di atas sudah disalin ke sesi "Sesi 1"nya juga,
+      // jadi cukup terapkan lagi ke input di sini supaya konsisten dengan default lama.
       if(state.meta){
-        document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
-        document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
-        document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+        if(usedLegacyFlatSesi){
+          document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
+          document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
+          document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
+        }
         document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
-      } else {
+      } else if(!document.getElementById('metaTgl').value){
         document.getElementById('metaTgl').value = todayISO();
       }
       setSaveStatus('Data tersimpan dimuat');
     } else {
-      sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+      sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
       activeSesiId = 1;
       sesiIdCounter = 2;
       loadActiveSesiIntoGlobals();
@@ -5556,7 +5597,7 @@ async function loadState(){
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
-    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
     activeSesiId = 1;
     sesiIdCounter = 2;
     loadActiveSesiIntoGlobals();
@@ -5610,7 +5651,7 @@ async function resetAll(){
   idCounter = 0;
   hideToko = { t1:false, t2:false };
   editingFromId = null;
-  sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null } ];
+  sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
   activeSesiId = 1;
   sesiIdCounter = 2;
   try{ localStorage.setItem(ACTIVE_SESI_KEY, '1'); }catch(e){}
