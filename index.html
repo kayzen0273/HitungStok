@@ -87,6 +87,22 @@
 
   .meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .field label{display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field-label-row{display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .field-label-row label{margin-bottom:5px;}
+  .petugas-rename-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; margin-bottom:5px; padding:0;
+    background:none; border:1.5px dashed #c2c9c4; border-radius:6px; color:#9aada6; flex-shrink:0;
+  }
+  .petugas-rename-btn svg{width:11px;height:11px;}
+  .petugas-rename-btn:hover{border-color:var(--teal); color:var(--teal);}
+  .petugas-override-note{
+    font-size:10.5px; color:var(--amber); font-weight:600; margin-top:6px; line-height:1.4;
+  }
+  .petugas-override-note button{
+    background:none; border:none; padding:0; margin-left:2px; color:var(--teal);
+    font-weight:700; font-size:10.5px; text-decoration:underline; cursor:pointer; font-family:inherit;
+  }
   .field input, .field select{
     width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px;
     font-family:inherit; font-size:13.5px; line-height:1.4; color:var(--ink); background:var(--card);
@@ -1108,8 +1124,15 @@
         </select>
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
-      <div class="field field-dropdown"><label>Petugas</label>
+      <div class="field field-dropdown">
+        <div class="field-label-row">
+          <label>Petugas</label>
+          <button type="button" class="petugas-rename-btn" id="petugasRenameBtn" onclick="event.stopPropagation(); gantiNamaPetugasSesiIni()" title="Ganti nama khusus data ini saja (akun tidak berubah)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
         <input id="metaPetugas" placeholder="Pilih petugas" readonly>
+        <div class="petugas-override-note" id="petugasOverrideNote" style="display:none;"></div>
         <div class="field-dropdown-panel" id="petugasModal">
           <div class="modal-list" id="petugasList"></div>
           <div class="modal-manual">
@@ -3569,6 +3592,8 @@ function updateSessionUI(){
   if(metaTgl) metaTgl.disabled = viewOnly;
   if(metaToko) metaToko.style.pointerEvents = viewOnly ? 'none' : '';
   if(metaPetugas) metaPetugas.style.pointerEvents = viewOnly ? 'none' : '';
+  const petugasRenameBtn = document.getElementById('petugasRenameBtn');
+  if(petugasRenameBtn) petugasRenameBtn.style.display = (viewOnly || IS_ADMIN_TAKEOVER) ? 'none' : '';
   const addBtn = document.getElementById('btnAddRow');
   const importBtn = document.getElementById('btnImportExcel');
   const pasteStokBtn = document.getElementById('btnPasteStok');
@@ -3960,6 +3985,78 @@ function findPetugasIdByName(name){
   return row ? row.id : null;
 }
 
+function findPetugasNameById(id){
+  if(!id) return '';
+  const row = petugasRowsFull.find(r => String(r.id) === String(id));
+  return row ? (row.nama || '') : '';
+}
+
+// ====== Ganti nama Petugas HANYA untuk data yang sedang diisi ======
+// Beda dengan ganti akun (lewat popup "Siapa yang bertugas?" atau dikelola
+// admin di "Kelola Nama Petugas"): fitur ini cuma menimpa TEKS yang tercatat
+// di field Petugas untuk data stok opname yang sedang berjalan sekarang
+// (misal ada rekan yang titip isikan sebentar). Akun yang sebenarnya login
+// di HP ini -- dipakai utk password, presensi "Pengguna Aktif Sekarang", dan
+// sesi live "Ambil Alih" di Panel Admin -- TIDAK ikut berubah dan TIDAK ada
+// akun baru yang didaftarkan ke tabel stok_opname_petugas.
+// Ditandai lewat PETUGAS_NAME_OVERRIDE_KEY (localStorage, per HP, bukan per
+// akun) supaya reconcilePetugasIdentity() / handlePetugasRenameSync() tidak
+// otomatis menimpanya balik ke nama akun asli selama override ini aktif.
+const PETUGAS_NAME_OVERRIDE_KEY = 'stok-opname-petugas-name-override';
+
+function isPetugasNameOverrideActive(){
+  try{ return localStorage.getItem(PETUGAS_NAME_OVERRIDE_KEY) === '1'; }catch(e){ return false; }
+}
+function setPetugasNameOverrideActive(active){
+  try{
+    if(active) localStorage.setItem(PETUGAS_NAME_OVERRIDE_KEY, '1');
+    else localStorage.removeItem(PETUGAS_NAME_OVERRIDE_KEY);
+  }catch(e){}
+}
+
+function gantiNamaPetugasSesiIni(){
+  if(isViewOnlyForMe()) return;
+  if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
+  const metaEl = document.getElementById('metaPetugas');
+  if(!metaEl) return;
+  const current = metaEl.value.trim();
+  const val = prompt('Nama petugas khusus untuk data stok opname ini saja.\nAkun login kamu di HP ini TIDAK ikut berubah.', current);
+  if(val === null) return;
+  const nama = val.trim();
+  if(!nama) return;
+  metaEl.value = nama;
+  const realName = findPetugasNameById(getMyPetugasId());
+  setPetugasNameOverrideActive(!realName || nama.toLowerCase() !== realName.toLowerCase());
+  renderPetugasOverrideNote();
+  saveState();
+}
+
+function kembalikanNamaPetugasAsli(){
+  const realName = findPetugasNameById(getMyPetugasId());
+  const metaEl = document.getElementById('metaPetugas');
+  if(!realName || !metaEl){
+    alert('Nama akun asli belum diketahui di HP ini. Ganti manual lewat tombol pensil di sebelah "Petugas".');
+    return;
+  }
+  metaEl.value = realName;
+  setPetugasNameOverrideActive(false);
+  renderPetugasOverrideNote();
+  saveState();
+  if(typeof updatePresence === 'function') updatePresence();
+}
+
+function renderPetugasOverrideNote(){
+  const note = document.getElementById('petugasOverrideNote');
+  if(!note) return;
+  if(isPetugasNameOverrideActive()){
+    note.style.display = 'block';
+    note.innerHTML = 'Nama sementara khusus data ini, akun tidak berubah. <button type="button" onclick="kembalikanNamaPetugasAsli()">Kembali ke nama akun</button>';
+  } else {
+    note.style.display = 'none';
+    note.innerHTML = '';
+  }
+}
+
 async function initPetugasListListener(){
   await loadPetugasListFromServer();
   backfillMyPetugasIdIfMissing();
@@ -4038,6 +4135,7 @@ function subscribePetugasListChannel(){
 // paneladmin.html) supaya payload.old.nama tersedia.
 async function handlePetugasRenameSync(payload){
   if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
+  if(isPetugasNameOverrideActive()) return; // lagi pakai nama sementara khusus data ini, jangan ditimpa otomatis
   if(!payload || payload.eventType !== 'UPDATE') return;
   const oldNama = payload.old && payload.old.nama;
   const newNama = payload.new && payload.new.nama;
@@ -4060,6 +4158,8 @@ async function applyPetugasRename(newNama, id){
   const oldSlug = petugasSessionSlug;
   metaEl.value = newNama;
   if(id) setMyPetugasId(id);
+  setPetugasNameOverrideActive(false); // rename dari admin selalu berlaku ke nama akun asli
+  renderPetugasOverrideNote();
   saveState();
   if(typeof updatePresence === 'function') updatePresence();
   await startPetugasSession(newNama);
@@ -4078,6 +4178,7 @@ async function applyPetugasRename(newNama, id){
 // diubah admin saat offline -> terapkan di sini juga.
 async function reconcilePetugasIdentity(){
   if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
+  if(isPetugasNameOverrideActive()) return; // lagi pakai nama sementara khusus data ini, jangan ditimpa otomatis
   const metaEl = document.getElementById('metaPetugas');
   if(!metaEl) return;
   const myId = getMyPetugasId();
@@ -4135,6 +4236,8 @@ function submitPetugasIdentityManual(){
 function submitPetugasIdentity(name, id){
   document.getElementById('metaPetugas').value = name;
   setMyPetugasId(id || findPetugasIdByName(name));
+  setPetugasNameOverrideActive(false); // ini ganti akun beneran, bukan nama sementara
+  renderPetugasOverrideNote();
   saveState();
   updatePresence();
   startPetugasSession(name);
@@ -5619,6 +5722,7 @@ async function loadState(){
   updateRoomUI();
   await initPetugasListListener();
   await reconcilePetugasIdentity();
+  renderPetugasOverrideNote();
   await autoJoinFromStartup();
 
   initBroadcastListener();
@@ -5751,6 +5855,8 @@ function closePetugasModal(){
 function selectPetugas(name, id){
   document.getElementById('metaPetugas').value = name;
   setMyPetugasId(id || findPetugasIdByName(name));
+  setPetugasNameOverrideActive(false); // ini ganti akun beneran, bukan nama sementara
+  renderPetugasOverrideNote();
   saveState();
   closePetugasModal();
   updatePresence();
