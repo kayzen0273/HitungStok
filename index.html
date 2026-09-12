@@ -8908,6 +8908,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var aiReqHint = el('p', 'bba-model-hint');
     aiReqHint.textContent = 'Butuh HP Android (2019 ke atas) atau laptop/desktop dengan browser yang mendukung WebGPU (Chrome/Edge/Samsung Internet versi terbaru). Model diunduh sekali saja lewat internet (sekitar 700MB–1,3GB tergantung pilihan di atas, disarankan pakai WiFi), lalu tersimpan di HP/browser ini untuk dipakai lagi tanpa unduh ulang. iOS Safari belum mendukung fitur ini.';
 
+    var deleteModelBtn = el('button', 'bba-btn-clear', { type: 'button' });
+    deleteModelBtn.style.width = '100%';
+    deleteModelBtn.style.marginTop = '8px';
+    deleteModelBtn.textContent = '🗑️ Hapus AI Lokal yang Sudah Diunduh';
+
     var confirmRow = el('label', 'bba-confirm-toggle');
     var confirmToggle = el('input', '', { type: 'checkbox' });
     var confirmText = el('span'); confirmText.textContent = 'Minta konfirmasi sebelum menambah/mengubah data (hapus & kosongkan semua selalu minta konfirmasi)';
@@ -8921,7 +8926,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
     modal.appendChild(aiStatusBox); modal.appendChild(aiProgressWrap); modal.appendChild(aiActivateBtn);
-    modal.appendChild(modelRow); modal.appendChild(aiReqHint);
+    modal.appendChild(modelRow); modal.appendChild(aiReqHint); modal.appendChild(deleteModelBtn);
     modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
     modalOv.appendChild(modal);
     document.body.appendChild(modalOv);
@@ -8930,6 +8935,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     els.keyModalOv = modalOv; els.confirmToggle = confirmToggle; els.modelChoiceSelect = modelChoiceSelect;
     els.aiStatusDot = aiStatusDot; els.aiStatusText = aiStatusText;
     els.aiProgressWrap = aiProgressWrap; els.aiProgressBar = aiProgressBar; els.aiActivateBtn = aiActivateBtn;
+    els.deleteModelBtn = deleteModelBtn;
 
     // --- Event wiring ---
     fab.addEventListener('click', function () {
@@ -8971,6 +8977,52 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     modelChoiceSelect.addEventListener('change', function () {
       setModelChoice(modelChoiceSelect.value);
       refreshAiStatusUI();
+    });
+
+    deleteModelBtn.addEventListener('click', async function () {
+      var okHapus = confirm('Hapus model AI lokal yang sudah diunduh dari HP/browser ini?\n\nKamu perlu mengunduhnya ulang (butuh internet) kalau nanti mau pakai AI Agent lagi.');
+      if (!okHapus) return;
+
+      var oldLabel = deleteModelBtn.textContent;
+      deleteModelBtn.disabled = true;
+      deleteModelBtn.textContent = 'Menghapus...';
+      aiStatusText.textContent = 'Menghapus model AI lokal dari cache...';
+
+      try {
+        // Lepas engine yang sedang aktif dulu (kalau ada) supaya file model
+        // tidak sedang dipakai saat dihapus dari cache browser.
+        if (engine) {
+          try { if (typeof engine.unload === 'function') await engine.unload(); } catch (eUnload2) { /* abaikan */ }
+        }
+        engine = null;
+        engineModelId = null;
+
+        var webllm = await loadWebLLMModule();
+        var idModelList = [MODEL_BALANCED, MODEL_LIGHT];
+        var adaYangDihapus = false;
+        for (var iDel = 0; iDel < idModelList.length; iDel++) {
+          try {
+            var sudahAdaDiCache = await webllm.hasModelInCache(idModelList[iDel]);
+            if (sudahAdaDiCache) {
+              await webllm.deleteModelAllInfoInCache(idModelList[iDel]);
+              adaYangDihapus = true;
+            }
+          } catch (ePerModel) { /* lanjut ke model berikutnya walau satu gagal */ }
+        }
+
+        aiStatusText.textContent = adaYangDihapus
+          ? 'Selesai — model AI lokal yang tersimpan sudah dihapus dari HP/browser ini.'
+          : 'Tidak ada model AI lokal yang tersimpan di HP/browser ini.';
+        aiStatusDot.className = 'bba-ai-dot warn';
+        aiActivateBtn.style.display = '';
+        aiProgressWrap.style.display = 'none';
+      } catch (eDelAll) {
+        aiStatusText.textContent = 'Gagal menghapus model AI lokal: ' + ((eDelAll && eDelAll.message) || eDelAll);
+        aiStatusDot.className = 'bba-ai-dot err';
+      } finally {
+        deleteModelBtn.disabled = false;
+        deleteModelBtn.textContent = oldLabel;
+      }
     });
 
     clearBtn.addEventListener('click', function () {
