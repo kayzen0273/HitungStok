@@ -7321,16 +7321,21 @@ initOrderListListener();
 
 
 <!-- ============================================================================
-     AI Agent (Lokal/Browser) — asisten mengambang yang bisa membaca & MENGUBAH
-     data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
-     perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
-     variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
-     sudah didefinisikan di atas — jadi perubahan lewat AI Agent otomatis
-     tampil di layar & ikut tersinkron ke room tim seperti edit manual biasa.
-     Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
+     AI Agent (AI lokal via WebLLM/WebGPU, tanpa API key) — asisten
+     mengambang yang bisa membaca & MENGUBAH data stok opname (barang, stok
+     Rafa 1/Rafa 2/Web-Apk, info update) lewat perintah bahasa natural.
+     Berdiri sendiri (vanilla JS), langsung memakai variabel & fungsi asli
+     aplikasi ini (rows, render, saveState, dst) yang sudah didefinisikan di
+     atas — jadi perubahan lewat AI Agent otomatis tampil di layar & ikut
+     tersinkron ke room tim seperti edit manual biasa.
+     Otaknya adalah WebLLM (github.com/mlc-ai/web-llm) yang menjalankan
+     model bahasa kecil (Qwen2.5-1.5B / Llama-3.2-1B) langsung di
+     browser lewat WebGPU — jalan di HP Android maupun desktop, 100% di
+     perangkat pengguna sendiri, tidak perlu API key, tidak ada biaya, dan
+     tidak ada data yang dikirim ke server aplikasi ini.
 ============================================================================ -->
 <style>
-  /* ================= AI Agent (Lokal/Browser) — widget styles =================
+  /* ================= AI Agent (AI lokal bawaan Chrome) — widget styles =====
      Namespaced with "bba-" so it never collides with the app's own CSS.
      Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
      so it feels native instead of bolted-on. */
@@ -7495,7 +7500,7 @@ initOrderListListener();
   .bba-send:hover{ background:var(--teal-deep); }
   .bba-send:disabled{ opacity:.4; cursor:default; }
 
-  /* Settings / Local AI status modal */
+  /* Settings / API key modal */
   .bba-modal-ov{ position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center; background:rgba(10,25,22,0.5); padding:14px; }
   .bba-modal-ov.show{ display:flex; }
   .bba-modal{ background:var(--card); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.35); width:100%; max-width:360px; padding:18px; max-height:90vh; overflow-y:auto; }
@@ -7509,8 +7514,9 @@ initOrderListListener();
   }
   .bba-modal input:focus{ outline:none; border-color:var(--teal); }
   .bba-eye{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:13px; }
-  .bba-model-row{ display:flex; gap:6px; margin-bottom:4px; }
-  .bba-model-row input{ flex:1; }
+  .bba-model-row{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+  .bba-model-row input, .bba-model-row select{ flex:1; }
+  .bba-model-row > span{ font-size:11px; color:var(--ink-soft); font-weight:700; white-space:nowrap; }
   .bba-model-row button{
     flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
     border-radius:9px; padding:0 10px; font-size:10.8px; font-weight:700; cursor:pointer; white-space:nowrap;
@@ -7524,13 +7530,22 @@ initOrderListListener();
   .bba-model-status.ok{ color:var(--klop); }
   .bba-model-status.err{ color:var(--minus); }
   .bba-model-hint{ font-size:10px; color:#9aada6; margin:0 0 12px; line-height:1.4; }
-  .bba-ai-status{ background:var(--mint); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
-  .bba-ai-status-text{ font-size:12px; color:var(--ink); font-weight:600; line-height:1.5; }
-  .bba-ai-progress-wrap{ display:none; height:6px; border-radius:6px; background:#dbe8e1; overflow:hidden; margin-top:8px; }
-  .bba-ai-progress-wrap.show{ display:block; }
-  .bba-ai-progress-bar{ height:100%; width:0%; background:var(--teal); transition:width .25s ease; }
-  .bba-ai-status-btns{ display:flex; gap:7px; margin-bottom:16px; }
-  .bba-ai-status-btns button{ flex:1; border:none; border-radius:10px; padding:9px 8px; font-size:11.5px; font-weight:800; cursor:pointer; }
+  /* Status AI lokal (Chrome Prompt API) — menggantikan kolom API key lama */
+  .bba-ai-status{ display:flex; align-items:flex-start; gap:8px; margin-bottom:10px; }
+  .bba-ai-dot{ width:9px; height:9px; border-radius:50%; background:#c2c9c4; flex:0 0 auto; margin-top:4px; }
+  .bba-ai-dot.ok{ background:var(--klop); }
+  .bba-ai-dot.warn{ background:var(--amber); }
+  .bba-ai-dot.err{ background:var(--minus); }
+  .bba-ai-status-text{ font-size:11.5px; color:var(--ink-soft); line-height:1.45; }
+  .bba-ai-progress-wrap{ display:none; height:7px; border-radius:5px; background:var(--mint); overflow:hidden; margin-bottom:10px; }
+  .bba-ai-progress-bar{ height:100%; width:0%; background:var(--teal); transition:width .2s ease; }
+  .bba-ai-activate-btn{
+    width:100%; border:none; border-radius:10px; padding:9px 8px; margin-bottom:10px;
+    background:var(--teal); color:#fff; font-size:12.5px; font-weight:800; cursor:pointer; display:none;
+  }
+  .bba-ai-activate-btn:hover{ background:var(--teal-deep); }
+  .bba-ai-activate-btn:disabled{ opacity:.5; cursor:default; }
+
   .bba-confirm-toggle{ display:flex; align-items:center; gap:8px; margin-bottom:16px; cursor:pointer; user-select:none; }
   .bba-confirm-toggle span{ font-size:11.5px; color:var(--ink-soft); font-weight:600; line-height:1.4; }
   .bba-modal-btns{ display:flex; gap:7px; }
@@ -7646,16 +7661,25 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   'use strict';
 
   // =====================================================================
-  // AI Agent (Lokal/Browser) — asisten mengambang untuk aplikasi Stok Opname.
-  // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
-  // langsung lewat variabel/fungsi global yang sudah ada di file ini
-  // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
-  // perubahan lewat AI Agent langsung tampil di layar & ikut tersinkron ke
-  // room tim (kalau sedang aktif), sama seperti kalau diedit manual.
+  // AI Agent (AI lokal via WebLLM/WebGPU) — asisten mengambang untuk
+  // aplikasi Stok Opname. Berdiri sendiri (vanilla JS). Membaca & MENGUBAH
+  // data asli aplikasi ini langsung lewat variabel/fungsi global yang sudah
+  // ada di file ini (rows, addRow, updateField, delRow, render, saveState,
+  // dst) — sehingga perubahan lewat AI Agent langsung tampil di layar &
+  // ikut tersinkron ke room tim (kalau sedang aktif), sama seperti kalau
+  // diedit manual.
   //
-  // Otaknya memakai AI bawaan browser (Prompt API / "LanguageModel", mis.
-  // Gemini Nano di Chrome) — berjalan 100% di perangkat pengguna, TIDAK
-  // butuh API key, dan TIDAK mengirim apa pun ke server pihak ketiga.
+  // Otaknya memakai WebLLM (github.com/mlc-ai/web-llm), yang menjalankan
+  // model bahasa kecil (Qwen2.5-1.5B-Instruct atau Llama-3.2-1B-Instruct,
+  // format 4-bit MLC) langsung di browser lewat WebGPU — jalan 100% di
+  // perangkat pengguna sendiri: TIDAK butuh API key, TIDAK butuh server
+  // aplikasi ini, dan tidak ada data yang dikirim ke mana pun.
+  // Bisa dipakai di HP Android maupun desktop, selama browsernya mendukung
+  // WebGPU (Chrome/Edge/Samsung Internet versi terbaru). Kalau tidak
+  // didukung, AI Agent akan memberi tahu apa adanya lewat panel ⚙️
+  // Pengaturan. Library WebLLM diambil dari CDN publik (esm.run/jsDelivr)
+  // dan model AI-nya diunduh sekali dari Hugging Face lalu di-cache browser.
+  // Referensi: https://github.com/mlc-ai/web-llm
   // =====================================================================
 
   // ---------------------------------------------------------------------
@@ -7664,7 +7688,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
   var MAX_TOOL_LOOPS = 8;
-  var MAX_HISTORY    = 40;
+  var MAX_HISTORY    = 24; // dijaga cukup kecil karena jendela konteks model lokal lebih terbatas
   var WAKTU_OPTIONS  = ['pagi', 'siang', 'sore', 'malam'];
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
@@ -7739,8 +7763,10 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Tool schema (dipakai untuk mendeskripsikan tools ke model & untuk
-  // membangun skema JSON responseConstraint dari Prompt API bawaan browser)
+  // Tool schema — dipakai sebagai "sumber kebenaran" tunggal: dari sinilah
+  // deskripsi tiap tool dirender otomatis jadi teks yang disisipkan ke
+  // system prompt AI lokal (lihat toolsPromptText()), supaya tidak perlu
+  // menulis ulang deskripsi yang sama dua kali.
   // ---------------------------------------------------------------------
   var TOOLS = [
     {
@@ -7904,199 +7930,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   var WRITE_TOOLS = { add_item: 1, update_item: 1, delete_item: 1, bulk_set_stock: 1, bulk_add_items: 1, set_meta: 1, clear_all_items: 1 };
   var ALWAYS_CONFIRM_TOOLS = { delete_item: 1, clear_all_items: 1, bulk_add_items: 1 };
-
-  // ---------------------------------------------------------------------
-  // Mesin AI Lokal (Prompt API bawaan browser — "LanguageModel", mis.
-  // Gemini Nano di Chrome). Tidak ada server/API key sama sekali: semua
-  // proses "mikir" terjadi di perangkat pengguna sendiri.
-  //
-  // Prompt API bawaan browser belum punya konsep "tools"/function-calling
-  // asli seperti API cloud (Groq/OpenAI dkk), jadi tool-calling di sini
-  // DITIRU dengan cara:
-  //   1) Daftar & skema semua tools dijelaskan sebagai teks di system
-  //      prompt (lihat buildToolsDoc()).
-  //   2) Jawaban model DIPAKSA berbentuk JSON { reply, tool_call } lewat
-  //      opsi "responseConstraint" (JSON Schema) yang didukung Prompt API
-  //      sejak Chrome 137 — reply berisi teks untuk pengguna, tool_call
-  //      berisi { name, arguments } kalau model mau memanggil satu tool,
-  //      atau null kalau cukup membalas teks saja.
-  // Konsekuensinya model lokal jauh lebih kecil & kurang pintar dibanding
-  // model cloud, jadi hasilnya tidak akan sebagus versi Groq — terutama
-  // untuk perintah yang rumit/banyak langkah sekaligus.
-  // ---------------------------------------------------------------------
-  var LOCAL_AI_SUPPORTED = (typeof self !== 'undefined' && 'LanguageModel' in self);
-  var _toolCallSchemaCache = null;
-
-  // Bangun skema JSON (responseConstraint) dari daftar TOOLS di atas, jadi
-  // kalau daftar tools berubah, skema ini otomatis ikut menyesuaikan.
-  function buildToolCallSchema() {
-    var variants = TOOLS.map(function (t) {
-      return {
-        type: 'object',
-        properties: {
-          name: { type: 'string', enum: [t.function.name] },
-          arguments: t.function.parameters || { type: 'object', properties: {} }
-        },
-        required: ['name', 'arguments']
-      };
-    });
-    return {
-      type: 'object',
-      properties: {
-        reply: { type: 'string' },
-        tool_call: { anyOf: [{ type: 'null' }].concat(variants) }
-      },
-      required: ['reply', 'tool_call']
-    };
-  }
-  function getToolCallSchema() {
-    if (!_toolCallSchemaCache) _toolCallSchemaCache = buildToolCallSchema();
-    return _toolCallSchemaCache;
-  }
-
-  // Dokumentasi tools dalam bentuk teks biasa, disisipkan ke system prompt
-  // supaya model (yang tidak menerima parameter "tools" terpisah) tetap
-  // tahu tools apa saja yang tersedia & parameternya apa.
-  function buildToolsDoc() {
-    return TOOLS.map(function (t) {
-      var f = t.function;
-      var paramNames = Object.keys((f.parameters && f.parameters.properties) || {});
-      return '- ' + f.name + '(' + paramNames.join(', ') + '): ' + f.description;
-    }).join('\n');
-  }
-
-  // Cek status ketersediaan model lokal: "available" | "downloadable" |
-  // "downloading" | "unavailable" | "unsupported" (browser tidak punya
-  // Prompt API sama sekali, mis. bukan Chrome / versi lama / flag mati).
-  async function checkLocalAiAvailability() {
-    if (!LOCAL_AI_SUPPORTED) return 'unsupported';
-    try { return await LanguageModel.availability(); }
-    catch (e) { return 'unsupported'; }
-  }
-
-  // Memicu pengunduhan model lokal (sekali saja per perangkat/browser).
-  // Harus dipanggil dari dalam event klik pengguna (butuh "user activation").
-  async function downloadLocalModel(onProgress) {
-    if (!LOCAL_AI_SUPPORTED) throw new Error('Browser ini belum punya AI bawaan (Prompt API). Coba pakai Chrome versi terbaru & pastikan sudah diaktifkan.');
-    var session = await LanguageModel.create({
-      monitor: function (m) {
-        m.addEventListener('downloadprogress', function (e) {
-          if (onProgress) onProgress(e.loaded || 0);
-        });
-      }
-    });
-    try { session.destroy(); } catch (e) { /* ignore */ }
-    return true;
-  }
-
-  // Ubah data URL (hasil kompres foto di fileToCompressedDataUrl) jadi Blob,
-  // karena Prompt API menerima Blob/File untuk bagian konten bertipe gambar,
-  // bukan data URL string seperti format vision OpenAI-compatible.
-  function dataUrlToBlob(dataUrl) {
-    var parts = String(dataUrl || '').split(',');
-    var mimeMatch = /data:([^;]+);base64/.exec(parts[0] || '');
-    var mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-    var binary = atob(parts[1] || '');
-    var bytes = new Uint8Array(binary.length);
-    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
-  }
-
-  // Ubah satu "content" pesan (format lama: string ATAU array bagian
-  // text/image_url) jadi bagian konten yang dimengerti Prompt API.
-  function toLocalContentParts(content) {
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-      var parts = [];
-      content.forEach(function (p) {
-        if (!p) return;
-        if (p.type === 'text') parts.push({ type: 'text', value: p.text || '' });
-        else if (p.type === 'image_url' && p.image_url && p.image_url.url) {
-          try { parts.push({ type: 'image', value: dataUrlToBlob(p.image_url.url) }); }
-          catch (e) { /* lewati gambar yang gagal dibaca */ }
-        }
-      });
-      return parts.length ? parts : '';
-    }
-    return content == null ? '' : String(content);
-  }
-
-  // Ubah riwayat pesan gaya lama (system + user/assistant/tool) jadi
-  // rangkaian "turn" yang dikirim ke session.prompt() milik Prompt API.
-  // System prompt TIDAK ikut di sini karena sudah dipasang lewat
-  // initialPrompts saat sesi dibuat (lihat createLocalSession()). Pesan
-  // ber-role "tool" (hasil eksekusi tool) diubah jadi pesan "user" berlabel
-  // jelas, karena Prompt API tidak punya role "tool" sendiri.
-  function messagesToLocalTurns(msgsForApi) {
-    var turns = [];
-    for (var i = 1; i < msgsForApi.length; i++) {
-      var m = msgsForApi[i];
-      if (!m) continue;
-      if (m.role === 'user') {
-        turns.push({ role: 'user', content: toLocalContentParts(m.content) });
-      } else if (m.role === 'assistant') {
-        var txt = m.content || '';
-        if (m.tool_calls && m.tool_calls.length) {
-          m.tool_calls.forEach(function (tc) {
-            txt += '\n[tool_call: ' + tc.function.name + ' ' + (tc.function.arguments || '{}') + ']';
-          });
-        }
-        turns.push({ role: 'assistant', content: txt || '(memanggil tool)' });
-      } else if (m.role === 'tool') {
-        turns.push({ role: 'user', content: '[HASIL_TOOL "' + (m.name || '') + '"]: ' + (m.content || '{}') });
-      }
-    }
-    return turns;
-  }
-
-  // Bikin sesi Prompt API baru dengan system prompt terpasang. Sesi baru
-  // dibuat setiap giliran (bukan dipakai ulang) supaya konsisten dengan
-  // system prompt yang memuat tanggal/jam terkini & instruksi tools —
-  // sama seperti versi Groq lama yang mengirim ulang system prompt di
-  // setiap panggilan.
-  async function createLocalSession(systemPrompt) {
-    if (!LOCAL_AI_SUPPORTED) { var e = new Error('NO_LOCAL_AI'); e.code = 'NO_LOCAL_AI'; throw e; }
-    var avail = await checkLocalAiAvailability();
-    if (avail === 'unavailable' || avail === 'unsupported') {
-      var e2 = new Error('NO_LOCAL_AI'); e2.code = 'NO_LOCAL_AI'; e2.availability = avail; throw e2;
-    }
-    try {
-      return await LanguageModel.create({
-        initialPrompts: [{ role: 'system', content: systemPrompt }],
-        expectedInputs: [{ type: 'text' }, { type: 'image' }]
-      });
-    } catch (eImg) {
-      // Fallback kalau perangkat/browser ini ternyata tidak dukung input gambar.
-      return await LanguageModel.create({ initialPrompts: [{ role: 'system', content: systemPrompt }] });
-    }
-  }
-
-  // Jalankan satu giliran tanya-jawab ke model lokal & kembalikan bentuk
-  // { content, tool_calls } — sengaja disamakan dengan bentuk pesan gaya
-  // OpenAI/Groq lama supaya kode agent loop di bawah tidak perlu diubah.
-  async function runLocalModel(msgsForApi) {
-    var systemPrompt = (msgsForApi[0] && msgsForApi[0].content) || '';
-    var session = await createLocalSession(systemPrompt);
-    try {
-      var turns = messagesToLocalTurns(msgsForApi);
-      var raw = await session.prompt(turns, { responseConstraint: getToolCallSchema() });
-      var parsed;
-      try { parsed = JSON.parse(raw); } catch (eParse) { parsed = { reply: raw, tool_call: null }; }
-      var replyText = (parsed && typeof parsed.reply === 'string') ? parsed.reply : String(raw || '');
-      var toolCall = parsed && parsed.tool_call;
-      var toolCalls;
-      if (toolCall && toolCall.name) {
-        toolCalls = [{
-          id: 'local_' + Date.now(),
-          type: 'function',
-          function: { name: toolCall.name, arguments: JSON.stringify(toolCall.arguments || {}) }
-        }];
-      }
-      return { content: replyText, tool_calls: toolCalls };
-    } finally {
-      try { session.destroy(); } catch (eDestroy) { /* ignore */ }
-    }
-  }
 
   // ---------------------------------------------------------------------
   // Implementasi tool — langsung memakai variabel/fungsi asli aplikasi
@@ -8568,38 +8401,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
   }
 
-  // ---------------------------------------------------------------------
-  // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
-  // (biar hemat memori & muat di localStorage), lalu diubah jadi data URL.
-  // Data URL ini disimpan dalam format riwayat gaya lama (content type
-  // "image_url"), lalu dikonversi lagi ke Blob saat dikirim ke Prompt API
-  // lokal (lihat dataUrlToBlob() & toLocalContentParts()).
-  // ---------------------------------------------------------------------
-  function fileToCompressedDataUrl(file, maxDim, quality) {
-    return new Promise(function (resolve, reject) {
-      if (!file || !/^image\//.test(file.type)) { reject(new Error('File yang dipilih bukan gambar.')); return; }
-      var reader = new FileReader();
-      reader.onerror = function () { reject(new Error('Gagal membaca file gambar.')); };
-      reader.onload = function () {
-        var imgEl = new Image();
-        imgEl.onerror = function () { reject(new Error('Gagal memuat gambar.')); };
-        imgEl.onload = function () {
-          var w = imgEl.naturalWidth || 1, h = imgEl.naturalHeight || 1;
-          var scale = Math.min(1, maxDim / Math.max(w, h));
-          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
-          var canvas = document.createElement('canvas');
-          canvas.width = cw; canvas.height = ch;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(imgEl, 0, 0, cw, ch);
-          try { resolve(canvas.toDataURL('image/jpeg', quality)); }
-          catch (e) { resolve(reader.result); }
-        };
-        imgEl.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
   // Ubah content pesan tersimpan (string ATAU array bagian text/image_url) jadi
   // tampilan bubble yang sesuai saat riwayat chat dimuat ulang di panel.
   function renderStoredUserMessage(content) {
@@ -8616,16 +8417,54 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }
   }
 
+  // Ambil bagian teks polos dari sebuah content pesan tersimpan (string ATAU
+  // array bagian text/image_url) — dipakai untuk membangun kembali "ingatan"
+  // percakapan lama sebagai initialPrompts saat sesi AI lokal baru dibuat.
+  function plainTextOfContent(content) {
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      var found = null;
+      content.forEach(function (part) { if (part && part.type === 'text' && !found) found = part.text || ''; });
+      return found || '';
+    }
+    return '';
+  }
+
   // ---------------------------------------------------------------------
   // Percakapan agent
   // ---------------------------------------------------------------------
   var messages = loadHistory();
   var isBusy = false;
 
+  var TOOL_NAMES = TOOLS.map(function (t) { return t.function.name; });
+
+  // Ubah definisi parameter satu tool (format TOOLS di atas) jadi teks
+  // ringkas "kunci (tipe)" — dipakai untuk menyusun system prompt tanpa
+  // menulis ulang skema yang sama dua kali.
+  function paramsHintText(fn) {
+    var props = (fn.parameters && fn.parameters.properties) || {};
+    var required = (fn.parameters && fn.parameters.required) || [];
+    var keys = Object.keys(props);
+    if (!keys.length) return 'tanpa parameter';
+    return keys.map(function (k) {
+      var p = props[k] || {};
+      var wajib = required.indexOf(k) !== -1 ? '' : '?';
+      var tipe = p.enum ? ('salah satu dari ' + p.enum.join('/')) : (p.type === 'array' ? 'array' : (p.type || 'string'));
+      return k + wajib + ' [' + tipe + ']';
+    }).join(', ');
+  }
+
+  function toolsPromptText() {
+    return TOOLS.map(function (t) {
+      var fn = t.function;
+      return '- ' + fn.name + '(' + paramsHintText(fn) + '): ' + fn.description;
+    }).join('\n');
+  }
+
   function buildSystemPrompt() {
     return [
-      'Kamu adalah AI Agent yang terpasang langsung di aplikasi "Stok Opname" (pencocokan stok fisik apotek Rafa 1 & Rafa 2 dengan data sistem/aplikasi).',
-      'Kamu dapat MEMBACA dan MENGUBAH data barang secara langsung lewat tools yang disediakan (bukan sekadar menyarankan) — termasuk menambah barang satu-satu atau massal, mengedit field barang, menghapus, mengisi stok massal, mengubah info toko/tanggal/petugas, dan mengekstrak nama barang dari GAMBAR yang dikirim pengguna.',
+      'Kamu adalah AI Agent yang terpasang langsung di aplikasi "Stok Opname" (pencocokan stok fisik apotek Rafa 1 & Rafa 2 dengan data sistem/aplikasi). Kamu berjalan sebagai AI lokal yang di-load langsung di dalam browser pengguna (WebGPU, on-device) — bukan lewat server/cloud.',
+      'Kamu dapat MEMBACA dan MENGUBAH data barang secara langsung lewat tools yang disediakan (bukan sekadar menyarankan) — termasuk menambah barang satu-satu atau massal (misalnya dari daftar/pasteran teks), mengedit field barang, menghapus, mengisi stok massal, dan mengubah info toko/tanggal/petugas.',
       'Tanggal & waktu saat ini: ' + new Date().toString() + '.',
       '',
       'Model data setiap barang:',
@@ -8636,16 +8475,22 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       '- Status: "klop" kalau (rafa1+rafa2) sama dengan web_apk; "minus" kalau fisik LEBIH SEDIKIT dari web_apk; "plus" kalau fisik LEBIH BANYAK dari web_apk; "belum_dicek" kalau web_apk masih kosong.',
       '- Ada juga info_update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan nama petugas yang sedang mengisi.',
       '',
+      'Tools yang tersedia (panggil lewat field "tool" & "argumen" pada balasanmu):',
+      toolsPromptText(),
+      '',
+      'Format balasanmu WAJIB berupa satu objek JSON dengan tepat tiga field: "balasan" (teks untuk pengguna), "tool" (nama tool di atas, atau "none" kalau tidak perlu tool), dan "argumen" (objek parameter untuk tool tsb, atau {} kalau tool="none"/tool tanpa parameter). Sistem sudah memaksa bentuk JSON ini secara otomatis, jadi cukup fokus mengisi nilainya dengan benar — jangan menambah teks lain di luar JSON tersebut.',
+      'Setelah kamu memanggil sebuah tool, hasilnya akan dikirim balik kepadamu pada giliran berikutnya sebagai pesan yang diawali "[HASIL_TOOL ...]" — INI BUKAN PESAN DARI PENGGUNA, melainkan hasil otomatis dari sistem aplikasi. Baca hasil itu, lalu balas ke pengguna dengan tool="none" (atau panggil tool lain lagi kalau memang masih ada langkah lanjutan yang diperlukan).',
+      '',
       'Aturan wajib:',
       '1. Jangan pernah mengarang id barang. Gunakan id hasil search_items/list_items/get_item, atau biarkan add_item membuatkan id baru secara otomatis.',
       '2. Untuk mengisi banyak barang sekaligus (mis. dari daftar/pasteran WhatsApp), pakai bulk_set_stock — jangan panggil update_item satu-satu untuk puluhan/ratusan barang, itu boros langkah.',
-      '3. add_item, update_item, delete_item, bulk_set_stock, set_meta, dan clear_all_items adalah operasi tulis yang akan ditampilkan ke pengguna untuk konfirmasi terlebih dahulu. Kalau hasil tool menunjukkan pengguna membatalkan, itu bukan error — sampaikan dengan wajar dan tanyakan apakah ingin melakukan hal lain.',
-      '4. clear_all_items sangat merusak (menghapus SEMUA barang) — jelaskan dulu risikonya ke pengguna sebelum memanggilnya, dan hanya panggil kalau pengguna memang eksplisit minta mengosongkan semua data.',
-      '5. Untuk bulk_set_stock, kalau ada barang yang dicocokkan secara "mirip" (bukan persis sama), sebutkan ke pengguna di jawabanmu supaya mereka bisa cek kalau-kalau salah cocok.',
-      '6. Jangan pernah mengarang data yang tidak ada. Selalu gunakan tools untuk memastikan (mis. search_items dulu sebelum update_item kalau belum yakin id-nya).',
-      '7. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
-      '8. Kamu juga bisa menerima GAMBAR yang dilampirkan pengguna (foto rak/etalase, struk, catatan/daftar tulisan tangan, dsb). Kalau pengguna mengirim gambar dan minta barangnya didata/dimasukkan ke tabel, baca gambar itu dan ambil HANYA nama barangnya — abaikan harga, jumlah/qty, satuan, tanggal, kode, dan teks lain yang tidak relevan — lalu panggil tool bulk_add_items dengan daftar nama tersebut. Jangan menebak isi gambar kalau tidak terbaca jelas; sebutkan saja bagian yang tidak yakin. Kamu TIDAK perlu meminta konfirmasi manual lewat teks karena tool bulk_add_items sudah otomatis menampilkan daftar nama terdeteksi ke pengguna lengkap dengan checkbox untuk dipilih/disunting sebelum benar-benar masuk ke tabel.',
-      '9. Kalau model yang sedang dipakai ternyata tidak mendukung input gambar (bukan model vision) sehingga gagal memproses gambar, sampaikan itu apa adanya ke pengguna dan sarankan mengganti ke model yang mendukung gambar (mis. model seri gpt-4o atau model vision lain) lewat ikon kunci 🔑 → Model.',
+      '3. Kalau pengguna mengirim/paste daftar NAMA barang baru yang belum ada di tabel (bukan mengisi stok, tapi menambah barang baru), pakai bulk_add_items dengan daftar nama tsb — tool ini akan menampilkan checklist ke pengguna untuk dikonfirmasi/disunting dulu sebelum benar-benar masuk ke tabel, jadi kamu tidak perlu bertanya ulang secara manual.',
+      '4. add_item, update_item, delete_item, bulk_set_stock, bulk_add_items, set_meta, dan clear_all_items adalah operasi tulis yang akan ditampilkan ke pengguna untuk konfirmasi terlebih dahulu. Kalau hasil tool menunjukkan pengguna membatalkan, itu bukan error — sampaikan dengan wajar dan tanyakan apakah ingin melakukan hal lain.',
+      '5. clear_all_items sangat merusak (menghapus SEMUA barang) — jelaskan dulu risikonya ke pengguna sebelum memanggilnya, dan hanya panggil kalau pengguna memang eksplisit minta mengosongkan semua data.',
+      '6. Untuk bulk_set_stock, kalau ada barang yang dicocokkan secara "mirip" (bukan persis sama), sebutkan ke pengguna di jawabanmu supaya mereka bisa cek kalau-kalau salah cocok.',
+      '7. Jangan pernah mengarang data yang tidak ada. Selalu gunakan tools untuk memastikan (mis. search_items dulu sebelum update_item kalau belum yakin id-nya).',
+      '8. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
+      '9. Kamu adalah model AI kecil yang berjalan langsung di perangkat pengguna (HP/laptop, lewat WebGPU) — bukan model besar di cloud — jadi kemampuanmu jauh lebih terbatas dan kamu TIDAK BISA melihat/membaca gambar/foto yang dikirim pengguna. Kalau ragu dengan permintaan yang rumit atau berisiko, atau pengguna mengirim foto, lebih baik tanya balik / minta diketik teksnya saja daripada menebak dan memanggil tool yang salah.',
       '10. Jawab selalu dalam Bahasa Indonesia, singkat, jelas, dan ramah.',
       '11. Jangan gunakan format markdown (seperti **tebal**, *miring*, tanda pagar #, atau backtick) di jawabanmu — tulis dengan teks polos saja. Kalau perlu daftar, pakai baris baru dengan tanda hubung "-", bukan tanda bintang.',
       '',
@@ -8653,52 +8498,125 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       '12. Kamu tidak melulu harus soal stok opname. Kalau pengguna mengajak ngobrol topik lain (curhat, minta ide, tanya hal umum, becanda, minta dihibur, dll), layani dengan senang hati layaknya rekan kerja yang asyik diajak ngobrol — tidak perlu selalu menarik topik balik ke stok barang.',
       '13. Gaya bicaramu humoris dan bijak: boleh melempar candaan ringan atau pantun singkat sesekali, tapi juga sisipkan pandangan yang masuk akal/bijak kalau pengguna sedang serius, capek, atau butuh semangat — jangan menggurui, cukup hangat dan tulus.',
       '14. Tetap peka situasi: kalau pengguna kelihatan stres, sedih, atau butuh dukungan sungguhan, kurangi becandaan dan dengarkan dulu dengan empati sebelum (kalau pas) menyelipkan humor ringan untuk mencairkan suasana.',
-      '15. Emoji boleh dipakai sewajarnya untuk terasa hidup, tapi jangan berlebihan sampai mengganggu keterbacaan, dan jangan sampai mengorbankan kejelasan saat menyampaikan info penting soal data stok.',
-      '',
-      'Daftar tools yang tersedia (nama(parameter): kegunaan):',
-      buildToolsDoc(),
-      '',
-      'Format jawaban WAJIB (dipaksa lewat skema JSON, bukan sekadar aturan):',
-      '- Jawabanmu HARUS berupa satu objek JSON persis dengan dua field: "reply" dan "tool_call".',
-      '- "reply": string berisi balasanmu untuk pengguna (boleh kosong "" kalau kamu memanggil tool yang hasilnya sudah cukup jelas, tapi sebaiknya tetap isi teks singkat).',
-      '- "tool_call": null kalau giliran ini kamu TIDAK perlu memanggil tool apapun (cukup membalas teks). Kalau perlu memanggil satu tool, isi dengan objek { "name": "<nama_tool>", "arguments": { ... sesuai parameter tool tersebut ... } }.',
-      '- Hanya boleh memanggil SATU tool per giliran jawaban. Kalau butuh beberapa tool berurutan, panggil satu dulu, tunggu hasilnya (akan dikirim kembali ke kamu sebagai pesan berlabel [HASIL_TOOL "..."]), baru panggil tool berikutnya di giliran selanjutnya.',
-      '- Pesan yang diawali label [HASIL_TOOL "nama_tool"]: ... BUKAN pesan dari pengguna — itu adalah hasil tool yang baru saja kamu panggil sendiri, dipakai sebagai konteks untuk menyusun jawabanmu berikutnya.'
+      '15. Emoji boleh dipakai sewajarnya untuk terasa hidup, tapi jangan berlebihan sampai mengganggu keterbacaan, dan jangan sampai mengorbankan kejelasan saat menyampaikan info penting soal data stok.'
     ].join('\n');
   }
 
-  // callBlackbox / callBlackboxStream dipertahankan namanya (dipakai di
-  // runAgentLoop di bawah) tapi sekarang keduanya jalan 100% lokal lewat
-  // Prompt API bawaan browser (lihat runLocalModel di atas) — tidak ada
-  // fetch() ke server manapun, tidak ada API key.
-  async function callBlackbox(msgsForApi) {
-    return runLocalModel(msgsForApi);
+  // Skema JSON yang dipaksakan ke setiap balasan model (structured output /
+  // response_format json_object) — menjamin balasan SELALU berbentuk
+  // { balasan, tool, argumen } yang valid, tanpa perlu parsing manual rawan gagal.
+  function buildResponseSchema() {
+    return {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        balasan: { type: 'string' },
+        tool: { type: 'string', enum: TOOL_NAMES.concat(['none']) },
+        argumen: { type: 'object' }
+      },
+      required: ['balasan', 'tool', 'argumen']
+    };
   }
 
-  // "Versi streaming" — nama & signature dipertahankan supaya kode
-  // pemanggil (runAgentLoop) tidak perlu berubah, tapi sesungguhnya TIDAK
-  // ada streaming huruf-per-huruf lagi: karena jawaban model lokal dipaksa
-  // berbentuk satu blok JSON utuh (responseConstraint) supaya tool-calling
-  // bisa ditiru, jawaban baru valid & bisa ditampilkan setelah komplet.
-  // Jadi di sini kita cukup jalankan sampai selesai, lalu panggil
-  // onTextDelta SEKALI dengan teks akhirnya.
-  async function callBlackboxStream(msgsForApi, onTextDelta) {
-    var result = await runLocalModel(msgsForApi);
-    if (onTextDelta && result.content) onTextDelta(result.content);
-    return result;
+  // ---------------------------------------------------------------------
+  // Mesin AI lokal — WebLLM (https://github.com/mlc-ai/web-llm), berjalan
+  // 100% di perangkat pengguna lewat WebGPU (bisa di HP Android maupun
+  // desktop, tidak terbatas Chrome desktop saja seperti AI bawaan browser).
+  // Library-nya diambil dari CDN publik (jsDelivr/esm.run) memakai import()
+  // dinamis — bukan lewat server milik aplikasi ini — dan model AI-nya
+  // sendiri diunduh sekali dari Hugging Face lalu disimpan di cache
+  // browser. Tidak ada API key, tidak ada biaya, tidak ada limit pemakaian
+  // selain kemampuan perangkat itu sendiri.
+  // ---------------------------------------------------------------------
+  var WEBLLM_CDN_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
+  var MODEL_BALANCED = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'; // default: lebih pintar & lebih bagus Bahasa Indonesianya
+  var MODEL_LIGHT = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';    // alternatif: lebih ringan/cepat untuk HP pas-pasan
+  var LS_KEY_MODEL_CHOICE = 'bb_agent_model_choice_v1';
+
+  function getModelChoice() { return lsGet(LS_KEY_MODEL_CHOICE, 'balanced') === 'light' ? 'light' : 'balanced'; }
+  function setModelChoice(v) { lsSet(LS_KEY_MODEL_CHOICE, v === 'light' ? 'light' : 'balanced'); }
+  function modelIdForChoice(choice) { return choice === 'light' ? MODEL_LIGHT : MODEL_BALANCED; }
+
+  async function isWebGpuAvailable() {
+    if (!navigator.gpu) return false;
+    try { var adapter = await navigator.gpu.requestAdapter(); return !!adapter; }
+    catch (e) { return false; }
   }
 
-  async function executeToolCall(tc) {
-    var name = tc.function && tc.function.name;
-    var args = {};
-    try { args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {}; } catch (e) { args = {}; }
+  var webllmModPromise = null;
+  function loadWebLLMModule() {
+    if (!webllmModPromise) webllmModPromise = import(WEBLLM_CDN_URL);
+    return webllmModPromise;
+  }
 
+  var engine = null;          // instance MLCEngine aktif (WebLLM)
+  var engineModelId = null;   // model_id yang sedang di-load di engine di atas
+  var downloadCardEl = null;  // info card di chat yang menampilkan progres unduhan model
+
+  function onModelDownloadProgress(report) {
+    var pct = Math.max(0, Math.min(100, Math.round((report && report.progress || 0) * 100)));
+    var text = (report && report.text) ? report.text : ('Menyiapkan AI lokal... ' + pct + '%');
+    if (!downloadCardEl) downloadCardEl = addInfoCard('⬇️', text);
+    downloadCardEl.textContent = '⬇️ ' + text;
+    scrollToBottom();
+    if (els.aiProgressBar) els.aiProgressBar.style.width = pct + '%';
+    if (els.aiStatusText) els.aiStatusText.textContent = text;
+    if (pct >= 100) {
+      var doneCard = downloadCardEl;
+      downloadCardEl = null;
+      setTimeout(function () { if (doneCard) doneCard.textContent = '✅ AI lokal siap dipakai.'; }, 300);
+    }
+  }
+
+  // Menyiapkan (atau mengganti model) engine WebLLM. Dipanggil dari klik
+  // tombol kirim / tombol aktivasi di panel Pengaturan — jadi selalu
+  // berasal dari aksi pengguna sendiri sebelum memicu unduhan model.
+  async function ensureEngine() {
+    var wantedId = modelIdForChoice(getModelChoice());
+    if (engine && engineModelId === wantedId) return engine;
+
+    if (!(await isWebGpuAvailable())) {
+      var eNoGpu = new Error('NO_WEBGPU');
+      eNoGpu.code = 'NO_WEBGPU';
+      throw eNoGpu;
+    }
+
+    var webllm = await loadWebLLMModule();
+    if (!engine) engine = new webllm.MLCEngine({ initProgressCallback: onModelDownloadProgress });
+    await engine.reload(wantedId);
+    engineModelId = wantedId;
+    return engine;
+  }
+
+  // Memanggil model lokal dan memaksa balasannya sesuai skema { balasan,
+  // tool, argumen } lewat response_format json_object + JSON Schema
+  // (structured output) — hasilnya SELALU JSON valid.
+  async function callLocalModel(modelMessages) {
+    await ensureEngine();
+    var resp = await engine.chat.completions.create({
+      messages: modelMessages,
+      response_format: { type: 'json_object', schema: JSON.stringify(buildResponseSchema()) }
+    });
+    var raw = resp && resp.choices && resp.choices[0] && resp.choices[0].message && resp.choices[0].message.content;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+    if (!parsed || typeof parsed !== 'object') parsed = { balasan: String(raw || '').trim(), tool: 'none', argumen: {} };
+    if (typeof parsed.balasan !== 'string') parsed.balasan = '';
+    if (typeof parsed.tool !== 'string' || !parsed.tool) parsed.tool = 'none';
+    if (!parsed.argumen || typeof parsed.argumen !== 'object') parsed.argumen = {};
+    return { parsed: parsed, raw: raw };
+  }
+
+  // Menjalankan satu tool (dipanggil AI lokal lewat field "tool"/"argumen").
+  async function runSingleTool(name, args) {
+    args = args || {};
     var impl = TOOL_IMPL[name];
-    if (!impl) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tool tidak dikenal: ' + name }) };
+    if (!impl) return { error: 'Tool tidak dikenal: ' + name };
 
-    // bulk_add_items (hasil deteksi gambar) pakai kartu checklist khusus, bukan
-    // kartu konfirmasi JSON generik — supaya pengguna bisa pilih & sunting nama
-    // satu per satu sebelum benar-benar masuk ke tabel.
+    // bulk_add_items pakai kartu checklist khusus, bukan kartu konfirmasi
+    // JSON generik — supaya pengguna bisa pilih & sunting nama satu per satu
+    // sebelum benar-benar masuk ke tabel (baik dari daftar teks ataupun,
+    // di masa depan, hasil deteksi lain).
     if (name === 'bulk_add_items') {
       var rawNames = Array.isArray(args.barang) ? args.barang : [];
       var candidateNames = [];
@@ -8711,22 +8629,14 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         seenN[key] = 1;
         candidateNames.push(nm);
       });
-      if (!candidateNames.length) {
-        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tidak ada nama barang yang valid dikirim ke bulk_add_items.' }) };
-      }
-      if (isViewOnlyForMe()) {
-        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Perangkat ini sedang dalam mode "hanya lihat" (view-only), tidak bisa menambah barang.' }) };
-      }
+      if (!candidateNames.length) return { error: 'Tidak ada nama barang yang valid dikirim ke bulk_add_items.' };
+      if (isViewOnlyForMe()) return { error: 'Perangkat ini sedang dalam mode "hanya lihat" (view-only), tidak bisa menambah barang.' };
       var selectedNames = await addItemListConfirmCard(candidateNames);
       if (!selectedNames || !selectedNames.length) {
-        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna tidak memilih/membatalkan barang dari daftar hasil deteksi gambar.' }) };
+        return { dibatalkan: true, alasan: 'Pengguna tidak memilih/membatalkan barang dari daftar yang diajukan.' };
       }
-      try {
-        var bulkRes = toolBulkAddItems({ barang: selectedNames });
-        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(bulkRes) };
-      } catch (eBulk) {
-        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((eBulk && eBulk.message) || eBulk) }) };
-      }
+      try { return toolBulkAddItems({ barang: selectedNames }); }
+      catch (eBulk) { return { error: String((eBulk && eBulk.message) || eBulk) }; }
     }
 
     var isWrite = !!WRITE_TOOLS[name];
@@ -8734,76 +8644,81 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     if (needsConfirm) {
       var approved = await addConfirmCard(name, args);
-      if (!approved) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna membatalkan aksi ini melalui tombol konfirmasi.' }) };
+      if (!approved) return { dibatalkan: true, alasan: 'Pengguna membatalkan aksi ini melalui tombol konfirmasi.' };
     } else if (isWrite) {
       addInfoCard('✏️', summarizeArgs(name, args) + ' (auto-jalankan)');
     } else {
       addInfoCard('📋', 'Membaca data (' + name + ')');
     }
 
-    try {
-      var result = await impl(args);
-      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(result) };
-    } catch (e) {
-      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((e && e.message) || e) }) };
-    }
+    try { return await impl(args); }
+    catch (e) { return { error: String((e && e.message) || e) }; }
   }
 
   async function runAgentLoop(userText) {
     if (isBusy) return;
     isBusy = true;
     setInputEnabled(false);
+
+    try {
+      // Pastikan engine AI lokal siap. Aman memicu unduhan model (kalau
+      // perlu) karena selalu berasal dari klik tombol kirim pengguna sendiri.
+      await ensureEngine();
+    } catch (e) {
+      isBusy = false;
+      setInputEnabled(true);
+      if (e && e.code === 'NO_WEBGPU') {
+        addBubble('error', 'AI Agent lokal butuh HP/laptop dengan dukungan WebGPU — kebanyakan HP Android keluaran 2019 ke atas pakai Chrome/Edge/Samsung Internet versi terbaru sudah mendukung ini. Coba update browser kamu, lalu tap ⚙️ untuk cek status.');
+      } else {
+        addBubble('error', 'Gagal menyiapkan AI lokal: ' + ((e && e.message) || e) + ' (butuh koneksi internet saat pertama kali mengunduh model)');
+      }
+      openKeyModal();
+      return;
+    }
+
     messages.push({ role: 'user', content: userText });
     saveHistory(messages);
+
+    // Riwayat percakapan dipotong biar muat jendela konteks model kecil
+    // yang dipakai di HP, lalu diubah jadi array pesan OpenAI-compatible.
+    var convo = messages.slice(-MAX_HISTORY).map(function (m) {
+      return { role: (m.role === 'assistant' ? 'assistant' : 'user'), content: plainTextOfContent(m.content) };
+    });
+    var modelMessages = [{ role: 'system', content: buildSystemPrompt() }].concat(convo);
 
     var loops = 0;
     try {
       while (loops < MAX_TOOL_LOOPS) {
         loops++;
-        var apiMessages = [{ role: 'system', content: buildSystemPrompt() }].concat(messages);
         addTypingIndicator();
+        var out;
+        try { out = await callLocalModel(modelMessages); }
+        finally { removeTypingIndicator(); }
 
-        // Streaming: bubble jawaban dibuat begitu potongan teks pertama datang,
-        // lalu terus diperbarui — jadi pengguna langsung lihat jawaban mengalir
-        // alih-alih menunggu diam sampai semuanya selesai digenerate.
-        var liveBubble = null;
-        var msg;
-        try {
-          msg = await callBlackboxStream(apiMessages, function (textSoFar) {
-            if (!liveBubble) { removeTypingIndicator(); liveBubble = addBubble('assistant', ''); }
-            liveBubble.innerHTML = mdToHtml(textSoFar);
-            scrollToBottom();
-          });
-        } finally {
-          removeTypingIndicator();
+        modelMessages.push({ role: 'assistant', content: out.raw });
+        var result = out.parsed;
+
+        if (result.balasan && result.balasan.trim()) {
+          addBubble('assistant', result.balasan.trim());
+          messages.push({ role: 'assistant', content: result.balasan.trim() });
+          saveHistory(messages);
         }
-        if (!msg) throw new Error('Respons API tidak berisi pesan yang valid.');
 
-        var toolCalls = msg.tool_calls || [];
-        messages.push({ role: 'assistant', content: msg.content || '', tool_calls: toolCalls.length ? toolCalls : undefined });
+        if (!result.tool || result.tool === 'none') return;
 
-        // Kalau belum sempat ada bubble live (mis. jawabannya cuma tool_calls
-        // tanpa teks pendamping yang sempat ter-stream), baru tampilkan di sini.
-        if (!liveBubble && msg.content && msg.content.trim()) addBubble('assistant', msg.content.trim());
-
-        if (!toolCalls.length) { saveHistory(messages); return; }
-
-        for (var i = 0; i < toolCalls.length; i++) {
-          var toolResultMsg = await executeToolCall(toolCalls[i]);
-          messages.push(toolResultMsg);
-        }
-        saveHistory(messages);
+        var toolResult = await runSingleTool(result.tool, result.argumen);
+        var resultJson;
+        try { resultJson = JSON.stringify(toolResult); } catch (e2) { resultJson = String(toolResult); }
+        modelMessages.push({
+          role: 'user',
+          content: '[HASIL_TOOL ' + result.tool + ']: ' + resultJson +
+            '\n\n(Ini bukan pesan dari pengguna, melainkan hasil otomatis dari sistem aplikasi. Sampaikan balasan akhir ke pengguna berdasarkan hasil ini, gunakan tool="none" kalau sudah selesai, atau panggil tool lain lagi kalau memang masih ada langkah lanjutan yang diperlukan.)'
+        });
       }
       addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
     } catch (e) {
-      if (e && e.code === 'NO_LOCAL_AI') {
-        if (!LOCAL_AI_SUPPORTED) {
-          addBubble('error', 'Browser ini belum punya AI bawaan (Prompt API). Coba buka pakai Chrome versi terbaru di komputer/HP Android. Klik ikon 🧠 di atas untuk detail status.');
-        } else if (e.availability === 'downloadable') {
-          addBubble('error', 'Model AI lokal belum diunduh di perangkat ini. Klik ikon 🧠 di atas lalu tombol "Unduh Model" untuk mengaktifkannya (sekali saja).');
-        } else {
-          addBubble('error', 'AI lokal belum siap dipakai di perangkat ini. Klik ikon 🧠 di atas untuk cek statusnya.');
-        }
+      if (e && e.code === 'NO_WEBGPU') {
+        addBubble('error', 'AI Agent lokal butuh HP/laptop dengan dukungan WebGPU.');
         openKeyModal();
       } else {
         addBubble('error', 'Terjadi kesalahan: ' + ((e && e.message) || e));
@@ -8817,17 +8732,43 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function setInputEnabled(enabled) {
     if (els.input) els.input.disabled = !enabled;
     if (els.sendBtn) els.sendBtn.disabled = !enabled;
-    if (els.attachBtn) els.attachBtn.disabled = !enabled;
     if (els.fab) els.fab.classList.toggle('thinking', !enabled);
     if (els.headIco) els.headIco.classList.toggle('thinking', !enabled);
     setBotThinking(!enabled);
     if (enabled && els.input) els.input.focus();
   }
 
+  // Memeriksa & menampilkan status AI lokal di panel ⚙️ Pengaturan: apakah
+  // WebGPU didukung, dan apakah model yang dipilih sudah aktif/perlu diunduh.
+  async function refreshAiStatusUI() {
+    if (!els.aiStatusDot) return;
+    var gpuOk = await isWebGpuAvailable();
+    if (!gpuOk) {
+      els.aiStatusDot.className = 'bba-ai-dot err';
+      els.aiStatusText.textContent = 'HP/browser ini belum mendukung WebGPU, jadi AI lokal belum bisa jalan di sini. Coba pakai Chrome/Edge/Samsung Internet versi terbaru di HP Android (2019 ke atas) atau di laptop/desktop.';
+      els.aiActivateBtn.style.display = 'none';
+      els.aiProgressWrap.style.display = 'none';
+      return;
+    }
+    var wantedId = modelIdForChoice(getModelChoice());
+    if (engine && engineModelId === wantedId) {
+      els.aiStatusDot.className = 'bba-ai-dot ok';
+      els.aiStatusText.textContent = 'Siap dipakai — model sudah aktif di perangkat ini, tidak perlu API key.';
+      els.aiActivateBtn.style.display = 'none';
+      els.aiProgressWrap.style.display = 'none';
+    } else {
+      els.aiStatusDot.className = 'bba-ai-dot warn';
+      els.aiStatusText.textContent = 'Belum aktif. Tap tombol di bawah untuk mengunduh & mengaktifkan model (sekali saja, disarankan pakai WiFi — lalu tersimpan di HP/browser ini untuk dipakai lagi tanpa unduh ulang).';
+      els.aiActivateBtn.style.display = '';
+      els.aiProgressWrap.style.display = 'none';
+    }
+  }
+
   function openKeyModal() {
     els.confirmToggle.checked = getConfirmWrites();
+    if (els.modelChoiceSelect) els.modelChoiceSelect.value = getModelChoice();
     els.keyModalOv.classList.add('show');
-    if (typeof els.refreshAiStatus === 'function') els.refreshAiStatus();
+    refreshAiStatusUI();
   }
   function closeKeyModal() { els.keyModalOv.classList.remove('show'); }
 
@@ -8912,12 +8853,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(headIco);
     var headTxt = el('div', 'bba-head-txt');
     var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
-    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · AI Lokal (Browser)';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · AI Lokal (HP & Desktop)';
     var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
     headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
     headLeft.appendChild(headTxt);
     var headRight = el('div', 'bba-head-right');
-    var keyBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Status AI Lokal & Pengaturan' }); keyBtn.textContent = '🧠';
+    var keyBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Pengaturan AI Agent' }); keyBtn.textContent = '⚙️';
     var clearBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Bersihkan chat' }); clearBtn.textContent = '🧹';
     var closeBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Tutup' }); closeBtn.textContent = '✕';
     headRight.appendChild(keyBtn); headRight.appendChild(clearBtn); headRight.appendChild(closeBtn);
@@ -8926,49 +8867,46 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var body = el('div', 'bba-body');
 
     var foot = el('div', 'bba-foot');
-
-    var imgChip = el('div', 'bba-img-chip');
-    var imgChipThumb = el('img', 'bba-img-chip-thumb', { alt: 'Preview gambar' });
-    var imgChipLabel = el('span', 'bba-img-chip-label'); imgChipLabel.textContent = 'Gambar siap dikirim';
-    var imgChipRemove = el('button', 'bba-img-chip-remove', { type: 'button', title: 'Hapus gambar' });
-    imgChipRemove.textContent = '✕';
-    imgChip.appendChild(imgChipThumb); imgChip.appendChild(imgChipLabel); imgChip.appendChild(imgChipRemove);
-
     var footRow = el('div', 'bba-foot-row');
-    var attachBtn = el('button', 'bba-attach', { type: 'button', title: 'Lampirkan foto barang' });
-    attachBtn.textContent = '📷';
-    var attachInput = el('input', '', { type: 'file', accept: 'image/*' });
-    attachInput.style.display = 'none';
-    var textarea = el('textarea', '', { rows: '1', placeholder: 'Tulis perintah, mis: "isi stok Rafa 1 untuk barang X = 12", atau lampirkan foto barang' });
+    var textarea = el('textarea', '', { rows: '1', placeholder: 'Tulis perintah, mis: "isi stok Rafa 1 untuk barang X = 12"' });
     var sendBtn = el('button', 'bba-send', { type: 'button', title: 'Kirim' });
     sendBtn.textContent = '➤';
-    footRow.appendChild(attachBtn); footRow.appendChild(textarea); footRow.appendChild(sendBtn);
-
-    foot.appendChild(imgChip); foot.appendChild(footRow); foot.appendChild(attachInput);
+    footRow.appendChild(textarea); footRow.appendChild(sendBtn);
+    foot.appendChild(footRow);
 
     panel.appendChild(head); panel.appendChild(body); panel.appendChild(foot);
     document.body.appendChild(panel);
 
-    // --- Modal status AI lokal / pengaturan ---
+    // --- Modal Pengaturan AI Agent (AI lokal, tanpa API key) ---
     var modalOv = el('div', 'bba-modal-ov');
     var modal = el('div', 'bba-modal');
 
-    var mTitle = el('h3'); mTitle.textContent = '🧠 Status AI Lokal';
-    var mSub = el('p', 'sub'); mSub.textContent = 'Ditenagai AI bawaan browser (mis. Gemini Nano di Chrome) — 100% berjalan di perangkat ini, TIDAK butuh API key, dan TIDAK mengirim data stok kamu ke server manapun.';
+    var mTitle = el('h3'); mTitle.textContent = '⚙️ Pengaturan AI Agent';
+    var mSub = el('p', 'sub'); mSub.textContent = 'AI Agent ini berjalan 100% lokal langsung di HP/browser kamu (lewat WebGPU) — tanpa API key, tanpa server, dan datanya tidak pernah dikirim ke internet.';
     var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
     mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
 
-    var statusBox = el('div', 'bba-ai-status');
-    var statusText = el('div', 'bba-ai-status-text'); statusText.textContent = 'Mengecek status…';
-    var progressWrap = el('div', 'bba-ai-progress-wrap');
-    var progressBar = el('div', 'bba-ai-progress-bar');
-    progressWrap.appendChild(progressBar);
-    statusBox.appendChild(statusText); statusBox.appendChild(progressWrap);
+    var aiStatusBox = el('div', 'bba-ai-status');
+    var aiStatusDot = el('span', 'bba-ai-dot');
+    var aiStatusText = el('span', 'bba-ai-status-text'); aiStatusText.textContent = 'Memeriksa status...';
+    aiStatusBox.appendChild(aiStatusDot); aiStatusBox.appendChild(aiStatusText);
 
-    var statusBtnRow = el('div', 'bba-ai-status-btns');
-    var downloadBtn = el('button', 'bba-btn-save', { type: 'button' }); downloadBtn.textContent = 'Unduh / Aktifkan Model';
-    var recheckBtn = el('button', 'bba-btn-clear', { type: 'button' }); recheckBtn.textContent = 'Cek Ulang';
-    statusBtnRow.appendChild(downloadBtn); statusBtnRow.appendChild(recheckBtn);
+    var aiProgressWrap = el('div', 'bba-ai-progress-wrap');
+    var aiProgressBar = el('div', 'bba-ai-progress-bar');
+    aiProgressWrap.appendChild(aiProgressBar);
+
+    var aiActivateBtn = el('button', 'bba-ai-activate-btn', { type: 'button' }); aiActivateBtn.textContent = 'Unduh & Aktifkan AI Lokal';
+
+    var modelRow = el('div', 'bba-model-row');
+    var modelLabel = el('span'); modelLabel.textContent = 'Model AI: ';
+    var modelChoiceSelect = el('select', 'bba-model-picker-btn');
+    var optBalanced = el('option', '', { value: 'balanced' }); optBalanced.textContent = 'Seimbang (Qwen2.5 1.5B) — disarankan';
+    var optLight = el('option', '', { value: 'light' }); optLight.textContent = 'Ringan (Llama 3.2 1B) — untuk HP pas-pasan';
+    modelChoiceSelect.appendChild(optBalanced); modelChoiceSelect.appendChild(optLight);
+    modelRow.appendChild(modelLabel); modelRow.appendChild(modelChoiceSelect);
+
+    var aiReqHint = el('p', 'bba-model-hint');
+    aiReqHint.textContent = 'Butuh HP Android (2019 ke atas) atau laptop/desktop dengan browser yang mendukung WebGPU (Chrome/Edge/Samsung Internet versi terbaru). Model diunduh sekali saja lewat internet (sekitar 700MB–1,3GB tergantung pilihan di atas, disarankan pakai WiFi), lalu tersimpan di HP/browser ini untuk dipakai lagi tanpa unduh ulang. iOS Safari belum mendukung fitur ini.';
 
     var confirmRow = el('label', 'bba-confirm-toggle');
     var confirmToggle = el('input', '', { type: 'checkbox' });
@@ -8977,96 +8915,21 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     var mBtnRow = el('div', 'bba-modal-btns');
     var saveBtn = el('button', 'bba-btn-save', { type: 'button' }); saveBtn.textContent = 'Simpan';
+    var resetSessionBtn = el('button', 'bba-btn-clear', { type: 'button' }); resetSessionBtn.textContent = 'Muat Ulang AI';
     var closeModalBtn = el('button', 'bba-btn-close', { type: 'button' }); closeModalBtn.textContent = 'Tutup';
-    mBtnRow.appendChild(saveBtn); mBtnRow.appendChild(closeModalBtn);
+    mBtnRow.appendChild(saveBtn); mBtnRow.appendChild(resetSessionBtn); mBtnRow.appendChild(closeModalBtn);
 
     modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
-    modal.appendChild(statusBox); modal.appendChild(statusBtnRow);
+    modal.appendChild(aiStatusBox); modal.appendChild(aiProgressWrap); modal.appendChild(aiActivateBtn);
+    modal.appendChild(modelRow); modal.appendChild(aiReqHint);
     modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
     modalOv.appendChild(modal);
     document.body.appendChild(modalOv);
 
     els.fab = fab; els.headIco = headIco; els.panel = panel; els.body = body; els.input = textarea; els.sendBtn = sendBtn;
-    els.keyModalOv = modalOv; els.confirmToggle = confirmToggle;
-    els.statusText = statusText; els.progressWrap = progressWrap; els.progressBar = progressBar;
-    els.downloadBtn = downloadBtn; els.recheckBtn = recheckBtn;
-    els.attachBtn = attachBtn; els.attachInput = attachInput; els.imgChip = imgChip;
-    els.imgChipThumb = imgChipThumb; els.imgChipRemove = imgChipRemove;
-
-    // --- Status AI lokal: cek ketersediaan & tampilkan di modal ---
-    function renderAiStatus(state) {
-      els.downloadBtn.style.display = 'none';
-      els.progressWrap.classList.remove('show');
-      if (state === 'unsupported') {
-        els.statusText.innerHTML = '❌ Browser ini belum mendukung AI bawaan (Prompt API).<br>Coba pakai Chrome versi terbaru (desktop/Android) & pastikan sudah tersedia.';
-      } else if (state === 'available') {
-        els.statusText.textContent = '✅ Model AI lokal sudah siap dipakai di perangkat ini.';
-      } else if (state === 'downloading') {
-        els.statusText.textContent = '⏳ Sedang mengunduh model AI lokal ke perangkat ini (sekali saja)…';
-        els.progressWrap.classList.add('show');
-      } else if (state === 'downloadable') {
-        els.statusText.textContent = '⬇️ Model AI lokal belum diunduh. Tekan tombol di bawah untuk mengunduh & mengaktifkannya (sekali saja, butuh koneksi internet saat unduh).';
-        els.downloadBtn.style.display = '';
-      } else {
-        els.statusText.textContent = '❔ Status tidak diketahui: ' + state;
-      }
-    }
-    async function refreshAiStatus() {
-      els.statusText.textContent = 'Mengecek status…';
-      var state = await checkLocalAiAvailability();
-      renderAiStatus(state);
-      return state;
-    }
-    els.refreshAiStatus = refreshAiStatus;
-    downloadBtn.addEventListener('click', function () {
-      downloadBtn.disabled = true;
-      renderAiStatus('downloading');
-      downloadLocalModel(function (loaded) {
-        var pct = Math.max(0, Math.min(100, Math.round((loaded || 0) * 100)));
-        els.progressBar.style.width = pct + '%';
-        els.statusText.textContent = '⏳ Mengunduh model AI lokal… ' + pct + '%';
-      }).then(function () {
-        downloadBtn.disabled = false;
-        refreshAiStatus();
-      }).catch(function (e) {
-        downloadBtn.disabled = false;
-        els.statusText.textContent = '❌ Gagal mengunduh: ' + ((e && e.message) || e);
-      });
-    });
-    recheckBtn.addEventListener('click', function () { refreshAiStatus(); });
-
-    // --- Lampiran gambar: state & helper ---
-    var pendingImage = null; // data URL gambar yang sudah dikompres, siap dikirim
-    function clearPendingImage() {
-      pendingImage = null;
-      imgChip.classList.remove('show');
-      imgChipThumb.src = '';
-      attachInput.value = '';
-    }
-    function setPendingImage(dataUrl) {
-      pendingImage = dataUrl;
-      imgChipThumb.src = dataUrl;
-      imgChip.classList.add('show');
-    }
-    attachBtn.addEventListener('click', function () { if (!isBusy) attachInput.click(); });
-    attachInput.addEventListener('change', async function () {
-      var file = attachInput.files && attachInput.files[0];
-      if (!file) return;
-      attachBtn.disabled = true;
-      try {
-        var dataUrl = await fileToCompressedDataUrl(file, 1280, 0.78);
-        setPendingImage(dataUrl);
-        textarea.focus();
-      } catch (eImg) {
-        addBubble('error', 'Gagal memproses gambar: ' + ((eImg && eImg.message) || eImg));
-        attachInput.value = '';
-      } finally {
-        attachBtn.disabled = false;
-      }
-    });
-    imgChipRemove.addEventListener('click', function () { clearPendingImage(); });
-
-    // Model AI dipakai otomatis dari browser (tidak ada pemilihan model manual).
+    els.keyModalOv = modalOv; els.confirmToggle = confirmToggle; els.modelChoiceSelect = modelChoiceSelect;
+    els.aiStatusDot = aiStatusDot; els.aiStatusText = aiStatusText;
+    els.aiProgressWrap = aiProgressWrap; els.aiProgressBar = aiProgressBar; els.aiActivateBtn = aiActivateBtn;
 
     // --- Event wiring ---
     fab.addEventListener('click', function () {
@@ -9074,14 +8937,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if (panel.classList.contains('show')) {
         hint.classList.remove('show');
         if (!body.childElementCount) {
-          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\nAku jalan 100% lokal di browser kamu (tanpa API key, tanpa kirim data ke server manapun).\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
-          checkLocalAiAvailability().then(function (state) {
-            if (state === 'unsupported') {
-              addBubble('error', 'Browser/perangkat ini belum mendukung AI bawaan (Prompt API). Coba buka pakai Chrome versi terbaru. Klik ikon 🧠 di pojok kanan atas untuk detail.');
-            } else if (state === 'downloadable' || state === 'downloading') {
-              addBubble('assistant', 'Model AI lokal belum diunduh di perangkat ini. Klik ikon 🧠 di pojok kanan atas lalu "Unduh / Aktifkan Model" (sekali saja) sebelum mulai chat ya.');
-            }
-          });
+          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\nAku jalan sepenuhnya lokal di HP/browser kamu (lewat WebGPU) — nggak perlu API key, nggak ada biaya/limit, dan data kamu nggak pernah dikirim ke internet. Kalau ini pertama kali dipakai, model AI-nya perlu diunduh dulu sekali (disarankan pakai WiFi); tap ⚙️ untuk mengaktifkannya.\n\nSatu catatan: karena aku model kecil yang jalan langsung di perangkat, aku belum bisa membaca foto/gambar — semua perintah harus lewat teks ya. Tapi tenang, buat urusan tambah/edit/isi stok/paste daftar barang, aku tetap jagoan kok 💪\n\nDan satu lagi — aku nggak cuma jago ngitung stok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
           messages.forEach(function (m) {
             if (m.role === 'user') renderStoredUserMessage(m.content);
             else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
@@ -9096,6 +8952,26 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     keyBtn.addEventListener('click', openKeyModal);
     closeModalBtn.addEventListener('click', closeKeyModal);
     modalOv.addEventListener('click', function (e) { if (e.target === modalOv) closeKeyModal(); });
+    aiActivateBtn.addEventListener('click', async function () {
+      aiActivateBtn.disabled = true;
+      aiStatusText.textContent = 'Menyiapkan...';
+      aiProgressWrap.style.display = '';
+      aiProgressBar.style.width = '0%';
+      try {
+        await ensureEngine();
+        await refreshAiStatusUI();
+      } catch (eActivate) {
+        aiStatusDot.className = 'bba-ai-dot err';
+        aiStatusText.textContent = 'Gagal mengaktifkan: ' + ((eActivate && eActivate.message) || eActivate) + ' (pastikan ada koneksi internet untuk unduhan pertama)';
+        aiProgressWrap.style.display = 'none';
+      } finally {
+        aiActivateBtn.disabled = false;
+      }
+    });
+    modelChoiceSelect.addEventListener('change', function () {
+      setModelChoice(modelChoiceSelect.value);
+      refreshAiStatusUI();
+    });
 
     clearBtn.addEventListener('click', function () {
       messages.length = 0;
@@ -9109,29 +8985,24 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       closeKeyModal();
       addBubble('assistant', 'Pengaturan disimpan. Siap membantu!');
     });
+    resetSessionBtn.addEventListener('click', async function () {
+      if (engine) {
+        try { if (typeof engine.unload === 'function') await engine.unload(); } catch (eUnload) { /* abaikan */ }
+      }
+      engine = null;
+      engineModelId = null;
+      addBubble('assistant', 'AI lokal dimuat ulang. Model akan otomatis disiapkan lagi saat kamu kirim pesan berikutnya (kalau sudah pernah diunduh, tidak akan mengunduh ulang).');
+      refreshAiStatusUI();
+    });
 
     function doSend() {
       if (isBusy) return;
       var text = textarea.value.trim();
-      if (!text && !pendingImage) return;
-
-      var contentForApi;
-      if (pendingImage) {
-        var caption = text || 'Deteksi & ambil nama-nama barang dari gambar ini (abaikan harga/jumlah/satuan), lalu tampilkan daftarnya untuk saya konfirmasi sebelum dimasukkan ke tabel.';
-        addImageBubble('user', pendingImage, caption);
-        contentForApi = [
-          { type: 'text', text: caption },
-          { type: 'image_url', image_url: { url: pendingImage } }
-        ];
-        clearPendingImage();
-      } else {
-        addBubble('user', text);
-        contentForApi = text;
-      }
-
+      if (!text) return;
+      addBubble('user', text);
       textarea.value = '';
       textarea.style.height = 'auto';
-      runAgentLoop(contentForApi);
+      runAgentLoop(text);
     }
     sendBtn.addEventListener('click', doSend);
     textarea.addEventListener('keydown', function (e) {
