@@ -1010,7 +1010,7 @@
     color:var(--teal); border-style:dashed;
   }
 
-  /* ===== Modal "Pengaturan" (header) — toggle kata-kata di atas AI Agent ===== */
+  /* ===== (sisa gaya) baris pengaturan bergaya toggle, dipakai bagian lain ===== */
   .settings-row{
     display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
     padding:12px 2px;
@@ -1054,7 +1054,6 @@
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
       <button class="link-btn riwayat-btn" onclick="openJsNotesModal()">Catatan JS</button>
-      <button class="link-btn riwayat-btn" onclick="openAppSettingsModal()">⚙️ Pengaturan</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
@@ -1466,27 +1465,6 @@
 <!-- /#pageOrderView -->
 
 
-</div>
-
-<div class="history-overlay" id="appSettingsOverlay" onclick="if(event.target===this) closeAppSettingsModal()">
-  <div class="history-modal" style="max-width:380px;">
-    <div class="history-modal-head">
-      <h3>⚙️ Pengaturan</h3>
-      <button class="history-close" onclick="closeAppSettingsModal()">✕</button>
-    </div>
-    <div class="history-modal-body">
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-title">Kata-kata di atas AI Agent</div>
-          <div class="settings-row-desc">Bubble kata semangat/lucu/bijak yang muncul bergantian di atas ikon robot AI Agent (pojok kanan bawah). Matikan kalau dirasa mengganggu.</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="hintBubbleToggle" onchange="onHintBubbleToggleChange(this)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="history-overlay" id="historyOverlay" onclick="if(event.target===this) closeHistoryModal()">
@@ -8826,7 +8804,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   // ---------------------------------------------------------------------
   // Saklar on/off untuk bubble "kata semangat" di atas ikon robot — dikontrol
-  // dari tombol ⚙️ Pengaturan di header aplikasi lewat window.aiHintBubble
+  // dari saklar "Kata-kata di atas AI Agent" di Panel Admin lewat window.aiHintBubble
   // (lihat pemasangannya di bagian bawah file ini). Disimpan di localStorage
   // supaya pilihan pengguna diingat, default AKTIF (perilaku lama).
   // ---------------------------------------------------------------------
@@ -8854,7 +8832,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     hintElRef = hintEl;
     function cycle() {
       if (!isHintBubbleEnabled()) {
-        // Fitur dimatikan lewat ⚙️ Pengaturan di header — jangan tampilkan apa-apa,
+        // Fitur dimatikan lewat saklar di Panel Admin — jangan tampilkan apa-apa,
         // cek lagi sebentar kalau-kalau dinyalakan kembali.
         hintEl.classList.remove('show');
         hintTimer = setTimeout(cycle, HINT_RETRY_MS);
@@ -9104,9 +9082,10 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mount();
   }
 
-  // Jembatan ke luar IIFE ini supaya tombol ⚙️ Pengaturan di header (kode
-  // aplikasi utama, di luar widget AI Agent) bisa membaca & mengubah status
-  // on/off bubble "kata semangat" tanpa perlu duplikasi logika/penyimpanan.
+  // Jembatan ke luar IIFE ini supaya bagian lain (mis. saklar di Panel Admin,
+  // yang membaca/menulis localStorage key yang sama lewat browser yang sama)
+  // bisa membaca & mengubah status on/off bubble "kata semangat" tanpa perlu
+  // duplikasi logika/penyimpanan.
   window.aiHintBubble = {
     isEnabled: isHintBubbleEnabled,
     setEnabled: setHintBubbleEnabled
@@ -9141,27 +9120,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   function saveJsNotes(list){
     try{ localStorage.setItem(JS_NOTES_KEY, JSON.stringify(list)); }catch(e){ /* abaikan */ }
-  }
-
-  // ===== Modal "Pengaturan" (header) — kontrol kata-kata di atas AI Agent =====
-  function openAppSettingsModal(){
-    const toggle = document.getElementById('hintBubbleToggle');
-    if(toggle){
-      // Nilai sesungguhnya disimpan & dibaca oleh widget AI Agent (window.aiHintBubble),
-      // supaya satu sumber kebenaran (localStorage key milik widget itu sendiri).
-      toggle.checked = window.aiHintBubble ? window.aiHintBubble.isEnabled() : true;
-    }
-    document.getElementById('appSettingsOverlay').classList.add('show');
-  }
-
-  function closeAppSettingsModal(){
-    document.getElementById('appSettingsOverlay').classList.remove('show');
-  }
-
-  function onHintBubbleToggleChange(el){
-    if(window.aiHintBubble && typeof window.aiHintBubble.setEnabled === 'function'){
-      window.aiHintBubble.setEnabled(el.checked);
-    }
   }
 
   function openJsNotesModal(){
