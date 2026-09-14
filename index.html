@@ -6,6 +6,7 @@
 <title>Stok Opname — Pencatatan Barang</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
@@ -1008,6 +1009,32 @@
     width:34px; height:34px; padding:0; justify-content:center; font-size:17px;
     color:var(--teal); border-style:dashed;
   }
+
+  /* ===== Modal "Pengaturan" (header) — toggle kata-kata di atas AI Agent ===== */
+  .settings-row{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:12px 2px;
+  }
+  .settings-row + .settings-row{ border-top:1px solid var(--line); }
+  .settings-row-text{ min-width:0; }
+  .settings-row-title{ font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:3px; }
+  .settings-row-desc{ font-size:11.5px; font-weight:500; color:var(--ink-soft); line-height:1.45; }
+  .toggle-switch{
+    position:relative; flex-shrink:0; width:44px; height:26px; cursor:pointer;
+  }
+  .toggle-switch input{
+    position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:1;
+  }
+  .toggle-slider{
+    position:absolute; inset:0; background:#d7d9d3; border-radius:999px;
+    transition:background .2s ease;
+  }
+  .toggle-slider:before{
+    content:''; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(15,30,27,0.3); transition:transform .2s ease;
+  }
+  .toggle-switch input:checked + .toggle-slider{ background:var(--teal); }
+  .toggle-switch input:checked + .toggle-slider:before{ transform:translateX(18px); }
 </style>
 </head>
 <body>
@@ -1027,6 +1054,7 @@
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
       <button class="link-btn riwayat-btn" onclick="openJsNotesModal()">Catatan JS</button>
+      <button class="link-btn riwayat-btn" onclick="openAppSettingsModal()">⚙️ Pengaturan</button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
@@ -1438,6 +1466,27 @@
 <!-- /#pageOrderView -->
 
 
+</div>
+
+<div class="history-overlay" id="appSettingsOverlay" onclick="if(event.target===this) closeAppSettingsModal()">
+  <div class="history-modal" style="max-width:380px;">
+    <div class="history-modal-head">
+      <h3>⚙️ Pengaturan</h3>
+      <button class="history-close" onclick="closeAppSettingsModal()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <div class="settings-row-title">Kata-kata di atas AI Agent</div>
+          <div class="settings-row-desc">Bubble kata semangat/lucu/bijak yang muncul bergantian di atas ikon robot AI Agent (pojok kanan bawah). Matikan kalau dirasa mengganggu.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hintBubbleToggle" onchange="onHintBubbleToggleChange(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="history-overlay" id="historyOverlay" onclick="if(event.target===this) closeHistoryModal()">
@@ -7321,21 +7370,16 @@ initOrderListListener();
 
 
 <!-- ============================================================================
-     AI Agent (AI lokal via WebLLM/WebGPU, tanpa API key) — asisten
-     mengambang yang bisa membaca & MENGUBAH data stok opname (barang, stok
-     Rafa 1/Rafa 2/Web-Apk, info update) lewat perintah bahasa natural.
-     Berdiri sendiri (vanilla JS), langsung memakai variabel & fungsi asli
-     aplikasi ini (rows, render, saveState, dst) yang sudah didefinisikan di
-     atas — jadi perubahan lewat AI Agent otomatis tampil di layar & ikut
-     tersinkron ke room tim seperti edit manual biasa.
-     Otaknya adalah WebLLM (github.com/mlc-ai/web-llm) yang menjalankan
-     model bahasa kecil (Qwen2.5-1.5B / Llama-3.2-1B) langsung di
-     browser lewat WebGPU — jalan di HP Android maupun desktop, 100% di
-     perangkat pengguna sendiri, tidak perlu API key, tidak ada biaya, dan
-     tidak ada data yang dikirim ke server aplikasi ini.
+     AI Agent (Groq) — asisten mengambang yang bisa membaca & MENGUBAH
+     data stok opname (barang, stok Rafa 1/Rafa 2/Web-Apk, info update) lewat
+     perintah bahasa natural. Berdiri sendiri (vanilla JS), langsung memakai
+     variabel & fungsi asli aplikasi ini (rows, render, saveState, dst) yang
+     sudah didefinisikan di atas — jadi perubahan lewat AI Agent otomatis
+     tampil di layar & ikut tersinkron ke room tim seperti edit manual biasa.
+     Diadaptasi dari AI Agent yang sama di aplikasi Sistem Kasir.
 ============================================================================ -->
 <style>
-  /* ================= AI Agent (AI lokal bawaan Chrome) — widget styles =====
+  /* ================= AI Agent (Groq) — widget styles =================
      Namespaced with "bba-" so it never collides with the app's own CSS.
      Reuses the app's existing CSS variables (--teal, --ink, --paper, dst)
      so it feels native instead of bolted-on. */
@@ -7514,9 +7558,8 @@ initOrderListListener();
   }
   .bba-modal input:focus{ outline:none; border-color:var(--teal); }
   .bba-eye{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:13px; }
-  .bba-model-row{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
-  .bba-model-row input, .bba-model-row select{ flex:1; }
-  .bba-model-row > span{ font-size:11px; color:var(--ink-soft); font-weight:700; white-space:nowrap; }
+  .bba-model-row{ display:flex; gap:6px; margin-bottom:4px; }
+  .bba-model-row input{ flex:1; }
   .bba-model-row button{
     flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
     border-radius:9px; padding:0 10px; font-size:10.8px; font-weight:700; cursor:pointer; white-space:nowrap;
@@ -7530,22 +7573,6 @@ initOrderListListener();
   .bba-model-status.ok{ color:var(--klop); }
   .bba-model-status.err{ color:var(--minus); }
   .bba-model-hint{ font-size:10px; color:#9aada6; margin:0 0 12px; line-height:1.4; }
-  /* Status AI lokal (Chrome Prompt API) — menggantikan kolom API key lama */
-  .bba-ai-status{ display:flex; align-items:flex-start; gap:8px; margin-bottom:10px; }
-  .bba-ai-dot{ width:9px; height:9px; border-radius:50%; background:#c2c9c4; flex:0 0 auto; margin-top:4px; }
-  .bba-ai-dot.ok{ background:var(--klop); }
-  .bba-ai-dot.warn{ background:var(--amber); }
-  .bba-ai-dot.err{ background:var(--minus); }
-  .bba-ai-status-text{ font-size:11.5px; color:var(--ink-soft); line-height:1.45; }
-  .bba-ai-progress-wrap{ display:none; height:7px; border-radius:5px; background:var(--mint); overflow:hidden; margin-bottom:10px; }
-  .bba-ai-progress-bar{ height:100%; width:0%; background:var(--teal); transition:width .2s ease; }
-  .bba-ai-activate-btn{
-    width:100%; border:none; border-radius:10px; padding:9px 8px; margin-bottom:10px;
-    background:var(--teal); color:#fff; font-size:12.5px; font-weight:800; cursor:pointer; display:none;
-  }
-  .bba-ai-activate-btn:hover{ background:var(--teal-deep); }
-  .bba-ai-activate-btn:disabled{ opacity:.5; cursor:default; }
-
   .bba-confirm-toggle{ display:flex; align-items:center; gap:8px; margin-bottom:16px; cursor:pointer; user-select:none; }
   .bba-confirm-toggle span{ font-size:11.5px; color:var(--ink-soft); font-weight:600; line-height:1.4; }
   .bba-modal-btns{ display:flex; gap:7px; }
@@ -7661,39 +7688,37 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   'use strict';
 
   // =====================================================================
-  // AI Agent (AI lokal via WebLLM/WebGPU) — asisten mengambang untuk
-  // aplikasi Stok Opname. Berdiri sendiri (vanilla JS). Membaca & MENGUBAH
-  // data asli aplikasi ini langsung lewat variabel/fungsi global yang sudah
-  // ada di file ini (rows, addRow, updateField, delRow, render, saveState,
-  // dst) — sehingga perubahan lewat AI Agent langsung tampil di layar &
-  // ikut tersinkron ke room tim (kalau sedang aktif), sama seperti kalau
-  // diedit manual.
-  //
-  // Otaknya memakai WebLLM (github.com/mlc-ai/web-llm), yang menjalankan
-  // model bahasa kecil (Qwen2.5-1.5B-Instruct atau Llama-3.2-1B-Instruct,
-  // format 4-bit MLC) langsung di browser lewat WebGPU — jalan 100% di
-  // perangkat pengguna sendiri: TIDAK butuh API key, TIDAK butuh server
-  // aplikasi ini, dan tidak ada data yang dikirim ke mana pun.
-  // Bisa dipakai di HP Android maupun desktop, selama browsernya mendukung
-  // WebGPU (Chrome/Edge/Samsung Internet versi terbaru). Kalau tidak
-  // didukung, AI Agent akan memberi tahu apa adanya lewat panel ⚙️
-  // Pengaturan. Library WebLLM diambil dari CDN publik (esm.run/jsDelivr)
-  // dan model AI-nya diunduh sekali dari Hugging Face lalu di-cache browser.
-  // Referensi: https://github.com/mlc-ai/web-llm
+  // AI Agent (Groq) — asisten mengambang untuk aplikasi Stok Opname.
+  // Berdiri sendiri (vanilla JS). Membaca & MENGUBAH data asli aplikasi ini
+  // langsung lewat variabel/fungsi global yang sudah ada di file ini
+  // (rows, addRow, updateField, delRow, render, saveState, dst) — sehingga
+  // perubahan lewat AI Agent langsung tampil di layar & ikut tersinkron ke
+  // room tim (kalau sedang aktif), sama seperti kalau diedit manual.
   // =====================================================================
 
   // ---------------------------------------------------------------------
   // Config / penyimpanan lokal
   // ---------------------------------------------------------------------
+  var LS_KEY_APIKEY  = 'groq_agent_api_key_v4';
+  var LS_KEY_MODEL   = 'groq_agent_model_v4';
   var LS_KEY_CONFIRM = 'bb_agent_confirm_writes';
   var LS_KEY_HISTORY = 'bb_agent_history_stokopname_v1';
+  var DEFAULT_MODEL  = 'llama-3.3-70b-versatile';
+  var DEFAULT_API_KEY = '';
+  var API_ORIGIN     = 'https://api.groq.com/openai/v1';
+  var API_URL        = API_ORIGIN + '/chat/completions';
+  var MODELS_URL     = API_ORIGIN + '/models';
   var MAX_TOOL_LOOPS = 8;
-  var MAX_HISTORY    = 24; // dijaga cukup kecil karena jendela konteks model lokal lebih terbatas
+  var MAX_HISTORY    = 40;
   var WAKTU_OPTIONS  = ['pagi', 'siang', 'sore', 'malam'];
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
 
+  function getApiKey() { return lsGet(LS_KEY_APIKEY, DEFAULT_API_KEY) || DEFAULT_API_KEY; }
+  function setApiKey(v) { lsSet(LS_KEY_APIKEY, v || ''); }
+  function getModel() { return lsGet(LS_KEY_MODEL, DEFAULT_MODEL) || DEFAULT_MODEL; }
+  function setModel(v) { lsSet(LS_KEY_MODEL, (v || '').trim() || DEFAULT_MODEL); }
   function getConfirmWrites() { return lsGet(LS_KEY_CONFIRM, '1') !== '0'; }
   function setConfirmWrites(v) { lsSet(LS_KEY_CONFIRM, v ? '1' : '0'); }
 
@@ -7763,10 +7788,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Tool schema — dipakai sebagai "sumber kebenaran" tunggal: dari sinilah
-  // deskripsi tiap tool dirender otomatis jadi teks yang disisipkan ke
-  // system prompt AI lokal (lihat toolsPromptText()), supaya tidak perlu
-  // menulis ulang deskripsi yang sama dua kali.
+  // Tool schema (OpenAI-compatible function calling, dipakai Groq)
   // ---------------------------------------------------------------------
   var TOOLS = [
     {
@@ -8401,6 +8423,37 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     });
   }
 
+  // ---------------------------------------------------------------------
+  // Lampiran gambar: baca file gambar dari pengguna, kompres jadi JPEG kecil
+  // (biar hemat kuota/token & muat di localStorage), lalu diubah jadi data URL
+  // yang dikirim sebagai content type "image_url" ke API (format vision
+  // OpenAI-compatible, dipakai juga oleh Groq).
+  // ---------------------------------------------------------------------
+  function fileToCompressedDataUrl(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error('File yang dipilih bukan gambar.')); return; }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Gagal membaca file gambar.')); };
+      reader.onload = function () {
+        var imgEl = new Image();
+        imgEl.onerror = function () { reject(new Error('Gagal memuat gambar.')); };
+        imgEl.onload = function () {
+          var w = imgEl.naturalWidth || 1, h = imgEl.naturalHeight || 1;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(imgEl, 0, 0, cw, ch);
+          try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+          catch (e) { resolve(reader.result); }
+        };
+        imgEl.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Ubah content pesan tersimpan (string ATAU array bagian text/image_url) jadi
   // tampilan bubble yang sesuai saat riwayat chat dimuat ulang di panel.
   function renderStoredUserMessage(content) {
@@ -8417,17 +8470,14 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }
   }
 
-  // Ambil bagian teks polos dari sebuah content pesan tersimpan (string ATAU
-  // array bagian text/image_url) — dipakai untuk membangun kembali "ingatan"
-  // percakapan lama sebagai initialPrompts saat sesi AI lokal baru dibuat.
-  function plainTextOfContent(content) {
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-      var found = null;
-      content.forEach(function (part) { if (part && part.type === 'text' && !found) found = part.text || ''; });
-      return found || '';
-    }
-    return '';
+  // Buang field internal (non-standar) sebelum dikirim ke API, agar body request
+  // tetap sesuai skema chat-completions yang diharapkan Groq.
+  function sanitizeForApi(m) {
+    var out = { role: m.role, content: m.content };
+    if (m.tool_calls) out.tool_calls = m.tool_calls;
+    if (m.tool_call_id) out.tool_call_id = m.tool_call_id;
+    if (m.name) out.name = m.name;
+    return out;
   }
 
   // ---------------------------------------------------------------------
@@ -8436,35 +8486,10 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var messages = loadHistory();
   var isBusy = false;
 
-  var TOOL_NAMES = TOOLS.map(function (t) { return t.function.name; });
-
-  // Ubah definisi parameter satu tool (format TOOLS di atas) jadi teks
-  // ringkas "kunci (tipe)" — dipakai untuk menyusun system prompt tanpa
-  // menulis ulang skema yang sama dua kali.
-  function paramsHintText(fn) {
-    var props = (fn.parameters && fn.parameters.properties) || {};
-    var required = (fn.parameters && fn.parameters.required) || [];
-    var keys = Object.keys(props);
-    if (!keys.length) return 'tanpa parameter';
-    return keys.map(function (k) {
-      var p = props[k] || {};
-      var wajib = required.indexOf(k) !== -1 ? '' : '?';
-      var tipe = p.enum ? ('salah satu dari ' + p.enum.join('/')) : (p.type === 'array' ? 'array' : (p.type || 'string'));
-      return k + wajib + ' [' + tipe + ']';
-    }).join(', ');
-  }
-
-  function toolsPromptText() {
-    return TOOLS.map(function (t) {
-      var fn = t.function;
-      return '- ' + fn.name + '(' + paramsHintText(fn) + '): ' + fn.description;
-    }).join('\n');
-  }
-
   function buildSystemPrompt() {
     return [
-      'Kamu adalah AI Agent yang terpasang langsung di aplikasi "Stok Opname" (pencocokan stok fisik apotek Rafa 1 & Rafa 2 dengan data sistem/aplikasi). Kamu berjalan sebagai AI lokal yang di-load langsung di dalam browser pengguna (WebGPU, on-device) — bukan lewat server/cloud.',
-      'Kamu dapat MEMBACA dan MENGUBAH data barang secara langsung lewat tools yang disediakan (bukan sekadar menyarankan) — termasuk menambah barang satu-satu atau massal (misalnya dari daftar/pasteran teks), mengedit field barang, menghapus, mengisi stok massal, dan mengubah info toko/tanggal/petugas.',
+      'Kamu adalah AI Agent yang terpasang langsung di aplikasi "Stok Opname" (pencocokan stok fisik apotek Rafa 1 & Rafa 2 dengan data sistem/aplikasi).',
+      'Kamu dapat MEMBACA dan MENGUBAH data barang secara langsung lewat tools yang disediakan (bukan sekadar menyarankan) — termasuk menambah barang satu-satu atau massal, mengedit field barang, menghapus, mengisi stok massal, mengubah info toko/tanggal/petugas, dan mengekstrak nama barang dari GAMBAR yang dikirim pengguna.',
       'Tanggal & waktu saat ini: ' + new Date().toString() + '.',
       '',
       'Model data setiap barang:',
@@ -8475,22 +8500,16 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       '- Status: "klop" kalau (rafa1+rafa2) sama dengan web_apk; "minus" kalau fisik LEBIH SEDIKIT dari web_apk; "plus" kalau fisik LEBIH BANYAK dari web_apk; "belum_dicek" kalau web_apk masih kosong.',
       '- Ada juga info_update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan nama petugas yang sedang mengisi.',
       '',
-      'Tools yang tersedia (panggil lewat field "tool" & "argumen" pada balasanmu):',
-      toolsPromptText(),
-      '',
-      'Format balasanmu WAJIB berupa satu objek JSON dengan tepat tiga field: "balasan" (teks untuk pengguna), "tool" (nama tool di atas, atau "none" kalau tidak perlu tool), dan "argumen" (objek parameter untuk tool tsb, atau {} kalau tool="none"/tool tanpa parameter). Sistem sudah memaksa bentuk JSON ini secara otomatis, jadi cukup fokus mengisi nilainya dengan benar — jangan menambah teks lain di luar JSON tersebut.',
-      'Setelah kamu memanggil sebuah tool, hasilnya akan dikirim balik kepadamu pada giliran berikutnya sebagai pesan yang diawali "[HASIL_TOOL ...]" — INI BUKAN PESAN DARI PENGGUNA, melainkan hasil otomatis dari sistem aplikasi. Baca hasil itu, lalu balas ke pengguna dengan tool="none" (atau panggil tool lain lagi kalau memang masih ada langkah lanjutan yang diperlukan).',
-      '',
       'Aturan wajib:',
       '1. Jangan pernah mengarang id barang. Gunakan id hasil search_items/list_items/get_item, atau biarkan add_item membuatkan id baru secara otomatis.',
       '2. Untuk mengisi banyak barang sekaligus (mis. dari daftar/pasteran WhatsApp), pakai bulk_set_stock — jangan panggil update_item satu-satu untuk puluhan/ratusan barang, itu boros langkah.',
-      '3. Kalau pengguna mengirim/paste daftar NAMA barang baru yang belum ada di tabel (bukan mengisi stok, tapi menambah barang baru), pakai bulk_add_items dengan daftar nama tsb — tool ini akan menampilkan checklist ke pengguna untuk dikonfirmasi/disunting dulu sebelum benar-benar masuk ke tabel, jadi kamu tidak perlu bertanya ulang secara manual.',
-      '4. add_item, update_item, delete_item, bulk_set_stock, bulk_add_items, set_meta, dan clear_all_items adalah operasi tulis yang akan ditampilkan ke pengguna untuk konfirmasi terlebih dahulu. Kalau hasil tool menunjukkan pengguna membatalkan, itu bukan error — sampaikan dengan wajar dan tanyakan apakah ingin melakukan hal lain.',
-      '5. clear_all_items sangat merusak (menghapus SEMUA barang) — jelaskan dulu risikonya ke pengguna sebelum memanggilnya, dan hanya panggil kalau pengguna memang eksplisit minta mengosongkan semua data.',
-      '6. Untuk bulk_set_stock, kalau ada barang yang dicocokkan secara "mirip" (bukan persis sama), sebutkan ke pengguna di jawabanmu supaya mereka bisa cek kalau-kalau salah cocok.',
-      '7. Jangan pernah mengarang data yang tidak ada. Selalu gunakan tools untuk memastikan (mis. search_items dulu sebelum update_item kalau belum yakin id-nya).',
-      '8. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
-      '9. Kamu adalah model AI kecil yang berjalan langsung di perangkat pengguna (HP/laptop, lewat WebGPU) — bukan model besar di cloud — jadi kemampuanmu jauh lebih terbatas dan kamu TIDAK BISA melihat/membaca gambar/foto yang dikirim pengguna. Kalau ragu dengan permintaan yang rumit atau berisiko, atau pengguna mengirim foto, lebih baik tanya balik / minta diketik teksnya saja daripada menebak dan memanggil tool yang salah.',
+      '3. add_item, update_item, delete_item, bulk_set_stock, set_meta, dan clear_all_items adalah operasi tulis yang akan ditampilkan ke pengguna untuk konfirmasi terlebih dahulu. Kalau hasil tool menunjukkan pengguna membatalkan, itu bukan error — sampaikan dengan wajar dan tanyakan apakah ingin melakukan hal lain.',
+      '4. clear_all_items sangat merusak (menghapus SEMUA barang) — jelaskan dulu risikonya ke pengguna sebelum memanggilnya, dan hanya panggil kalau pengguna memang eksplisit minta mengosongkan semua data.',
+      '5. Untuk bulk_set_stock, kalau ada barang yang dicocokkan secara "mirip" (bukan persis sama), sebutkan ke pengguna di jawabanmu supaya mereka bisa cek kalau-kalau salah cocok.',
+      '6. Jangan pernah mengarang data yang tidak ada. Selalu gunakan tools untuk memastikan (mis. search_items dulu sebelum update_item kalau belum yakin id-nya).',
+      '7. Kalau tool mengembalikan error karena mode "hanya lihat" (view-only) sedang aktif, sampaikan itu ke pengguna apa adanya — jangan mencoba tool lain untuk mengakalinya.',
+      '8. Kamu juga bisa menerima GAMBAR yang dilampirkan pengguna (foto rak/etalase, struk, catatan/daftar tulisan tangan, dsb). Kalau pengguna mengirim gambar dan minta barangnya didata/dimasukkan ke tabel, baca gambar itu dan ambil HANYA nama barangnya — abaikan harga, jumlah/qty, satuan, tanggal, kode, dan teks lain yang tidak relevan — lalu panggil tool bulk_add_items dengan daftar nama tersebut. Jangan menebak isi gambar kalau tidak terbaca jelas; sebutkan saja bagian yang tidak yakin. Kamu TIDAK perlu meminta konfirmasi manual lewat teks karena tool bulk_add_items sudah otomatis menampilkan daftar nama terdeteksi ke pengguna lengkap dengan checkbox untuk dipilih/disunting sebelum benar-benar masuk ke tabel.',
+      '9. Kalau model yang sedang dipakai ternyata tidak mendukung input gambar (bukan model vision) sehingga gagal memproses gambar, sampaikan itu apa adanya ke pengguna dan sarankan mengganti ke model yang mendukung gambar (mis. model seri gpt-4o atau model vision lain) lewat ikon kunci 🔑 → Model.',
       '10. Jawab selalu dalam Bahasa Indonesia, singkat, jelas, dan ramah.',
       '11. Jangan gunakan format markdown (seperti **tebal**, *miring*, tanda pagar #, atau backtick) di jawabanmu — tulis dengan teks polos saja. Kalau perlu daftar, pakai baris baru dengan tanda hubung "-", bukan tanda bintang.',
       '',
@@ -8502,121 +8521,142 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     ].join('\n');
   }
 
-  // Skema JSON yang dipaksakan ke setiap balasan model (structured output /
-  // response_format json_object) — menjamin balasan SELALU berbentuk
-  // { balasan, tool, argumen } yang valid, tanpa perlu parsing manual rawan gagal.
-  function buildResponseSchema() {
-    return {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        balasan: { type: 'string' },
-        tool: { type: 'string', enum: TOOL_NAMES.concat(['none']) },
-        argumen: { type: 'object' }
-      },
-      required: ['balasan', 'tool', 'argumen']
-    };
-  }
-
-  // ---------------------------------------------------------------------
-  // Mesin AI lokal — WebLLM (https://github.com/mlc-ai/web-llm), berjalan
-  // 100% di perangkat pengguna lewat WebGPU (bisa di HP Android maupun
-  // desktop, tidak terbatas Chrome desktop saja seperti AI bawaan browser).
-  // Library-nya diambil dari CDN publik (jsDelivr/esm.run) memakai import()
-  // dinamis — bukan lewat server milik aplikasi ini — dan model AI-nya
-  // sendiri diunduh sekali dari Hugging Face lalu disimpan di cache
-  // browser. Tidak ada API key, tidak ada biaya, tidak ada limit pemakaian
-  // selain kemampuan perangkat itu sendiri.
-  // ---------------------------------------------------------------------
-  var WEBLLM_CDN_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
-  var MODEL_BALANCED = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'; // default: lebih pintar & lebih bagus Bahasa Indonesianya
-  var MODEL_LIGHT = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';    // alternatif: lebih ringan/cepat untuk HP pas-pasan
-  var LS_KEY_MODEL_CHOICE = 'bb_agent_model_choice_v1';
-
-  function getModelChoice() { return lsGet(LS_KEY_MODEL_CHOICE, 'balanced') === 'light' ? 'light' : 'balanced'; }
-  function setModelChoice(v) { lsSet(LS_KEY_MODEL_CHOICE, v === 'light' ? 'light' : 'balanced'); }
-  function modelIdForChoice(choice) { return choice === 'light' ? MODEL_LIGHT : MODEL_BALANCED; }
-
-  async function isWebGpuAvailable() {
-    if (!navigator.gpu) return false;
-    try { var adapter = await navigator.gpu.requestAdapter(); return !!adapter; }
-    catch (e) { return false; }
-  }
-
-  var webllmModPromise = null;
-  function loadWebLLMModule() {
-    if (!webllmModPromise) webllmModPromise = import(WEBLLM_CDN_URL);
-    return webllmModPromise;
-  }
-
-  var engine = null;          // instance MLCEngine aktif (WebLLM)
-  var engineModelId = null;   // model_id yang sedang di-load di engine di atas
-  var downloadCardEl = null;  // info card di chat yang menampilkan progres unduhan model
-
-  function onModelDownloadProgress(report) {
-    var pct = Math.max(0, Math.min(100, Math.round((report && report.progress || 0) * 100)));
-    var text = (report && report.text) ? report.text : ('Menyiapkan AI lokal... ' + pct + '%');
-    if (!downloadCardEl) downloadCardEl = addInfoCard('⬇️', text);
-    downloadCardEl.textContent = '⬇️ ' + text;
-    scrollToBottom();
-    if (els.aiProgressBar) els.aiProgressBar.style.width = pct + '%';
-    if (els.aiStatusText) els.aiStatusText.textContent = text;
-    if (pct >= 100) {
-      var doneCard = downloadCardEl;
-      downloadCardEl = null;
-      setTimeout(function () { if (doneCard) doneCard.textContent = '✅ AI lokal siap dipakai.'; }, 300);
+  async function fetchModelList(apiKey) {
+    var res = await fetch(MODELS_URL, { method: 'GET', headers: { 'Authorization': 'Bearer ' + apiKey } });
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      throw new Error('HTTP ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 200)) : ''));
     }
+    var json = await res.json();
+    var list = Array.isArray(json) ? json : (json.data || json.models || []);
+    var ids = list.map(function (m) { return typeof m === 'string' ? m : (m.id || m.name || m.model || null); }).filter(Boolean);
+    var seen = {}, out = [];
+    ids.forEach(function (id) { if (!seen[id]) { seen[id] = 1; out.push(id); } });
+    out.sort();
+    return out;
   }
 
-  // Menyiapkan (atau mengganti model) engine WebLLM. Dipanggil dari klik
-  // tombol kirim / tombol aktivasi di panel Pengaturan — jadi selalu
-  // berasal dari aksi pengguna sendiri sebelum memicu unduhan model.
-  async function ensureEngine() {
-    var wantedId = modelIdForChoice(getModelChoice());
-    if (engine && engineModelId === wantedId) return engine;
-
-    if (!(await isWebGpuAvailable())) {
-      var eNoGpu = new Error('NO_WEBGPU');
-      eNoGpu.code = 'NO_WEBGPU';
-      throw eNoGpu;
-    }
-
-    var webllm = await loadWebLLMModule();
-    if (!engine) engine = new webllm.MLCEngine({ initProgressCallback: onModelDownloadProgress });
-    await engine.reload(wantedId);
-    engineModelId = wantedId;
-    return engine;
-  }
-
-  // Memanggil model lokal dan memaksa balasannya sesuai skema { balasan,
-  // tool, argumen } lewat response_format json_object + JSON Schema
-  // (structured output) — hasilnya SELALU JSON valid.
-  async function callLocalModel(modelMessages) {
-    await ensureEngine();
-    var resp = await engine.chat.completions.create({
-      messages: modelMessages,
-      response_format: { type: 'json_object', schema: JSON.stringify(buildResponseSchema()) }
+  async function callBlackbox(msgsForApi) {
+    var apiKey = getApiKey();
+    if (!apiKey) { var err = new Error('NO_API_KEY'); err.code = 'NO_API_KEY'; throw err; }
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModel(), messages: msgsForApi.map(sanitizeForApi), tools: TOOLS, tool_choice: 'auto', temperature: 0.3, max_tokens: 1500, stream: false })
     });
-    var raw = resp && resp.choices && resp.choices[0] && resp.choices[0].message && resp.choices[0].message.content;
-    var parsed;
-    try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
-    if (!parsed || typeof parsed !== 'object') parsed = { balasan: String(raw || '').trim(), tool: 'none', argumen: {} };
-    if (typeof parsed.balasan !== 'string') parsed.balasan = '';
-    if (typeof parsed.tool !== 'string' || !parsed.tool) parsed.tool = 'none';
-    if (!parsed.argumen || typeof parsed.argumen !== 'object') parsed.argumen = {};
-    return { parsed: parsed, raw: raw };
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      apiErr.status = res.status;
+      throw apiErr;
+    }
+    return res.json();
   }
 
-  // Menjalankan satu tool (dipanggil AI lokal lewat field "tool"/"argumen").
-  async function runSingleTool(name, args) {
-    args = args || {};
-    var impl = TOOL_IMPL[name];
-    if (!impl) return { error: 'Tool tidak dikenal: ' + name };
+  // Versi streaming — supaya jawaban AI langsung muncul kata-per-kata begitu
+  // mulai digenerate (bukan menunggu seluruh jawaban selesai), jadi terasa
+  // jauh lebih cepat. onTextDelta dipanggil berulang dengan teks terkumpul
+  // sejauh ini setiap kali ada potongan baru datang dari server.
+  // Kalau server/model ternyata tidak mendukung SSE stream, otomatis jatuh
+  // balik ke pembacaan respons biasa (non-stream) supaya tetap jalan.
+  async function callBlackboxStream(msgsForApi, onTextDelta) {
+    var apiKey = getApiKey();
+    if (!apiKey) { var err = new Error('NO_API_KEY'); err.code = 'NO_API_KEY'; throw err; }
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: getModel(), messages: msgsForApi.map(sanitizeForApi), tools: TOOLS, tool_choice: 'auto', temperature: 0.3, max_tokens: 1500, stream: true })
+    });
+    if (!res.ok) {
+      var bodyText = ''; try { bodyText = await res.text(); } catch (e) { /* ignore */ }
+      var apiErr = new Error('Groq API error ' + res.status + (bodyText ? (': ' + bodyText.slice(0, 300)) : ''));
+      apiErr.status = res.status;
+      throw apiErr;
+    }
 
-    // bulk_add_items pakai kartu checklist khusus, bukan kartu konfirmasi
-    // JSON generik — supaya pengguna bisa pilih & sunting nama satu per satu
-    // sebelum benar-benar masuk ke tabel (baik dari daftar teks ataupun,
-    // di masa depan, hasil deteksi lain).
+    // Fallback kalau environment tidak bisa baca body sebagai stream.
+    if (!res.body || typeof res.body.getReader !== 'function') {
+      var json = await res.json();
+      var m0 = json && json.choices && json.choices[0] && json.choices[0].message;
+      if (m0 && m0.content && onTextDelta) onTextDelta(m0.content);
+      return m0 || { content: '', tool_calls: undefined };
+    }
+
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder('utf-8');
+    var buffer = '';
+    var content = '';
+    var toolCallsMap = {};
+    var sawAnyEvent = false;
+
+    function handleLine(line) {
+      line = line.trim();
+      if (!line || line.indexOf('data:') !== 0) return;
+      var payload = line.slice(5).trim();
+      if (payload === '[DONE]') return;
+      var evt;
+      try { evt = JSON.parse(payload); } catch (e) { return; }
+      sawAnyEvent = true;
+      var choice = evt.choices && evt.choices[0];
+      var delta = choice && choice.delta;
+      if (!delta) return;
+      if (delta.content) {
+        content += delta.content;
+        if (onTextDelta) onTextDelta(content);
+      }
+      if (delta.tool_calls) {
+        delta.tool_calls.forEach(function (tc) {
+          var idx = (tc.index === undefined || tc.index === null) ? 0 : tc.index;
+          if (!toolCallsMap[idx]) toolCallsMap[idx] = { id: '', type: 'function', function: { name: '', arguments: '' } };
+          if (tc.id) toolCallsMap[idx].id = tc.id;
+          if (tc.type) toolCallsMap[idx].type = tc.type;
+          if (tc.function) {
+            if (tc.function.name) toolCallsMap[idx].function.name += tc.function.name;
+            if (tc.function.arguments) toolCallsMap[idx].function.arguments += tc.function.arguments;
+          }
+        });
+      }
+    }
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      var lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (var i = 0; i < lines.length; i++) handleLine(lines[i]);
+    }
+    if (buffer) handleLine(buffer);
+
+    // Kalau tidak ada satupun event SSE yang terbaca (server ternyata balas
+    // non-stream walau diminta stream:true), coba baca ulang sebagai JSON biasa.
+    if (!sawAnyEvent) {
+      try {
+        var textFallback = decoder.decode();
+        var jsonFallback = textFallback ? JSON.parse(textFallback) : null;
+        var mF = jsonFallback && jsonFallback.choices && jsonFallback.choices[0] && jsonFallback.choices[0].message;
+        if (mF) {
+          if (mF.content && onTextDelta) onTextDelta(mF.content);
+          return mF;
+        }
+      } catch (eFallback) { /* abaikan, lanjut ke hasil stream kosong di bawah */ }
+    }
+
+    var toolCallsArr = Object.keys(toolCallsMap).sort(function (a, b) { return a - b; }).map(function (k) { return toolCallsMap[k]; });
+    return { content: content, tool_calls: toolCallsArr.length ? toolCallsArr : undefined };
+  }
+
+  async function executeToolCall(tc) {
+    var name = tc.function && tc.function.name;
+    var args = {};
+    try { args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {}; } catch (e) { args = {}; }
+
+    var impl = TOOL_IMPL[name];
+    if (!impl) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tool tidak dikenal: ' + name }) };
+
+    // bulk_add_items (hasil deteksi gambar) pakai kartu checklist khusus, bukan
+    // kartu konfirmasi JSON generik — supaya pengguna bisa pilih & sunting nama
+    // satu per satu sebelum benar-benar masuk ke tabel.
     if (name === 'bulk_add_items') {
       var rawNames = Array.isArray(args.barang) ? args.barang : [];
       var candidateNames = [];
@@ -8629,14 +8669,22 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         seenN[key] = 1;
         candidateNames.push(nm);
       });
-      if (!candidateNames.length) return { error: 'Tidak ada nama barang yang valid dikirim ke bulk_add_items.' };
-      if (isViewOnlyForMe()) return { error: 'Perangkat ini sedang dalam mode "hanya lihat" (view-only), tidak bisa menambah barang.' };
+      if (!candidateNames.length) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Tidak ada nama barang yang valid dikirim ke bulk_add_items.' }) };
+      }
+      if (isViewOnlyForMe()) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: 'Perangkat ini sedang dalam mode "hanya lihat" (view-only), tidak bisa menambah barang.' }) };
+      }
       var selectedNames = await addItemListConfirmCard(candidateNames);
       if (!selectedNames || !selectedNames.length) {
-        return { dibatalkan: true, alasan: 'Pengguna tidak memilih/membatalkan barang dari daftar yang diajukan.' };
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna tidak memilih/membatalkan barang dari daftar hasil deteksi gambar.' }) };
       }
-      try { return toolBulkAddItems({ barang: selectedNames }); }
-      catch (eBulk) { return { error: String((eBulk && eBulk.message) || eBulk) }; }
+      try {
+        var bulkRes = toolBulkAddItems({ barang: selectedNames });
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(bulkRes) };
+      } catch (eBulk) {
+        return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((eBulk && eBulk.message) || eBulk) }) };
+      }
     }
 
     var isWrite = !!WRITE_TOOLS[name];
@@ -8644,81 +8692,73 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     if (needsConfirm) {
       var approved = await addConfirmCard(name, args);
-      if (!approved) return { dibatalkan: true, alasan: 'Pengguna membatalkan aksi ini melalui tombol konfirmasi.' };
+      if (!approved) return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ dibatalkan: true, alasan: 'Pengguna membatalkan aksi ini melalui tombol konfirmasi.' }) };
     } else if (isWrite) {
       addInfoCard('✏️', summarizeArgs(name, args) + ' (auto-jalankan)');
     } else {
       addInfoCard('📋', 'Membaca data (' + name + ')');
     }
 
-    try { return await impl(args); }
-    catch (e) { return { error: String((e && e.message) || e) }; }
+    try {
+      var result = await impl(args);
+      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify(result) };
+    } catch (e) {
+      return { role: 'tool', tool_call_id: tc.id, name: name, content: JSON.stringify({ error: String((e && e.message) || e) }) };
+    }
   }
 
   async function runAgentLoop(userText) {
     if (isBusy) return;
     isBusy = true;
     setInputEnabled(false);
-
-    try {
-      // Pastikan engine AI lokal siap. Aman memicu unduhan model (kalau
-      // perlu) karena selalu berasal dari klik tombol kirim pengguna sendiri.
-      await ensureEngine();
-    } catch (e) {
-      isBusy = false;
-      setInputEnabled(true);
-      if (e && e.code === 'NO_WEBGPU') {
-        addBubble('error', 'AI Agent lokal butuh HP/laptop dengan dukungan WebGPU — kebanyakan HP Android keluaran 2019 ke atas pakai Chrome/Edge/Samsung Internet versi terbaru sudah mendukung ini. Coba update browser kamu, lalu tap ⚙️ untuk cek status.');
-      } else {
-        addBubble('error', 'Gagal menyiapkan AI lokal: ' + ((e && e.message) || e) + ' (butuh koneksi internet saat pertama kali mengunduh model)');
-      }
-      openKeyModal();
-      return;
-    }
-
     messages.push({ role: 'user', content: userText });
     saveHistory(messages);
-
-    // Riwayat percakapan dipotong biar muat jendela konteks model kecil
-    // yang dipakai di HP, lalu diubah jadi array pesan OpenAI-compatible.
-    var convo = messages.slice(-MAX_HISTORY).map(function (m) {
-      return { role: (m.role === 'assistant' ? 'assistant' : 'user'), content: plainTextOfContent(m.content) };
-    });
-    var modelMessages = [{ role: 'system', content: buildSystemPrompt() }].concat(convo);
 
     var loops = 0;
     try {
       while (loops < MAX_TOOL_LOOPS) {
         loops++;
+        var apiMessages = [{ role: 'system', content: buildSystemPrompt() }].concat(messages);
         addTypingIndicator();
-        var out;
-        try { out = await callLocalModel(modelMessages); }
-        finally { removeTypingIndicator(); }
 
-        modelMessages.push({ role: 'assistant', content: out.raw });
-        var result = out.parsed;
-
-        if (result.balasan && result.balasan.trim()) {
-          addBubble('assistant', result.balasan.trim());
-          messages.push({ role: 'assistant', content: result.balasan.trim() });
-          saveHistory(messages);
+        // Streaming: bubble jawaban dibuat begitu potongan teks pertama datang,
+        // lalu terus diperbarui — jadi pengguna langsung lihat jawaban mengalir
+        // alih-alih menunggu diam sampai semuanya selesai digenerate.
+        var liveBubble = null;
+        var msg;
+        try {
+          msg = await callBlackboxStream(apiMessages, function (textSoFar) {
+            if (!liveBubble) { removeTypingIndicator(); liveBubble = addBubble('assistant', ''); }
+            liveBubble.innerHTML = mdToHtml(textSoFar);
+            scrollToBottom();
+          });
+        } finally {
+          removeTypingIndicator();
         }
+        if (!msg) throw new Error('Respons API tidak berisi pesan yang valid.');
 
-        if (!result.tool || result.tool === 'none') return;
+        var toolCalls = msg.tool_calls || [];
+        messages.push({ role: 'assistant', content: msg.content || '', tool_calls: toolCalls.length ? toolCalls : undefined });
 
-        var toolResult = await runSingleTool(result.tool, result.argumen);
-        var resultJson;
-        try { resultJson = JSON.stringify(toolResult); } catch (e2) { resultJson = String(toolResult); }
-        modelMessages.push({
-          role: 'user',
-          content: '[HASIL_TOOL ' + result.tool + ']: ' + resultJson +
-            '\n\n(Ini bukan pesan dari pengguna, melainkan hasil otomatis dari sistem aplikasi. Sampaikan balasan akhir ke pengguna berdasarkan hasil ini, gunakan tool="none" kalau sudah selesai, atau panggil tool lain lagi kalau memang masih ada langkah lanjutan yang diperlukan.)'
-        });
+        // Kalau belum sempat ada bubble live (mis. jawabannya cuma tool_calls
+        // tanpa teks pendamping yang sempat ter-stream), baru tampilkan di sini.
+        if (!liveBubble && msg.content && msg.content.trim()) addBubble('assistant', msg.content.trim());
+
+        if (!toolCalls.length) { saveHistory(messages); return; }
+
+        for (var i = 0; i < toolCalls.length; i++) {
+          var toolResultMsg = await executeToolCall(toolCalls[i]);
+          messages.push(toolResultMsg);
+        }
+        saveHistory(messages);
       }
       addBubble('error', 'Terlalu banyak langkah berturut-turut, dihentikan untuk keamanan. Coba pecah permintaan menjadi lebih kecil.');
     } catch (e) {
-      if (e && e.code === 'NO_WEBGPU') {
-        addBubble('error', 'AI Agent lokal butuh HP/laptop dengan dukungan WebGPU.');
+      if (e && e.code === 'NO_API_KEY') {
+        addBubble('error', 'API Key Groq belum diatur. Klik ikon kunci 🔑 di atas untuk memasukkannya.');
+        openKeyModal();
+      } else if (e && e.status === 400 && /model/i.test((e.message || ''))) {
+        addBubble('error', 'Model "' + getModel() + '" tidak dikenali oleh API Key ini.\n\nKlik ikon kunci 🔑 → tombol "Muat Model" untuk melihat daftar model yang benar-benar valid untuk akun kamu, lalu pilih salah satu.\n\nDetail: ' + e.message);
         openKeyModal();
       } else {
         addBubble('error', 'Terjadi kesalahan: ' + ((e && e.message) || e));
@@ -8732,43 +8772,19 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function setInputEnabled(enabled) {
     if (els.input) els.input.disabled = !enabled;
     if (els.sendBtn) els.sendBtn.disabled = !enabled;
+    if (els.attachBtn) els.attachBtn.disabled = !enabled;
     if (els.fab) els.fab.classList.toggle('thinking', !enabled);
     if (els.headIco) els.headIco.classList.toggle('thinking', !enabled);
     setBotThinking(!enabled);
     if (enabled && els.input) els.input.focus();
   }
 
-  // Memeriksa & menampilkan status AI lokal di panel ⚙️ Pengaturan: apakah
-  // WebGPU didukung, dan apakah model yang dipilih sudah aktif/perlu diunduh.
-  async function refreshAiStatusUI() {
-    if (!els.aiStatusDot) return;
-    var gpuOk = await isWebGpuAvailable();
-    if (!gpuOk) {
-      els.aiStatusDot.className = 'bba-ai-dot err';
-      els.aiStatusText.textContent = 'HP/browser ini belum mendukung WebGPU, jadi AI lokal belum bisa jalan di sini. Coba pakai Chrome/Edge/Samsung Internet versi terbaru di HP Android (2019 ke atas) atau di laptop/desktop.';
-      els.aiActivateBtn.style.display = 'none';
-      els.aiProgressWrap.style.display = 'none';
-      return;
-    }
-    var wantedId = modelIdForChoice(getModelChoice());
-    if (engine && engineModelId === wantedId) {
-      els.aiStatusDot.className = 'bba-ai-dot ok';
-      els.aiStatusText.textContent = 'Siap dipakai — model sudah aktif di perangkat ini, tidak perlu API key.';
-      els.aiActivateBtn.style.display = 'none';
-      els.aiProgressWrap.style.display = 'none';
-    } else {
-      els.aiStatusDot.className = 'bba-ai-dot warn';
-      els.aiStatusText.textContent = 'Belum aktif. Tap tombol di bawah untuk mengunduh & mengaktifkan model (sekali saja, disarankan pakai WiFi — lalu tersimpan di HP/browser ini untuk dipakai lagi tanpa unduh ulang).';
-      els.aiActivateBtn.style.display = '';
-      els.aiProgressWrap.style.display = 'none';
-    }
-  }
-
   function openKeyModal() {
+    els.keyInput.value = getApiKey();
+    els.modelInput.value = getModel();
+    if (els.modelDisplayTxt) els.modelDisplayTxt.textContent = getModel();
     els.confirmToggle.checked = getConfirmWrites();
-    if (els.modelChoiceSelect) els.modelChoiceSelect.value = getModelChoice();
     els.keyModalOv.classList.add('show');
-    refreshAiStatusUI();
   }
   function closeKeyModal() { els.keyModalOv.classList.remove('show'); }
 
@@ -8800,15 +8816,50 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var hintTimer = null, hintRotateIdx = -1;
   var HINT_SHOW_MS = 4500;   // lama teks tampil
   var HINT_GAP_MS = 3200;    // jeda kosong sebelum teks berikutnya muncul
-  var HINT_RETRY_MS = 1200;  // cek ulang kalau panel chat lagi terbuka
+  var HINT_RETRY_MS = 1200;  // cek ulang kalau panel chat lagi terbuka / fitur lagi dimatikan
   function pickNextHintIdx() {
     if (HINT_PHRASES.length <= 1) return 0;
     var idx;
     do { idx = Math.floor(Math.random() * HINT_PHRASES.length); } while (idx === hintRotateIdx);
     return idx;
   }
+
+  // ---------------------------------------------------------------------
+  // Saklar on/off untuk bubble "kata semangat" di atas ikon robot — dikontrol
+  // dari tombol ⚙️ Pengaturan di header aplikasi lewat window.aiHintBubble
+  // (lihat pemasangannya di bagian bawah file ini). Disimpan di localStorage
+  // supaya pilihan pengguna diingat, default AKTIF (perilaku lama).
+  // ---------------------------------------------------------------------
+  var LS_KEY_HINT_ENABLED = 'bb_agent_hint_enabled_v1';
+  var hintElRef = null; // referensi elemen bubble, diisi saat startHintBubble() dipanggil
+  function isHintBubbleEnabled() {
+    try {
+      var v = localStorage.getItem(LS_KEY_HINT_ENABLED);
+      return v === null ? true : v === '1';
+    } catch (e) { return true; }
+  }
+  function setHintBubbleEnabled(val) {
+    try { localStorage.setItem(LS_KEY_HINT_ENABLED, val ? '1' : '0'); } catch (e) { /* abaikan */ }
+    if (!val && hintElRef) {
+      // Sembunyikan seketika supaya efek tombolnya langsung terasa.
+      hintElRef.classList.remove('show');
+      hintElRef.classList.remove('fading');
+    }
+    // Kalau dinyalakan lagi, loop cycle() di bawah otomatis mendeteksinya
+    // pada pengecekan berikutnya (paling lama HINT_RETRY_MS) karena
+    // loopnya tidak pernah benar-benar berhenti, cuma "menunggu" saat mati.
+  }
+
   function startHintBubble(hintEl, panelEl) {
+    hintElRef = hintEl;
     function cycle() {
+      if (!isHintBubbleEnabled()) {
+        // Fitur dimatikan lewat ⚙️ Pengaturan di header — jangan tampilkan apa-apa,
+        // cek lagi sebentar kalau-kalau dinyalakan kembali.
+        hintEl.classList.remove('show');
+        hintTimer = setTimeout(cycle, HINT_RETRY_MS);
+        return;
+      }
       if (panelEl && panelEl.classList.contains('show')) {
         // Chat lagi dibuka — jangan ganggu, cek lagi sebentar.
         hintTimer = setTimeout(cycle, HINT_RETRY_MS);
@@ -8853,12 +8904,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mountBotLottie(headIco);
     var headTxt = el('div', 'bba-head-txt');
     var hT1 = el('div', 't1'); hT1.textContent = 'AI Agent';
-    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · AI Lokal (HP & Desktop)';
+    var hT2 = el('div', 't2'); hT2.textContent = 'Stok Opname · Groq';
     var hT3 = el('div', 't3'); hT3.textContent = 'Dibuat oleh Zen — Designer & Programmer';
     headTxt.appendChild(hT1); headTxt.appendChild(hT2); headTxt.appendChild(hT3);
     headLeft.appendChild(headTxt);
     var headRight = el('div', 'bba-head-right');
-    var keyBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Pengaturan AI Agent' }); keyBtn.textContent = '⚙️';
+    var keyBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'API Key & Pengaturan' }); keyBtn.textContent = '🔑';
     var clearBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Bersihkan chat' }); clearBtn.textContent = '🧹';
     var closeBtn = el('button', 'bba-icon-btn', { type: 'button', title: 'Tutup' }); closeBtn.textContent = '✕';
     headRight.appendChild(keyBtn); headRight.appendChild(clearBtn); headRight.appendChild(closeBtn);
@@ -8867,51 +8918,45 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var body = el('div', 'bba-body');
 
     var foot = el('div', 'bba-foot');
+
+    var imgChip = el('div', 'bba-img-chip');
+    var imgChipThumb = el('img', 'bba-img-chip-thumb', { alt: 'Preview gambar' });
+    var imgChipLabel = el('span', 'bba-img-chip-label'); imgChipLabel.textContent = 'Gambar siap dikirim';
+    var imgChipRemove = el('button', 'bba-img-chip-remove', { type: 'button', title: 'Hapus gambar' });
+    imgChipRemove.textContent = '✕';
+    imgChip.appendChild(imgChipThumb); imgChip.appendChild(imgChipLabel); imgChip.appendChild(imgChipRemove);
+
     var footRow = el('div', 'bba-foot-row');
-    var textarea = el('textarea', '', { rows: '1', placeholder: 'Tulis perintah, mis: "isi stok Rafa 1 untuk barang X = 12"' });
+    var attachBtn = el('button', 'bba-attach', { type: 'button', title: 'Lampirkan foto barang' });
+    attachBtn.textContent = '📷';
+    var attachInput = el('input', '', { type: 'file', accept: 'image/*' });
+    attachInput.style.display = 'none';
+    var textarea = el('textarea', '', { rows: '1', placeholder: 'Tulis perintah, mis: "isi stok Rafa 1 untuk barang X = 12", atau lampirkan foto barang' });
     var sendBtn = el('button', 'bba-send', { type: 'button', title: 'Kirim' });
     sendBtn.textContent = '➤';
-    footRow.appendChild(textarea); footRow.appendChild(sendBtn);
-    foot.appendChild(footRow);
+    footRow.appendChild(attachBtn); footRow.appendChild(textarea); footRow.appendChild(sendBtn);
+
+    foot.appendChild(imgChip); foot.appendChild(footRow); foot.appendChild(attachInput);
 
     panel.appendChild(head); panel.appendChild(body); panel.appendChild(foot);
     document.body.appendChild(panel);
 
-    // --- Modal Pengaturan AI Agent (AI lokal, tanpa API key) ---
+    // --- Modal API key / pengaturan ---
     var modalOv = el('div', 'bba-modal-ov');
     var modal = el('div', 'bba-modal');
 
-    var mTitle = el('h3'); mTitle.textContent = '⚙️ Pengaturan AI Agent';
-    var mSub = el('p', 'sub'); mSub.textContent = 'AI Agent ini berjalan 100% lokal langsung di HP/browser kamu (lewat WebGPU) — tanpa API key, tanpa server, dan datanya tidak pernah dikirim ke internet.';
+    var mTitle = el('h3'); mTitle.textContent = '🔑 Pengaturan AI Agent';
+    var mSub = el('p', 'sub'); mSub.textContent = 'API Key disimpan hanya di perangkat ini (localStorage), tidak dikirim ke server manapun selain Groq.';
     var mCredit = el('p', 'sub'); mCredit.style.marginTop = '2px'; mCredit.style.fontStyle = 'italic'; mCredit.style.opacity = '0.75';
     mCredit.textContent = 'AI Agent ini dirancang & diprogram oleh Zen.';
 
-    var aiStatusBox = el('div', 'bba-ai-status');
-    var aiStatusDot = el('span', 'bba-ai-dot');
-    var aiStatusText = el('span', 'bba-ai-status-text'); aiStatusText.textContent = 'Memeriksa status...';
-    aiStatusBox.appendChild(aiStatusDot); aiStatusBox.appendChild(aiStatusText);
+    var lblKey = el('label'); lblKey.textContent = 'Groq API Key';
+    var keyRow = el('div', 'bba-field-row');
+    var keyInput = el('input', '', { type: 'password', placeholder: 'sk-xxxxxxxxxxxxxxxx' });
+    var toggleShow = el('button', 'bba-eye', { type: 'button', tabindex: '-1' }); toggleShow.textContent = '👁';
+    keyRow.appendChild(keyInput); keyRow.appendChild(toggleShow);
 
-    var aiProgressWrap = el('div', 'bba-ai-progress-wrap');
-    var aiProgressBar = el('div', 'bba-ai-progress-bar');
-    aiProgressWrap.appendChild(aiProgressBar);
-
-    var aiActivateBtn = el('button', 'bba-ai-activate-btn', { type: 'button' }); aiActivateBtn.textContent = 'Unduh & Aktifkan AI Lokal';
-
-    var modelRow = el('div', 'bba-model-row');
-    var modelLabel = el('span'); modelLabel.textContent = 'Model AI: ';
-    var modelChoiceSelect = el('select', 'bba-model-picker-btn');
-    var optBalanced = el('option', '', { value: 'balanced' }); optBalanced.textContent = 'Seimbang (Qwen2.5 1.5B) — disarankan';
-    var optLight = el('option', '', { value: 'light' }); optLight.textContent = 'Ringan (Llama 3.2 1B) — untuk HP pas-pasan';
-    modelChoiceSelect.appendChild(optBalanced); modelChoiceSelect.appendChild(optLight);
-    modelRow.appendChild(modelLabel); modelRow.appendChild(modelChoiceSelect);
-
-    var aiReqHint = el('p', 'bba-model-hint');
-    aiReqHint.textContent = 'Butuh HP Android (2019 ke atas) atau laptop/desktop dengan browser yang mendukung WebGPU (Chrome/Edge/Samsung Internet versi terbaru). Model diunduh sekali saja lewat internet (sekitar 700MB–1,3GB tergantung pilihan di atas, disarankan pakai WiFi), lalu tersimpan di HP/browser ini untuk dipakai lagi tanpa unduh ulang. iOS Safari belum mendukung fitur ini.';
-
-    var deleteModelBtn = el('button', 'bba-btn-clear', { type: 'button' });
-    deleteModelBtn.style.width = '100%';
-    deleteModelBtn.style.marginTop = '8px';
-    deleteModelBtn.textContent = '🗑️ Hapus AI Lokal yang Sudah Diunduh';
+    var modelInput = el('input', '', { type: 'hidden' }); // dipertahankan untuk kompatibilitas internal, model selalu otomatis
 
     var confirmRow = el('label', 'bba-confirm-toggle');
     var confirmToggle = el('input', '', { type: 'checkbox' });
@@ -8920,22 +8965,53 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     var mBtnRow = el('div', 'bba-modal-btns');
     var saveBtn = el('button', 'bba-btn-save', { type: 'button' }); saveBtn.textContent = 'Simpan';
-    var resetSessionBtn = el('button', 'bba-btn-clear', { type: 'button' }); resetSessionBtn.textContent = 'Muat Ulang AI';
+    var clearKeyBtn = el('button', 'bba-btn-clear', { type: 'button' }); clearKeyBtn.textContent = 'Hapus Key';
     var closeModalBtn = el('button', 'bba-btn-close', { type: 'button' }); closeModalBtn.textContent = 'Tutup';
-    mBtnRow.appendChild(saveBtn); mBtnRow.appendChild(resetSessionBtn); mBtnRow.appendChild(closeModalBtn);
+    mBtnRow.appendChild(saveBtn); mBtnRow.appendChild(clearKeyBtn); mBtnRow.appendChild(closeModalBtn);
 
     modal.appendChild(mTitle); modal.appendChild(mSub); modal.appendChild(mCredit);
-    modal.appendChild(aiStatusBox); modal.appendChild(aiProgressWrap); modal.appendChild(aiActivateBtn);
-    modal.appendChild(modelRow); modal.appendChild(aiReqHint); modal.appendChild(deleteModelBtn);
+    modal.appendChild(lblKey); modal.appendChild(keyRow);
     modal.appendChild(confirmRow); modal.appendChild(mBtnRow);
     modalOv.appendChild(modal);
     document.body.appendChild(modalOv);
 
     els.fab = fab; els.headIco = headIco; els.panel = panel; els.body = body; els.input = textarea; els.sendBtn = sendBtn;
-    els.keyModalOv = modalOv; els.confirmToggle = confirmToggle; els.modelChoiceSelect = modelChoiceSelect;
-    els.aiStatusDot = aiStatusDot; els.aiStatusText = aiStatusText;
-    els.aiProgressWrap = aiProgressWrap; els.aiProgressBar = aiProgressBar; els.aiActivateBtn = aiActivateBtn;
-    els.deleteModelBtn = deleteModelBtn;
+    els.keyModalOv = modalOv; els.keyInput = keyInput; els.modelInput = modelInput; els.confirmToggle = confirmToggle;
+    els.attachBtn = attachBtn; els.attachInput = attachInput; els.imgChip = imgChip;
+    els.imgChipThumb = imgChipThumb; els.imgChipRemove = imgChipRemove;
+
+    // --- Lampiran gambar: state & helper ---
+    var pendingImage = null; // data URL gambar yang sudah dikompres, siap dikirim
+    function clearPendingImage() {
+      pendingImage = null;
+      imgChip.classList.remove('show');
+      imgChipThumb.src = '';
+      attachInput.value = '';
+    }
+    function setPendingImage(dataUrl) {
+      pendingImage = dataUrl;
+      imgChipThumb.src = dataUrl;
+      imgChip.classList.add('show');
+    }
+    attachBtn.addEventListener('click', function () { if (!isBusy) attachInput.click(); });
+    attachInput.addEventListener('change', async function () {
+      var file = attachInput.files && attachInput.files[0];
+      if (!file) return;
+      attachBtn.disabled = true;
+      try {
+        var dataUrl = await fileToCompressedDataUrl(file, 1280, 0.78);
+        setPendingImage(dataUrl);
+        textarea.focus();
+      } catch (eImg) {
+        addBubble('error', 'Gagal memproses gambar: ' + ((eImg && eImg.message) || eImg));
+        attachInput.value = '';
+      } finally {
+        attachBtn.disabled = false;
+      }
+    });
+    imgChipRemove.addEventListener('click', function () { clearPendingImage(); });
+
+    // Model dipilih otomatis (DEFAULT_MODEL) — tidak ada UI pemilihan model lagi.
 
     // --- Event wiring ---
     fab.addEventListener('click', function () {
@@ -8943,7 +9019,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if (panel.classList.contains('show')) {
         hint.classList.remove('show');
         if (!body.childElementCount) {
-          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\nAku jalan sepenuhnya lokal di HP/browser kamu (lewat WebGPU) — nggak perlu API key, nggak ada biaya/limit, dan data kamu nggak pernah dikirim ke internet. Kalau ini pertama kali dipakai, model AI-nya perlu diunduh dulu sekali (disarankan pakai WiFi); tap ⚙️ untuk mengaktifkannya.\n\nSatu catatan: karena aku model kecil yang jalan langsung di perangkat, aku belum bisa membaca foto/gambar — semua perintah harus lewat teks ya. Tapi tenang, buat urusan tambah/edit/isi stok/paste daftar barang, aku tetap jagoan kok 💪\n\nDan satu lagi — aku nggak cuma jago ngitung stok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
+          addBubble('assistant', 'Haloo! Saya AI Agent di aplikasi Stok Opname ini 🤖 Bisa baca dan LANGSUNG UBAH data barang — tambah, edit, isi stok massal, hapus, sampai ubah info toko/tanggal/petugas — tinggal minta aja.\n\nDan satu lagi — aku nggak cuma jago ngitung stok, kok. Lagi capek, butuh ide, atau sekadar mau ngobrol receh? Sini, gas aja, aku dengerin 😄\n\n*AI Agent ini dirancang & diprogram oleh Zen.*');
           messages.forEach(function (m) {
             if (m.role === 'user') renderStoredUserMessage(m.content);
             else if (m.role === 'assistant' && m.content) addBubble('assistant', m.content);
@@ -8958,72 +9034,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     keyBtn.addEventListener('click', openKeyModal);
     closeModalBtn.addEventListener('click', closeKeyModal);
     modalOv.addEventListener('click', function (e) { if (e.target === modalOv) closeKeyModal(); });
-    aiActivateBtn.addEventListener('click', async function () {
-      aiActivateBtn.disabled = true;
-      aiStatusText.textContent = 'Menyiapkan...';
-      aiProgressWrap.style.display = '';
-      aiProgressBar.style.width = '0%';
-      try {
-        await ensureEngine();
-        await refreshAiStatusUI();
-      } catch (eActivate) {
-        aiStatusDot.className = 'bba-ai-dot err';
-        aiStatusText.textContent = 'Gagal mengaktifkan: ' + ((eActivate && eActivate.message) || eActivate) + ' (pastikan ada koneksi internet untuk unduhan pertama)';
-        aiProgressWrap.style.display = 'none';
-      } finally {
-        aiActivateBtn.disabled = false;
-      }
-    });
-    modelChoiceSelect.addEventListener('change', function () {
-      setModelChoice(modelChoiceSelect.value);
-      refreshAiStatusUI();
-    });
-
-    deleteModelBtn.addEventListener('click', async function () {
-      var okHapus = confirm('Hapus model AI lokal yang sudah diunduh dari HP/browser ini?\n\nKamu perlu mengunduhnya ulang (butuh internet) kalau nanti mau pakai AI Agent lagi.');
-      if (!okHapus) return;
-
-      var oldLabel = deleteModelBtn.textContent;
-      deleteModelBtn.disabled = true;
-      deleteModelBtn.textContent = 'Menghapus...';
-      aiStatusText.textContent = 'Menghapus model AI lokal dari cache...';
-
-      try {
-        // Lepas engine yang sedang aktif dulu (kalau ada) supaya file model
-        // tidak sedang dipakai saat dihapus dari cache browser.
-        if (engine) {
-          try { if (typeof engine.unload === 'function') await engine.unload(); } catch (eUnload2) { /* abaikan */ }
-        }
-        engine = null;
-        engineModelId = null;
-
-        var webllm = await loadWebLLMModule();
-        var idModelList = [MODEL_BALANCED, MODEL_LIGHT];
-        var adaYangDihapus = false;
-        for (var iDel = 0; iDel < idModelList.length; iDel++) {
-          try {
-            var sudahAdaDiCache = await webllm.hasModelInCache(idModelList[iDel]);
-            if (sudahAdaDiCache) {
-              await webllm.deleteModelAllInfoInCache(idModelList[iDel]);
-              adaYangDihapus = true;
-            }
-          } catch (ePerModel) { /* lanjut ke model berikutnya walau satu gagal */ }
-        }
-
-        aiStatusText.textContent = adaYangDihapus
-          ? 'Selesai — model AI lokal yang tersimpan sudah dihapus dari HP/browser ini.'
-          : 'Tidak ada model AI lokal yang tersimpan di HP/browser ini.';
-        aiStatusDot.className = 'bba-ai-dot warn';
-        aiActivateBtn.style.display = '';
-        aiProgressWrap.style.display = 'none';
-      } catch (eDelAll) {
-        aiStatusText.textContent = 'Gagal menghapus model AI lokal: ' + ((eDelAll && eDelAll.message) || eDelAll);
-        aiStatusDot.className = 'bba-ai-dot err';
-      } finally {
-        deleteModelBtn.disabled = false;
-        deleteModelBtn.textContent = oldLabel;
-      }
-    });
 
     clearBtn.addEventListener('click', function () {
       messages.length = 0;
@@ -9032,29 +9042,48 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       addBubble('assistant', 'Riwayat chat dibersihkan. Ada yang bisa saya bantu?');
     });
 
+    var showingKey = false;
+    toggleShow.addEventListener('click', function () {
+      showingKey = !showingKey;
+      keyInput.type = showingKey ? 'text' : 'password';
+      toggleShow.textContent = showingKey ? '🙈' : '👁';
+    });
+
     saveBtn.addEventListener('click', function () {
+      setApiKey(keyInput.value.trim());
+      setModel(modelInput.value.trim());
       setConfirmWrites(confirmToggle.checked);
       closeKeyModal();
       addBubble('assistant', 'Pengaturan disimpan. Siap membantu!');
     });
-    resetSessionBtn.addEventListener('click', async function () {
-      if (engine) {
-        try { if (typeof engine.unload === 'function') await engine.unload(); } catch (eUnload) { /* abaikan */ }
-      }
-      engine = null;
-      engineModelId = null;
-      addBubble('assistant', 'AI lokal dimuat ulang. Model akan otomatis disiapkan lagi saat kamu kirim pesan berikutnya (kalau sudah pernah diunduh, tidak akan mengunduh ulang).');
-      refreshAiStatusUI();
+    clearKeyBtn.addEventListener('click', function () {
+      setApiKey('');
+      keyInput.value = '';
+      addBubble('assistant', 'API Key dihapus dari perangkat ini.');
     });
 
     function doSend() {
       if (isBusy) return;
       var text = textarea.value.trim();
-      if (!text) return;
-      addBubble('user', text);
+      if (!text && !pendingImage) return;
+
+      var contentForApi;
+      if (pendingImage) {
+        var caption = text || 'Deteksi & ambil nama-nama barang dari gambar ini (abaikan harga/jumlah/satuan), lalu tampilkan daftarnya untuk saya konfirmasi sebelum dimasukkan ke tabel.';
+        addImageBubble('user', pendingImage, caption);
+        contentForApi = [
+          { type: 'text', text: caption },
+          { type: 'image_url', image_url: { url: pendingImage } }
+        ];
+        clearPendingImage();
+      } else {
+        addBubble('user', text);
+        contentForApi = text;
+      }
+
       textarea.value = '';
       textarea.style.height = 'auto';
-      runAgentLoop(text);
+      runAgentLoop(contentForApi);
     }
     sendBtn.addEventListener('click', doSend);
     textarea.addEventListener('keydown', function (e) {
@@ -9074,6 +9103,14 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   } else {
     mount();
   }
+
+  // Jembatan ke luar IIFE ini supaya tombol ⚙️ Pengaturan di header (kode
+  // aplikasi utama, di luar widget AI Agent) bisa membaca & mengubah status
+  // on/off bubble "kata semangat" tanpa perlu duplikasi logika/penyimpanan.
+  window.aiHintBubble = {
+    isEnabled: isHintBubbleEnabled,
+    setEnabled: setHintBubbleEnabled
+  };
 })();
 </script>
 
@@ -9104,6 +9141,27 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   function saveJsNotes(list){
     try{ localStorage.setItem(JS_NOTES_KEY, JSON.stringify(list)); }catch(e){ /* abaikan */ }
+  }
+
+  // ===== Modal "Pengaturan" (header) — kontrol kata-kata di atas AI Agent =====
+  function openAppSettingsModal(){
+    const toggle = document.getElementById('hintBubbleToggle');
+    if(toggle){
+      // Nilai sesungguhnya disimpan & dibaca oleh widget AI Agent (window.aiHintBubble),
+      // supaya satu sumber kebenaran (localStorage key milik widget itu sendiri).
+      toggle.checked = window.aiHintBubble ? window.aiHintBubble.isEnabled() : true;
+    }
+    document.getElementById('appSettingsOverlay').classList.add('show');
+  }
+
+  function closeAppSettingsModal(){
+    document.getElementById('appSettingsOverlay').classList.remove('show');
+  }
+
+  function onHintBubbleToggleChange(el){
+    if(window.aiHintBubble && typeof window.aiHintBubble.setEnabled === 'function'){
+      window.aiHintBubble.setEnabled(el.checked);
+    }
   }
 
   function openJsNotesModal(){
@@ -9291,6 +9349,1085 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       }catch(e){ finish(false); }
     }
   }
+</script>
+
+<!-- ============================================================================
+     Widget Kosa Kata Jepang — kartu washi mengambang (tema stempel hanko)
+     supaya bisa sambil belajar/menghapal kosa kata & huruf Jepang sambil
+     kerja stok opname. Berdiri sendiri (namespace "jpv-"), tidak menyentuh
+     variabel/fungsi app asli. Diletakkan di pojok kiri bawah supaya tidak
+     bentrok dengan tombol AI Agent (kanan bawah).
+============================================================================ -->
+<style>
+  #jpvHolder, #jpvHolder *{ box-sizing:border-box; }
+  .jpv-holder{
+    --jpv-paper:#f8f1de; --jpv-paper-deep:#efe3bf; --jpv-ink:#2a2318; --jpv-ink-soft:#7c7156;
+    --jpv-seal:#b23c28; --jpv-seal-deep:#8a2c1d; --jpv-gold:#a9822f; --jpv-line:#ddcda0;
+    /* Cuma pembungkus variabel warna, BUKAN elemen fixed lagi (lihat catatan
+       di .jpv-bubble/.jpv-card) — supaya persis seperti tombol AI Agent
+       (.bba-fab) yang fixed langsung ke viewport, bukan lewat pembungkus
+       fixed sebesar layar yang bikin keliatan "diseret" pas scroll di HP. */
+    position:static; pointer-events:none;
+  }
+
+  /* ---- Bubble: gaya stempel hanko ----
+     Fixed langsung ke viewport (sama seperti .bba-fab tombol AI Agent),
+     bukan absolute di dalam pembungkus fixed — ini kuncinya supaya diam
+     total pas scroll. */
+  .jpv-bubble{
+    position:fixed; left:14px; bottom:16px; pointer-events:auto; z-index:9500;
+    width:54px; height:54px; border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #cf5138, var(--jpv-seal) 55%, var(--jpv-seal-deep) 100%);
+    border:2px solid #f8f1de; box-shadow:0 3px 0 rgba(0,0,0,0.08) inset, 0 10px 22px rgba(90,30,18,0.35);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; padding:0; transition:transform .15s ease;
+  }
+  .jpv-bubble:before{
+    content:''; position:absolute; inset:5px; border-radius:50%; border:1px solid rgba(255,255,255,0.55);
+  }
+  .jpv-bubble span{
+    font-family:'Shippori Mincho', serif; font-weight:800; font-size:21px; color:#fbe9d8;
+    text-shadow:0 1px 1px rgba(0,0,0,0.25);
+  }
+  .jpv-bubble:active{ transform:scale(0.92); }
+  .jpv-bubble.hide{ display:none; }
+
+  /* ---- Kartu ---- (fixed langsung ke viewport, sama alasannya dengan bubble) */
+  .jpv-card{
+    position:fixed; left:14px; bottom:16px; pointer-events:auto; z-index:9500;
+    width:198px; max-width:calc(100vw - 28px);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(42,35,24,0.06) 1px, transparent 0) 0 0/14px 14px,
+      var(--jpv-paper);
+    border-radius:15px; padding:5px; display:none;
+    box-shadow:0 18px 38px rgba(30,20,10,0.32), 0 2px 0 rgba(255,255,255,0.4) inset;
+    font-family:'Zen Maru Gothic', system-ui, sans-serif;
+  }
+  .jpv-card.show{ display:block; animation:jpvCardIn .28s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes jpvCardIn{ from{ opacity:0; transform:translateY(10px) scale(.96); } to{ opacity:1; transform:none; } }
+  .jpv-card-frame{ border:1px solid var(--jpv-gold); border-radius:11px; padding:1px; }
+  .jpv-card-inner{ border:1px solid var(--jpv-line); border-radius:9px; padding:11px 11px 9px; position:relative; }
+  .jpv-card.jpv-wide{ width:280px; }
+
+  .jpv-card-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+  .jpv-tag{
+    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700;
+    color:var(--jpv-seal-deep); background:rgba(178,60,40,0.09); border:1px solid rgba(178,60,40,0.25);
+    padding:2.5px 8px 3px; border-radius:20px;
+  }
+  .jpv-tag:before{ content:''; width:5px; height:5px; border-radius:50%; background:var(--jpv-seal); flex-shrink:0; }
+  .jpv-top-actions{ display:flex; align-items:center; gap:1px; }
+  .jpv-icon-btn{
+    background:none; border:none; padding:3px; color:var(--jpv-ink-soft); cursor:pointer; opacity:.7;
+    display:flex; align-items:center; justify-content:center; border-radius:6px;
+  }
+  .jpv-icon-btn:hover{ opacity:1; background:rgba(42,35,24,0.06); }
+  .jpv-icon-btn.active{ color:var(--jpv-seal); opacity:1; }
+  .jpv-icon-btn svg{ width:13.5px; height:13.5px; }
+  .jpv-speak-btn.speaking{ color:var(--jpv-seal); animation:jpvSpeakPulse .7s ease-in-out infinite alternate; }
+  @keyframes jpvSpeakPulse{ from{ opacity:.5; transform:scale(.94); } to{ opacity:1; transform:scale(1.08); } }
+
+  /* ---- Layar pengaturan (terpisah dari layar kata, pakai tombol Kembali) ---- */
+  .jpv-screen{ display:none; }
+  .jpv-screen.show{ display:block; animation:jpvScreenIn .2s ease; }
+  @keyframes jpvScreenIn{ from{ opacity:0; transform:translateX(6px); } to{ opacity:1; transform:none; } }
+  .jpv-back-btn{
+    display:flex; align-items:center; gap:4px; background:none; border:none; cursor:pointer;
+    color:var(--jpv-ink-soft); font-size:11.5px; font-weight:700; padding:3px 4px 3px 2px; opacity:.85;
+    font-family:'Zen Maru Gothic', system-ui, sans-serif;
+  }
+  .jpv-back-btn:hover{ opacity:1; color:var(--jpv-seal-deep); }
+  .jpv-back-btn svg{ width:13px; height:13px; }
+  .jpv-settings-title{ font-size:10.5px; color:var(--jpv-ink-soft); font-weight:700; margin:2px 0 8px; }
+  .jpv-mode-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; text-align:left;
+    background:#fff; border:1px solid var(--jpv-line); border-radius:8px; padding:9px 10px;
+    font-size:12.5px; font-weight:600; color:var(--jpv-ink); margin-bottom:6px; cursor:pointer;
+    font-family:'Zen Maru Gothic', system-ui, sans-serif;
+  }
+  .jpv-mode-btn.active{ border-color:var(--jpv-seal); background:rgba(178,60,40,0.07); color:var(--jpv-seal-deep); font-weight:800; }
+  .jpv-mode-check{ color:var(--jpv-seal); opacity:0; font-weight:800; }
+  .jpv-mode-btn.active .jpv-mode-check{ opacity:1; }
+
+  /* ---- Kartu flip (kanji/huruf <-> arti) ---- */
+  .jpv-flip-wrap{ perspective:900px; cursor:pointer; user-select:none; }
+  .jpv-flip-inner{
+    position:relative; min-height:108px; transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.4,.15,.2,1);
+  }
+  .jpv-flip-inner.flipped{ transform:rotateY(180deg); }
+  .jpv-face{
+    backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:6px 4px; gap:3px;
+  }
+  .jpv-face-front{ position:relative; }
+  .jpv-face-back{
+    position:absolute; inset:0; transform:rotateY(180deg);
+    background:linear-gradient(165deg, #fff8ea, var(--jpv-paper-deep));
+    border-radius:8px;
+  }
+  .jpv-char{
+    font-family:'Shippori Mincho', serif; font-weight:800; font-size:27px; color:var(--jpv-ink);
+    line-height:1.25; display:inline-block;
+  }
+  .jpv-kana{ font-family:'Zen Maru Gothic', sans-serif; font-size:12px; color:var(--jpv-ink-soft); font-weight:700; }
+  .jpv-romaji{ font-size:10.5px; color:#a89a76; font-family:'JetBrains Mono', monospace; }
+  .jpv-back-eyebrow{ font-size:9.5px; color:var(--jpv-gold); font-weight:700; }
+  .jpv-back-text{ font-family:'Zen Maru Gothic', sans-serif; font-size:14.5px; font-weight:800; color:var(--jpv-seal-deep); padding:0 8px; }
+
+  .jpv-hint{ text-align:center; font-size:10px; color:#a89a76; margin:7px 0 2px; }
+
+  .jpv-bottom{ display:flex; align-items:center; justify-content:center; margin-top:5px; }
+  .jpv-next-btn{
+    display:flex; align-items:center; gap:5px; background:var(--jpv-ink); color:#fbe9d8;
+    border:none; padding:7px 14px; border-radius:20px; font-size:11.5px; font-weight:700; cursor:pointer;
+    font-family:'Zen Maru Gothic', sans-serif; transition:transform .12s ease, background .15s ease;
+  }
+  .jpv-next-btn:hover{ background:var(--jpv-seal-deep); }
+  .jpv-next-btn:active{ transform:scale(0.95); }
+  .jpv-next-btn svg{ width:12px; height:12px; }
+
+  /* ---- Kuis kosa kata (pilihan ganda berjenjang) ---- */
+  #jpvQuizScreen{ position:relative; }
+  .jpv-quiz-top{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+  .jpv-level-badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:800; color:#fff;
+    background:linear-gradient(135deg, var(--jpv-seal), var(--jpv-seal-deep)); padding:3px 9px 4px;
+    border-radius:20px; font-family:'Zen Maru Gothic', sans-serif; white-space:nowrap;
+  }
+  .jpv-progress-track{ height:5px; border-radius:6px; background:rgba(42,35,24,0.1); overflow:hidden; margin:2px 0 10px; }
+  .jpv-progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--jpv-gold), var(--jpv-seal)); border-radius:6px; transition:width .35s ease; }
+  .jpv-quiz-question{ text-align:center; padding:4px 4px 8px; }
+  .jpv-quiz-kanji{ font-family:'Shippori Mincho', serif; font-weight:800; font-size:29px; color:var(--jpv-ink); line-height:1.25; word-break:break-word; }
+  .jpv-quiz-kana{ font-family:'Zen Maru Gothic', sans-serif; font-size:12px; color:var(--jpv-ink-soft); font-weight:700; margin-top:3px; min-height:15px; }
+  .jpv-quiz-prompt{ font-size:10px; color:var(--jpv-gold); font-weight:700; margin-top:7px; }
+  .jpv-quiz-options{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+  .jpv-quiz-opt{
+    text-align:left; background:#fff; border:1.5px solid var(--jpv-line); border-radius:9px; padding:8px 10px;
+    font-size:12px; line-height:1.35; font-weight:600; color:var(--jpv-ink); font-family:'Zen Maru Gothic', sans-serif;
+    cursor:pointer; transition:border-color .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .jpv-quiz-opt:active{ transform:scale(0.98); }
+  .jpv-quiz-opt.correct{ border-color:#3c8a5c; background:#e9f6ee; color:#256b40; font-weight:800; }
+  .jpv-quiz-opt.wrong{ border-color:var(--jpv-seal); background:#fbebe6; color:var(--jpv-seal-deep); font-weight:800; }
+  .jpv-quiz-opt.dim{ opacity:.45; }
+  .jpv-quiz-opt[disabled]{ cursor:default; }
+  .jpv-quiz-feedback{ text-align:center; font-size:10.5px; font-weight:700; margin-top:8px; min-height:14px; }
+  .jpv-quiz-feedback.ok{ color:#2f7a4d; }
+  .jpv-quiz-feedback.no{ color:var(--jpv-seal-deep); }
+  .jpv-quiz-next-btn{
+    display:none; align-items:center; justify-content:center; gap:5px; width:100%; margin-top:9px;
+    background:var(--jpv-ink); color:#fbe9d8; border:none; padding:8px 14px; border-radius:20px;
+    font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Zen Maru Gothic', sans-serif;
+  }
+  .jpv-quiz-next-btn.show{ display:flex; }
+  .jpv-quiz-next-btn:active{ transform:scale(0.96); }
+  .jpv-quiz-next-btn svg{ width:12px; height:12px; }
+  .jpv-quiz-score{ text-align:center; font-size:9.5px; color:var(--jpv-ink-soft); margin-top:6px; }
+  .jpv-level-select{ display:flex; gap:5px; overflow-x:auto; padding:1px 1px 8px; -webkit-overflow-scrolling:touch; }
+  .jpv-level-chip{
+    flex-shrink:0; min-width:30px; height:26px; padding:0 8px; border-radius:8px; border:1.5px solid var(--jpv-line);
+    background:#fff; color:var(--jpv-ink-soft); font-size:10.5px; font-weight:800; cursor:pointer;
+    font-family:'Zen Maru Gothic', sans-serif; display:flex; align-items:center; justify-content:center; gap:3px;
+    transition:border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .jpv-level-chip svg{ width:10px; height:10px; }
+  .jpv-level-chip.done{ background:#e9f6ee; border-color:#3c8a5c; color:#256b40; }
+  .jpv-level-chip.current{ background:linear-gradient(135deg, var(--jpv-seal), var(--jpv-seal-deep)); border-color:var(--jpv-seal-deep); color:#fff; }
+  .jpv-level-chip.locked{ background:#f3f1eb; color:#b9b2a4; cursor:default; opacity:.7; }
+  .jpv-quiz-review-tag{ text-align:center; font-size:10px; font-weight:700; color:var(--jpv-gold); margin:-4px 0 6px; }
+  .jpv-levelup-toast{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    gap:4px; background:rgba(248,241,222,0.97); border-radius:9px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease; z-index:5; text-align:center; padding:10px;
+  }
+  .jpv-levelup-toast.show{ opacity:1; }
+  .jpv-levelup-toast b{ font-family:'Shippori Mincho', serif; font-size:22px; color:var(--jpv-seal-deep); }
+  .jpv-levelup-toast span{ font-size:10.5px; color:var(--jpv-ink-soft); font-weight:700; }
+</style>
+
+<div class="jpv-holder" id="jpvHolder">
+  <button class="jpv-bubble" id="jpvBubble" onclick="jpvOpen()" title="Belajar bahasa Jepang"><span id="jpvBubbleGlyph">語</span></button>
+  <div class="jpv-card" id="jpvCard">
+    <div class="jpv-card-frame"><div class="jpv-card-inner">
+
+      <div class="jpv-screen show" id="jpvViewScreen">
+        <div class="jpv-card-top">
+          <span class="jpv-tag" id="jpvTag">Kosa kata</span>
+          <div class="jpv-top-actions">
+            <button class="jpv-icon-btn jpv-speak-btn" id="jpvSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jpv-flip-wrap" onclick="jpvToggleArti()">
+          <div class="jpv-flip-inner" id="jpvFlipInner">
+            <div class="jpv-face jpv-face-front">
+              <div class="jpv-char" id="jpvKanji">水</div>
+              <div class="jpv-kana" id="jpvKana">みず</div>
+              <div class="jpv-romaji" id="jpvRomaji">mizu</div>
+            </div>
+            <div class="jpv-face jpv-face-back">
+              <div class="jpv-back-eyebrow" id="jpvBackEyebrow">Arti</div>
+              <div class="jpv-back-text" id="jpvArti">air</div>
+            </div>
+          </div>
+        </div>
+        <div class="jpv-hint" id="jpvHint">ketuk kartu untuk lihat arti</div>
+
+        <div class="jpv-bottom">
+          <button class="jpv-next-btn" onclick="jpvNext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            Kata lain
+          </button>
+        </div>
+      </div>
+
+      <div class="jpv-screen" id="jpvQuizScreen">
+        <div class="jpv-quiz-top">
+          <span class="jpv-tag" id="jpvQuizTag">Ujian kosa kata</span>
+          <span class="jpv-level-badge" id="jpvLevelBadge">Lv. 1</span>
+          <div class="jpv-top-actions">
+            <button class="jpv-icon-btn jpv-speak-btn" id="jpvQuizSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jpv-progress-track"><div class="jpv-progress-fill" id="jpvProgressFill"></div></div>
+        <div class="jpv-level-select" id="jpvLevelSelect"></div>
+        <div class="jpv-quiz-review-tag" id="jpvQuizReviewTag" style="display:none;">Mode ulang — jawaban di sini tidak memengaruhi level saat ini</div>
+
+        <div class="jpv-quiz-question">
+          <div class="jpv-quiz-kanji" id="jpvQuizKanji">水</div>
+          <div class="jpv-quiz-kana" id="jpvQuizKana">みず</div>
+          <div class="jpv-quiz-prompt">Apa arti kata di atas?</div>
+        </div>
+
+        <div class="jpv-quiz-options" id="jpvQuizOptions"></div>
+        <div class="jpv-quiz-feedback" id="jpvQuizFeedback"></div>
+        <div class="jpv-quiz-score" id="jpvQuizScoreLine">Skor benar: 0</div>
+
+        <button class="jpv-quiz-next-btn" id="jpvQuizNextBtn" onclick="jpvQuizNext()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Soal berikutnya
+        </button>
+
+        <div class="jpv-levelup-toast" id="jpvLevelupToast">
+          <b id="jpvLevelupText">Lv. 2</b>
+          <span>Naik level! Kosa kata makin menantang</span>
+        </div>
+      </div>
+
+      <div class="jpv-screen" id="jpvSettingsScreen">
+        <div class="jpv-card-top">
+          <button class="jpv-back-btn" onclick="jpvGoView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Kembali
+          </button>
+          <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="jpv-settings-title">Mau belajar apa?</div>
+        <button class="jpv-mode-btn" id="jpvModeBtn-vocab" onclick="jpvSetMode('vocab')">Kosa kata (kartu biasa) <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-quiz" onclick="jpvSetMode('quiz')">Ujian kosa kata (naik level) <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-hiragana" onclick="jpvSetMode('hiragana')">Huruf hiragana <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-katakana" onclick="jpvSetMode('katakana')">Huruf katakana <span class="jpv-mode-check">✓</span></button>
+
+        <div class="jpv-settings-title" id="jpvVoiceTitle" style="margin-top:14px;">Suara</div>
+        <button class="jpv-mode-btn" id="jpvAutoSpeakBtn" onclick="jpvToggleAutoSpeak()">Ucapkan otomatis tiap ganti kata <span class="jpv-mode-check">✓</span></button>
+      </div>
+
+    </div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Kosa kata berjenjang: makin besar "lvl", makin rumit/langka katanya.
+  // Dipakai untuk mode Ujian Kosa Kata (pilihan ganda, level tak terhingga).
+  var JPV_VOCAB = [
+    // ==== Level 1 — sapaan & benda dasar sehari-hari ====
+    {k:'水', kn:'みず', r:'mizu', a:'air', lvl:1},
+    {k:'火', kn:'ひ', r:'hi', a:'api', lvl:1},
+    {k:'木', kn:'き', r:'ki', a:'pohon / kayu', lvl:1},
+    {k:'山', kn:'やま', r:'yama', a:'gunung', lvl:1},
+    {k:'川', kn:'かわ', r:'kawa', a:'sungai', lvl:1},
+    {k:'人', kn:'ひと', r:'hito', a:'orang', lvl:1},
+    {k:'犬', kn:'いぬ', r:'inu', a:'anjing', lvl:1},
+    {k:'猫', kn:'ねこ', r:'neko', a:'kucing', lvl:1},
+    {k:'本', kn:'ほん', r:'hon', a:'buku', lvl:1},
+    {k:'車', kn:'くるま', r:'kuruma', a:'mobil', lvl:1},
+    {k:'家', kn:'いえ', r:'ie', a:'rumah', lvl:1},
+    {k:'私', kn:'わたし', r:'watashi', a:'saya', lvl:1},
+    {k:'あなた', kn:'あなた', r:'anata', a:'kamu', lvl:1},
+    {k:'名前', kn:'なまえ', r:'namae', a:'nama', lvl:1},
+    {k:'おはよう', kn:'おはよう', r:'ohayou', a:'selamat pagi', lvl:1},
+    {k:'こんにちは', kn:'こんにちは', r:'konnichiwa', a:'selamat siang', lvl:1},
+    {k:'ありがとう', kn:'ありがとう', r:'arigatou', a:'terima kasih', lvl:1},
+    {k:'すみません', kn:'すみません', r:'sumimasen', a:'permisi / maaf', lvl:1},
+    {k:'はい', kn:'はい', r:'hai', a:'ya', lvl:1},
+    {k:'いいえ', kn:'いいえ', r:'iie', a:'tidak', lvl:1},
+
+    // ==== Level 2 — angka, keluarga, warna ====
+    {k:'一', kn:'いち', r:'ichi', a:'satu (1)', lvl:2},
+    {k:'二', kn:'に', r:'ni', a:'dua (2)', lvl:2},
+    {k:'三', kn:'さん', r:'san', a:'tiga (3)', lvl:2},
+    {k:'四', kn:'よん', r:'yon', a:'empat (4)', lvl:2},
+    {k:'五', kn:'ご', r:'go', a:'lima (5)', lvl:2},
+    {k:'六', kn:'ろく', r:'roku', a:'enam (6)', lvl:2},
+    {k:'七', kn:'なな', r:'nana', a:'tujuh (7)', lvl:2},
+    {k:'八', kn:'はち', r:'hachi', a:'delapan (8)', lvl:2},
+    {k:'九', kn:'きゅう', r:'kyuu', a:'sembilan (9)', lvl:2},
+    {k:'十', kn:'じゅう', r:'juu', a:'sepuluh (10)', lvl:2},
+    {k:'百', kn:'ひゃく', r:'hyaku', a:'seratus (100)', lvl:2},
+    {k:'千', kn:'せん', r:'sen', a:'seribu (1000)', lvl:2},
+    {k:'父', kn:'ちち', r:'chichi', a:'ayah (sendiri)', lvl:2},
+    {k:'母', kn:'はは', r:'haha', a:'ibu (sendiri)', lvl:2},
+    {k:'兄', kn:'あに', r:'ani', a:'kakak laki-laki', lvl:2},
+    {k:'姉', kn:'あね', r:'ane', a:'kakak perempuan', lvl:2},
+    {k:'赤い', kn:'あかい', r:'akai', a:'merah', lvl:2},
+    {k:'青い', kn:'あおい', r:'aoi', a:'biru', lvl:2},
+    {k:'白い', kn:'しろい', r:'shiroi', a:'putih', lvl:2},
+    {k:'黒い', kn:'くろい', r:'kuroi', a:'hitam', lvl:2},
+
+    // ==== Level 3 — istilah kerja / gudang / stok opname ====
+    {k:'在庫', kn:'ざいこ', r:'zaiko', a:'stok / persediaan', lvl:3},
+    {k:'商品', kn:'しょうひん', r:'shouhin', a:'barang / produk', lvl:3},
+    {k:'数量', kn:'すうりょう', r:'suuryou', a:'jumlah', lvl:3},
+    {k:'倉庫', kn:'そうこ', r:'souko', a:'gudang', lvl:3},
+    {k:'棚卸し', kn:'たなおろし', r:'tanaoroshi', a:'stok opname', lvl:3},
+    {k:'確認', kn:'かくにん', r:'kakunin', a:'konfirmasi / periksa', lvl:3},
+    {k:'記録', kn:'きろく', r:'kiroku', a:'catatan', lvl:3},
+    {k:'入荷', kn:'にゅうか', r:'nyuuka', a:'barang masuk', lvl:3},
+    {k:'出荷', kn:'しゅっか', r:'shukka', a:'barang keluar', lvl:3},
+    {k:'不足', kn:'ふそく', r:'fusoku', a:'kekurangan', lvl:3},
+    {k:'過剰', kn:'かじょう', r:'kajou', a:'kelebihan', lvl:3},
+    {k:'一致', kn:'いっち', r:'icchi', a:'cocok / sesuai', lvl:3},
+    {k:'差異', kn:'さい', r:'sai', a:'selisih', lvl:3},
+    {k:'棚', kn:'たな', r:'tana', a:'rak', lvl:3},
+    {k:'箱', kn:'はこ', r:'hako', a:'kotak / dus', lvl:3},
+    {k:'個数', kn:'こすう', r:'kosuu', a:'jumlah satuan', lvl:3},
+    {k:'単価', kn:'たんか', r:'tanka', a:'harga satuan', lvl:3},
+    {k:'合計', kn:'ごうけい', r:'goukei', a:'total', lvl:3},
+    {k:'作業', kn:'さぎょう', r:'sagyou', a:'pekerjaan / tugas', lvl:3},
+    {k:'担当者', kn:'たんとうしゃ', r:'tantousha', a:'petugas', lvl:3},
+    {k:'報告', kn:'ほうこく', r:'houkoku', a:'laporan', lvl:3},
+    {k:'完了', kn:'かんりょう', r:'kanryou', a:'selesai', lvl:3},
+    {k:'開始', kn:'かいし', r:'kaishi', a:'mulai', lvl:3},
+    {k:'修正', kn:'しゅうせい', r:'shuusei', a:'koreksi / perbaikan', lvl:3},
+    {k:'メモ', kn:'メモ', r:'memo', a:'catatan kecil', lvl:3},
+
+    // ==== Level 4 — kata kerja & kata sifat umum ====
+    {k:'食べる', kn:'たべる', r:'taberu', a:'makan', lvl:4},
+    {k:'飲む', kn:'のむ', r:'nomu', a:'minum', lvl:4},
+    {k:'見る', kn:'みる', r:'miru', a:'melihat', lvl:4},
+    {k:'行く', kn:'いく', r:'iku', a:'pergi', lvl:4},
+    {k:'来る', kn:'くる', r:'kuru', a:'datang', lvl:4},
+    {k:'話す', kn:'はなす', r:'hanasu', a:'berbicara', lvl:4},
+    {k:'新しい', kn:'あたらしい', r:'atarashii', a:'baru', lvl:4},
+    {k:'古い', kn:'ふるい', r:'furui', a:'lama / tua', lvl:4},
+    {k:'大きい', kn:'おおきい', r:'ookii', a:'besar', lvl:4},
+    {k:'小さい', kn:'ちいさい', r:'chiisai', a:'kecil', lvl:4},
+    {k:'高い', kn:'たかい', r:'takai', a:'tinggi / mahal', lvl:4},
+    {k:'安い', kn:'やすい', r:'yasui', a:'murah', lvl:4},
+    {k:'早い', kn:'はやい', r:'hayai', a:'cepat / pagi-pagi', lvl:4},
+    {k:'遅い', kn:'おそい', r:'osoi', a:'lambat / terlambat', lvl:4},
+    {k:'買う', kn:'かう', r:'kau', a:'membeli', lvl:4},
+    {k:'売る', kn:'うる', r:'uru', a:'menjual', lvl:4},
+    {k:'読む', kn:'よむ', r:'yomu', a:'membaca', lvl:4},
+    {k:'書く', kn:'かく', r:'kaku', a:'menulis', lvl:4},
+    {k:'働く', kn:'はたらく', r:'hataraku', a:'bekerja', lvl:4},
+    {k:'休む', kn:'やすむ', r:'yasumu', a:'beristirahat', lvl:4},
+
+    // ==== Level 5 — kantor, bisnis, waktu ====
+    {k:'会社', kn:'かいしゃ', r:'kaisha', a:'perusahaan', lvl:5},
+    {k:'仕事', kn:'しごと', r:'shigoto', a:'pekerjaan', lvl:5},
+    {k:'会議', kn:'かいぎ', r:'kaigi', a:'rapat', lvl:5},
+    {k:'予定', kn:'よてい', r:'yotei', a:'jadwal / rencana', lvl:5},
+    {k:'時間', kn:'じかん', r:'jikan', a:'waktu', lvl:5},
+    {k:'今日', kn:'きょう', r:'kyou', a:'hari ini', lvl:5},
+    {k:'明日', kn:'あした', r:'ashita', a:'besok', lvl:5},
+    {k:'昨日', kn:'きのう', r:'kinou', a:'kemarin', lvl:5},
+    {k:'毎日', kn:'まいにち', r:'mainichi', a:'setiap hari', lvl:5},
+    {k:'週末', kn:'しゅうまつ', r:'shuumatsu', a:'akhir pekan', lvl:5},
+    {k:'給料', kn:'きゅうりょう', r:'kyuuryou', a:'gaji', lvl:5},
+    {k:'契約', kn:'けいやく', r:'keiyaku', a:'kontrak', lvl:5},
+    {k:'取引先', kn:'とりひきさき', r:'torihikisaki', a:'mitra bisnis / klien', lvl:5},
+    {k:'納品', kn:'のうひん', r:'nouhin', a:'pengiriman barang ke pelanggan', lvl:5},
+    {k:'発注', kn:'はっちゅう', r:'hacchuu', a:'pemesanan barang (order)', lvl:5},
+    {k:'検品', kn:'けんぴん', r:'kenpin', a:'pemeriksaan barang', lvl:5},
+    {k:'返品', kn:'へんぴん', r:'henpin', a:'pengembalian barang', lvl:5},
+    {k:'値段', kn:'ねだん', r:'nedan', a:'harga', lvl:5},
+    {k:'割引', kn:'わりびき', r:'waribiki', a:'diskon', lvl:5},
+    {k:'支払い', kn:'しはらい', r:'shiharai', a:'pembayaran', lvl:5},
+
+    // ==== Level 6 — istilah kantor & konsep yang lebih abstrak ====
+    {k:'経営', kn:'けいえい', r:'keiei', a:'manajemen / pengelolaan usaha', lvl:6},
+    {k:'方針', kn:'ほうしん', r:'houshin', a:'kebijakan / arah tindakan', lvl:6},
+    {k:'責任', kn:'せきにん', r:'sekinin', a:'tanggung jawab', lvl:6},
+    {k:'効率', kn:'こうりつ', r:'kouritsu', a:'efisiensi', lvl:6},
+    {k:'改善', kn:'かいぜん', r:'kaizen', a:'perbaikan berkelanjutan', lvl:6},
+    {k:'品質', kn:'ひんしつ', r:'hinshitsu', a:'kualitas', lvl:6},
+    {k:'検査', kn:'けんさ', r:'kensa', a:'pemeriksaan / inspeksi', lvl:6},
+    {k:'基準', kn:'きじゅん', r:'kijun', a:'standar / patokan', lvl:6},
+    {k:'状況', kn:'じょうきょう', r:'joukyou', a:'situasi / keadaan', lvl:6},
+    {k:'対応', kn:'たいおう', r:'taiou', a:'penanganan / respons', lvl:6},
+    {k:'処理', kn:'しょり', r:'shori', a:'pemrosesan', lvl:6},
+    {k:'提案', kn:'ていあん', r:'teian', a:'usulan', lvl:6},
+    {k:'承認', kn:'しょうにん', r:'shounin', a:'persetujuan', lvl:6},
+    {k:'拒否', kn:'きょひ', r:'kyohi', a:'penolakan', lvl:6},
+    {k:'原因', kn:'げんいん', r:"gen'in", a:'penyebab', lvl:6},
+    {k:'結果', kn:'けっか', r:'kekka', a:'hasil', lvl:6},
+    {k:'影響', kn:'えいきょう', r:'eikyou', a:'pengaruh / dampak', lvl:6},
+    {k:'比較', kn:'ひかく', r:'hikaku', a:'perbandingan', lvl:6},
+    {k:'分析', kn:'ぶんせき', r:'bunseki', a:'analisis', lvl:6},
+    {k:'判断', kn:'はんだん', r:'handan', a:'keputusan / penilaian', lvl:6},
+
+    // ==== Level 7 — kosa kata formal tingkat lanjut (N2) ====
+    {k:'概要', kn:'がいよう', r:'gaiyou', a:'ringkasan / garis besar', lvl:7},
+    {k:'詳細', kn:'しょうさい', r:'shousai', a:'rincian / detail', lvl:7},
+    {k:'状態', kn:'じょうたい', r:'joutai', a:'kondisi / keadaan', lvl:7},
+    {k:'維持', kn:'いじ', r:'iji', a:'mempertahankan / menjaga', lvl:7},
+    {k:'削減', kn:'さくげん', r:'sakugen', a:'pengurangan', lvl:7},
+    {k:'増加', kn:'ぞうか', r:'zouka', a:'peningkatan / kenaikan', lvl:7},
+    {k:'減少', kn:'げんしょう', r:'genshou', a:'penurunan', lvl:7},
+    {k:'傾向', kn:'けいこう', r:'keikou', a:'kecenderungan / tren', lvl:7},
+    {k:'予測', kn:'よそく', r:'yosoku', a:'prediksi / perkiraan', lvl:7},
+    {k:'実施', kn:'じっし', r:'jisshi', a:'pelaksanaan', lvl:7},
+    {k:'達成', kn:'たっせい', r:'tassei', a:'pencapaian', lvl:7},
+    {k:'課題', kn:'かだい', r:'kadai', a:'masalah / tantangan yang harus diselesaikan', lvl:7},
+    {k:'対策', kn:'たいさく', r:'taisaku', a:'langkah penanggulangan', lvl:7},
+    {k:'根拠', kn:'こんきょ', r:'konkyo', a:'dasar / alasan', lvl:7},
+    {k:'矛盾', kn:'むじゅん', r:'mujun', a:'kontradiksi', lvl:7},
+    {k:'妥協', kn:'だきょう', r:'dakyou', a:'kompromi', lvl:7},
+    {k:'慎重', kn:'しんちょう', r:'shinchou', a:'hati-hati / cermat', lvl:7},
+    {k:'迅速', kn:'じんそく', r:'jinsoku', a:'cepat / sigap', lvl:7},
+    {k:'柔軟', kn:'じゅうなん', r:'juunan', a:'fleksibel / lentur', lvl:7},
+    {k:'厳密', kn:'げんみつ', r:'genmitsu', a:'ketat / teliti', lvl:7},
+
+    // ==== Level 8 — kosa kata formal tingkat mahir (N1) ====
+    {k:'遂行', kn:'すいこう', r:'suikou', a:'pelaksanaan tugas hingga tuntas', lvl:8},
+    {k:'把握', kn:'はあく', r:'haaku', a:'pemahaman menyeluruh / menguasai informasi', lvl:8},
+    {k:'是正', kn:'ぜせい', r:'zesei', a:'perbaikan / koreksi kesalahan sistemik', lvl:8},
+    {k:'逸脱', kn:'いつだつ', r:'itsudatsu', a:'penyimpangan', lvl:8},
+    {k:'著しい', kn:'いちじるしい', r:'ichijirushii', a:'mencolok / nyata sekali', lvl:8},
+    {k:'甚だしい', kn:'はなはだしい', r:'hanahadashii', a:'sangat / luar biasa (biasanya negatif)', lvl:8},
+    {k:'妥当', kn:'だとう', r:'datou', a:'wajar / tepat', lvl:8},
+    {k:'円滑', kn:'えんかつ', r:'enkatsu', a:'lancar / mulus', lvl:8},
+    {k:'懸念', kn:'けねん', r:'kenen', a:'kekhawatiran', lvl:8},
+    {k:'是非', kn:'ぜひ', r:'zehi', a:'pastikan / dengan segala cara', lvl:8},
+    {k:'煩雑', kn:'はんざつ', r:'hanzatsu', a:'rumit / berbelit-belit', lvl:8},
+    {k:'綿密', kn:'めんみつ', r:'menmitsu', a:'teliti / cermat sekali', lvl:8},
+    {k:'逐一', kn:'ちくいち', r:'chikuichi', a:'satu per satu / secara rinci', lvl:8},
+    {k:'着手', kn:'ちゃくしゅ', r:'chakushu', a:'memulai suatu pekerjaan', lvl:8},
+    {k:'遵守', kn:'じゅんしゅ', r:'junshu', a:'kepatuhan / mematuhi aturan', lvl:8},
+    {k:'撤回', kn:'てっかい', r:'tekkai', a:'pembatalan / penarikan kembali', lvl:8},
+    {k:'是認', kn:'ぜにん', r:'zenin', a:'pengakuan / persetujuan', lvl:8},
+    {k:'折衝', kn:'せっしょう', r:'sesshou', a:'negosiasi yang alot', lvl:8},
+    {k:'斡旋', kn:'あっせん', r:'assen', a:'mediasi / perantaraan', lvl:8},
+    {k:'猶予', kn:'ゆうよ', r:'yuuyo', a:'penangguhan / tenggat tambahan', lvl:8},
+
+    // ==== Level 9 — ungkapan idiomatis (yoji-jukugo) ====
+    {k:'一石二鳥', kn:'いっせきにちょう', r:'isseki nichou', a:'sekali dayung, dua-tiga pulau terlampaui', lvl:9},
+    {k:'七転八起', kn:'しちてんはっき', r:'shichiten hakki', a:'jatuh bangun, pantang menyerah', lvl:9},
+    {k:'臨機応変', kn:'りんきおうへん', r:'rinki ouhen', a:'menyesuaikan diri sesuai situasi', lvl:9},
+    {k:'一期一会', kn:'いちごいちえ', r:'ichigo ichie', a:'kesempatan yang tak akan terulang', lvl:9},
+    {k:'温故知新', kn:'おんこちしん', r:'onko chishin', a:'belajar dari masa lalu untuk memahami hal baru', lvl:9},
+    {k:'自業自得', kn:'じごうじとく', r:'jigou jitoku', a:'menuai akibat dari perbuatan sendiri', lvl:9},
+    {k:'以心伝心', kn:'いしんでんしん', r:'ishin denshin', a:'saling memahami tanpa kata-kata', lvl:9},
+    {k:'四苦八苦', kn:'しくはっく', r:'shikuhakku', a:'berjuang keras / kepayahan', lvl:9},
+    {k:'油断大敵', kn:'ゆだんたいてき', r:'yudan taiteki', a:'kelengahan adalah musuh besar', lvl:9},
+    {k:'針小棒大', kn:'しんしょうぼうだい', r:'shinshou boudai', a:'membesar-besarkan hal kecil', lvl:9},
+    {k:'起死回生', kn:'きしかいせい', r:'kishi kaisei', a:'bangkit dramatis dari keterpurukan', lvl:9},
+    {k:'花鳥風月', kn:'かちょうふうげつ', r:'kachou fuugetsu', a:'keindahan alam', lvl:9},
+    {k:'不言実行', kn:'ふげんじっこう', r:'fugen jikkou', a:'bertindak nyata tanpa banyak bicara', lvl:9},
+    {k:'初志貫徹', kn:'しょしかんてつ', r:'shoshi kantetsu', a:'teguh pada niat / tekad awal', lvl:9},
+    {k:'質実剛健', kn:'しつじつごうけん', r:'shitsujitsu gouken', a:'sederhana, jujur, dan kuat', lvl:9},
+
+    // ==== Level 10 — kosa kata sastra / klasik yang langka ====
+    {k:'黄昏', kn:'たそがれ', r:'tasogare', a:'senja', lvl:10},
+    {k:'朧', kn:'おぼろ', r:'oboro', a:'samar-samar / kabur (terutama bulan)', lvl:10},
+    {k:'儚い', kn:'はかない', r:'hakanai', a:'fana / sekejap', lvl:10},
+    {k:'侘寂', kn:'わびさび', r:'wabisabi', a:'keindahan dalam kesederhanaan & ketidaksempurnaan', lvl:10},
+    {k:'幽玄', kn:'ゆうげん', r:'yuugen', a:'keindahan misterius yang mendalam', lvl:10},
+    {k:'風情', kn:'ふぜい', r:'fuzei', a:'suasana / nuansa yang elegan', lvl:10},
+    {k:'郷愁', kn:'きょうしゅう', r:'kyoushuu', a:'rasa rindu kampung halaman / nostalgia', lvl:10},
+    {k:'無常', kn:'むじょう', r:'mujou', a:'ketidakkekalan (konsep Buddhis)', lvl:10},
+    {k:'邂逅', kn:'かいこう', r:'kaikou', a:'pertemuan yang tak terduga', lvl:10},
+    {k:'矜持', kn:'きょうじ', r:'kyouji', a:'harga diri / kebanggaan diri', lvl:10},
+    {k:'慟哭', kn:'どうこく', r:'doukoku', a:'tangisan yang pilu', lvl:10},
+    {k:'黎明', kn:'れいめい', r:'reimei', a:'fajar / awal mula sebuah era', lvl:10},
+    {k:'刹那', kn:'せつな', r:'setsuna', a:'momen yang sangat singkat', lvl:10},
+    {k:'悠久', kn:'ゆうきゅう', r:'yuukyuu', a:'keabadian / waktu yang sangat panjang', lvl:10},
+    {k:'残滓', kn:'ざんし', r:'zanshi', a:'sisa-sisa / residu', lvl:10}
+  ];
+
+  // Huruf Hiragana (gojuon + dakuten + handakuten)
+  var JPV_HIRAGANA = [
+    {k:'あ',r:'a'},{k:'い',r:'i'},{k:'う',r:'u'},{k:'え',r:'e'},{k:'お',r:'o'},
+    {k:'か',r:'ka'},{k:'き',r:'ki'},{k:'く',r:'ku'},{k:'け',r:'ke'},{k:'こ',r:'ko'},
+    {k:'さ',r:'sa'},{k:'し',r:'shi'},{k:'す',r:'su'},{k:'せ',r:'se'},{k:'そ',r:'so'},
+    {k:'た',r:'ta'},{k:'ち',r:'chi'},{k:'つ',r:'tsu'},{k:'て',r:'te'},{k:'と',r:'to'},
+    {k:'な',r:'na'},{k:'に',r:'ni'},{k:'ぬ',r:'nu'},{k:'ね',r:'ne'},{k:'の',r:'no'},
+    {k:'は',r:'ha'},{k:'ひ',r:'hi'},{k:'ふ',r:'fu'},{k:'へ',r:'he'},{k:'ほ',r:'ho'},
+    {k:'ま',r:'ma'},{k:'み',r:'mi'},{k:'む',r:'mu'},{k:'め',r:'me'},{k:'も',r:'mo'},
+    {k:'や',r:'ya'},{k:'ゆ',r:'yu'},{k:'よ',r:'yo'},
+    {k:'ら',r:'ra'},{k:'り',r:'ri'},{k:'る',r:'ru'},{k:'れ',r:'re'},{k:'ろ',r:'ro'},
+    {k:'わ',r:'wa'},{k:'を',r:'wo'},{k:'ん',r:'n'},
+    {k:'が',r:'ga'},{k:'ぎ',r:'gi'},{k:'ぐ',r:'gu'},{k:'げ',r:'ge'},{k:'ご',r:'go'},
+    {k:'ざ',r:'za'},{k:'じ',r:'ji'},{k:'ず',r:'zu'},{k:'ぜ',r:'ze'},{k:'ぞ',r:'zo'},
+    {k:'だ',r:'da'},{k:'ぢ',r:'ji (di)'},{k:'づ',r:'zu (du)'},{k:'で',r:'de'},{k:'ど',r:'do'},
+    {k:'ば',r:'ba'},{k:'び',r:'bi'},{k:'ぶ',r:'bu'},{k:'べ',r:'be'},{k:'ぼ',r:'bo'},
+    {k:'ぱ',r:'pa'},{k:'ぴ',r:'pi'},{k:'ぷ',r:'pu'},{k:'ぺ',r:'pe'},{k:'ぽ',r:'po'}
+  ];
+
+  // Huruf Katakana (gojuon + dakuten + handakuten)
+  var JPV_KATAKANA = [
+    {k:'ア',r:'a'},{k:'イ',r:'i'},{k:'ウ',r:'u'},{k:'エ',r:'e'},{k:'オ',r:'o'},
+    {k:'カ',r:'ka'},{k:'キ',r:'ki'},{k:'ク',r:'ku'},{k:'ケ',r:'ke'},{k:'コ',r:'ko'},
+    {k:'サ',r:'sa'},{k:'シ',r:'shi'},{k:'ス',r:'su'},{k:'セ',r:'se'},{k:'ソ',r:'so'},
+    {k:'タ',r:'ta'},{k:'チ',r:'chi'},{k:'ツ',r:'tsu'},{k:'テ',r:'te'},{k:'ト',r:'to'},
+    {k:'ナ',r:'na'},{k:'ニ',r:'ni'},{k:'ヌ',r:'nu'},{k:'ネ',r:'ne'},{k:'ノ',r:'no'},
+    {k:'ハ',r:'ha'},{k:'ヒ',r:'hi'},{k:'フ',r:'fu'},{k:'ヘ',r:'he'},{k:'ホ',r:'ho'},
+    {k:'マ',r:'ma'},{k:'ミ',r:'mi'},{k:'ム',r:'mu'},{k:'メ',r:'me'},{k:'モ',r:'mo'},
+    {k:'ヤ',r:'ya'},{k:'ユ',r:'yu'},{k:'ヨ',r:'yo'},
+    {k:'ラ',r:'ra'},{k:'リ',r:'ri'},{k:'ル',r:'ru'},{k:'レ',r:'re'},{k:'ロ',r:'ro'},
+    {k:'ワ',r:'wa'},{k:'ヲ',r:'wo'},{k:'ン',r:'n'},
+    {k:'ガ',r:'ga'},{k:'ギ',r:'gi'},{k:'グ',r:'gu'},{k:'ゲ',r:'ge'},{k:'ゴ',r:'go'},
+    {k:'ザ',r:'za'},{k:'ジ',r:'ji'},{k:'ズ',r:'zu'},{k:'ゼ',r:'ze'},{k:'ゾ',r:'zo'},
+    {k:'ダ',r:'da'},{k:'ヂ',r:'ji (di)'},{k:'ヅ',r:'zu (du)'},{k:'デ',r:'de'},{k:'ド',r:'do'},
+    {k:'バ',r:'ba'},{k:'ビ',r:'bi'},{k:'ブ',r:'bu'},{k:'ベ',r:'be'},{k:'ボ',r:'bo'},
+    {k:'パ',r:'pa'},{k:'ピ',r:'pi'},{k:'プ',r:'pu'},{k:'ペ',r:'pe'},{k:'ポ',r:'po'}
+  ];
+
+  var JPV_MODE_META = {
+    vocab:    { tag:'Kosa kata',     bubble:'語', hint:'ketuk kartu untuk lihat arti',     eyebrow:'Arti' },
+    hiragana: { tag:'Huruf hiragana', bubble:'あ', hint:'ketuk kartu untuk lihat cara baca', eyebrow:'Cara baca' },
+    katakana: { tag:'Huruf katakana', bubble:'ア', hint:'ketuk kartu untuk lihat cara baca', eyebrow:'Cara baca' }
+  };
+
+  var jpvMode = 'vocab';
+  var jpvIdx = -1;
+  var jpvFlipped = false;
+  var jpvAutoSpeak = false;
+  var jpvSpeechOK = ('speechSynthesis' in window) && (typeof SpeechSynthesisUtterance !== 'undefined');
+
+  // ---- Status ujian kosa kata (level tak terhingga) ----
+  var jpvQuizLevel = 1;
+  var jpvQuizViewLevel = 1; // level yang sedang dikerjakan sekarang (bisa level lama saat "mode ulang")
+  var jpvQuizProgress = 0;
+  var jpvQuizScore = 0;
+  var jpvQuizCurrent = null;
+  var jpvQuizLastWord = null;
+  var jpvQuizAnswered = false;
+  var jpvQuizAutoNextTimer = null;
+  var jpvQuizCorrectText = '';
+  var JPV_QUIZ_MAX_TIER = null;
+
+  function jpvPickJaVoice(){
+    if(!jpvSpeechOK) return null;
+    var voices = [];
+    try{ voices = window.speechSynthesis.getVoices() || []; }catch(e){}
+    for(var i = 0; i < voices.length; i++){
+      if(voices[i].lang && voices[i].lang.toLowerCase().indexOf('ja') === 0) return voices[i];
+    }
+    return null;
+  }
+
+  window.jpvSpeak = function(e){
+    if(e) e.stopPropagation();
+    if(!jpvSpeechOK) return;
+    var text, btn;
+    if(jpvMode === 'quiz'){
+      var w = jpvQuizCurrent;
+      if(!w) return;
+      text = w.kn || w.k;
+      btn = document.getElementById('jpvQuizSpeakBtn');
+    } else {
+      var list = jpvGetList();
+      var v = list[jpvIdx];
+      if(!v) return;
+      text = v.k;
+      btn = document.getElementById('jpvSpeakBtn');
+    }
+    try{ window.speechSynthesis.cancel(); }catch(err){}
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ja-JP';
+    utter.rate = 0.82;
+    utter.pitch = 1;
+    var jaVoice = jpvPickJaVoice();
+    if(jaVoice) utter.voice = jaVoice;
+    if(btn) btn.classList.add('speaking');
+    utter.onend = function(){ if(btn) btn.classList.remove('speaking'); };
+    utter.onerror = function(){ if(btn) btn.classList.remove('speaking'); };
+    try{ window.speechSynthesis.speak(utter); }catch(err){ if(btn) btn.classList.remove('speaking'); }
+  };
+
+  window.jpvToggleAutoSpeak = function(){
+    jpvAutoSpeak = !jpvAutoSpeak;
+    var btn = document.getElementById('jpvAutoSpeakBtn');
+    if(btn) btn.classList.toggle('active', jpvAutoSpeak);
+    try{ localStorage.setItem('jpvAutoSpeak', jpvAutoSpeak ? '1' : '0'); }catch(e){}
+  };
+
+  function jpvGetList(){
+    if(jpvMode === 'hiragana') return JPV_HIRAGANA;
+    if(jpvMode === 'katakana') return JPV_KATAKANA;
+    return JPV_VOCAB;
+  }
+
+  function jpvPickIndex(){
+    var list = jpvGetList();
+    if(list.length <= 1) return 0;
+    var i;
+    do { i = Math.floor(Math.random() * list.length); } while(i === jpvIdx);
+    return i;
+  }
+
+  // ================== Logika ujian kosa kata berjenjang ==================
+  function jpvQuizMaxTier(){
+    if(JPV_QUIZ_MAX_TIER) return JPV_QUIZ_MAX_TIER;
+    var max = 1;
+    for(var i = 0; i < JPV_VOCAB.length; i++){
+      var l = JPV_VOCAB[i].lvl || 1;
+      if(l > max) max = l;
+    }
+    JPV_QUIZ_MAX_TIER = max;
+    return max;
+  }
+
+  // Makin tinggi level, makin banyak jawaban benar beruntun yang dibutuhkan
+  // untuk naik level lagi — sehingga level bisa terus naik tak terhingga
+  // walau kosa kata tersulit sudah habis dipakai semua.
+  function jpvQuizCorrectNeeded(level){
+    return 5 + Math.floor((level - 1) / 3);
+  }
+
+  // Makin tinggi level, petunjuk (cara baca) makin disembunyikan — jadi
+  // soal terasa makin sulit walau kata yang sama masih muncul lagi.
+  function jpvQuizHintLevel(level){
+    if(level <= 3) return 'full';
+    if(level <= 6) return 'kana';
+    return 'none';
+  }
+
+  // Tiap level punya kosa kata sendiri (tidak dicampur dengan level lain),
+  // supaya kata yang muncul di satu level tidak muncul lagi di level lainnya.
+  // Kalau level sudah lewat tier kosa kata tertinggi, tetap pakai kosa kata
+  // tier tertinggi itu (jenjang berikutnya makin sulit lewat penyembunyian
+  // petunjuk di jpvQuizHintLevel, bukan lewat kata baru).
+  function jpvQuizTierFor(level){
+    var maxTier = jpvQuizMaxTier();
+    return Math.min(Math.max(1, level), maxTier);
+  }
+
+  function jpvQuizPool(level){
+    var tier = jpvQuizTierFor(level);
+    var pool = JPV_VOCAB.filter(function(v){ return (v.lvl || 1) === tier; });
+    if(pool.length === 0) pool = JPV_VOCAB;
+    return pool;
+  }
+
+  function jpvQuizPickWord(){
+    var pool = jpvQuizPool(jpvQuizViewLevel);
+    if(pool.length === 0) pool = JPV_VOCAB;
+    var w, attempts = 0;
+    do{
+      w = pool[Math.floor(Math.random() * pool.length)];
+      attempts++;
+    } while(pool.length > 1 && jpvQuizLastWord && w.k === jpvQuizLastWord.k && attempts < 12);
+    jpvQuizLastWord = w;
+    return w;
+  }
+
+  // Pengecoh (jawaban salah) diutamakan dari kosa kata di level yang sama
+  // dulu, baru dilengkapi dari level lain kalau kosa kata di level itu
+  // kurang dari 4 kata — jadi pilihan jawaban tetap terasa "satu level".
+  function jpvQuizPickOptions(correct){
+    var texts = [correct.a];
+    var samePool = jpvQuizPool(jpvQuizViewLevel).filter(function(v){ return v.a !== correct.a; });
+    var restPool = JPV_VOCAB.filter(function(v){ return v.a !== correct.a; });
+    function shuffle(arr){
+      for(var i = arr.length - 1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      }
+      return arr;
+    }
+    shuffle(samePool);
+    shuffle(restPool);
+    var distractPool = samePool.concat(restPool);
+    for(var k = 0; k < distractPool.length && texts.length < 4; k++){
+      if(texts.indexOf(distractPool[k].a) === -1) texts.push(distractPool[k].a);
+    }
+    return shuffle(texts);
+  }
+
+  function jpvQuizSaveProgress(){
+    try{
+      localStorage.setItem('jpvQuizLevel', String(jpvQuizLevel));
+      localStorage.setItem('jpvQuizProgress', String(jpvQuizProgress));
+      localStorage.setItem('jpvQuizScore', String(jpvQuizScore));
+    }catch(e){}
+  }
+
+  function jpvQuizIsReview(){
+    return jpvQuizViewLevel !== jpvQuizLevel;
+  }
+
+  function jpvQuizRenderTopBar(){
+    var badge = document.getElementById('jpvLevelBadge');
+    if(badge) badge.textContent = 'Lv. ' + jpvQuizViewLevel;
+    var review = jpvQuizIsReview();
+    var fill = document.getElementById('jpvProgressFill');
+    if(fill){
+      if(review){
+        fill.style.width = '100%';
+      } else {
+        var needed = jpvQuizCorrectNeeded(jpvQuizLevel);
+        var pct = Math.max(0, Math.min(100, Math.round((jpvQuizProgress / needed) * 100)));
+        fill.style.width = pct + '%';
+      }
+    }
+    var reviewTag = document.getElementById('jpvQuizReviewTag');
+    if(reviewTag) reviewTag.style.display = review ? '' : 'none';
+    var scoreLine = document.getElementById('jpvQuizScoreLine');
+    if(scoreLine) scoreLine.textContent = 'Skor benar: ' + jpvQuizScore;
+    jpvQuizRenderLevelSelect();
+  }
+
+  // Strip pilihan level: level yang sudah dilewati (lebih kecil dari level
+  // sekarang) boleh dikerjakan ulang kapan saja, level sekarang selalu bisa
+  // dipilih, tapi level selanjutnya yang belum dicapai tetap terkunci.
+  function jpvQuizRenderLevelSelect(){
+    var wrap = document.getElementById('jpvLevelSelect');
+    if(!wrap) return;
+    var maxTier = jpvQuizMaxTier();
+    var reachable = jpvQuizTierFor(jpvQuizLevel);
+    var showUpTo = Math.min(maxTier, reachable + 1);
+    wrap.innerHTML = '';
+    for(var lvl = 1; lvl <= showUpTo; lvl++){
+      var locked = lvl > reachable;
+      var isCurrent = (lvl === jpvQuizTierFor(jpvQuizViewLevel)) && !(locked);
+      var isDone = lvl < reachable;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-level-chip' + (locked ? ' locked' : '') + (isCurrent ? ' current' : '') + (isDone && !isCurrent ? ' done' : '');
+      if(locked){
+        b.disabled = true;
+        b.title = 'Selesaikan level ' + reachable + ' dulu untuk membuka level ini';
+        b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' + lvl;
+      } else {
+        b.textContent = lvl;
+        b.onclick = function(l){ return function(){ jpvQuizGoLevel(l); }; }(lvl);
+      }
+      wrap.appendChild(b);
+    }
+  }
+
+  // Pindah ke level tertentu untuk dikerjakan. Level yang sudah lewat bisa
+  // dipilih bebas (mode ulang, tidak memengaruhi progres level sekarang);
+  // level sekarang balik ke progres aslinya.
+  window.jpvQuizGoLevel = function(level){
+    var reachable = jpvQuizTierFor(jpvQuizLevel);
+    if(level > reachable) return; // level selanjutnya masih terkunci
+    jpvQuizViewLevel = level;
+    jpvQuizLastWord = null;
+    jpvQuizNext();
+  };
+
+  function jpvQuizRender(){
+    var w = jpvQuizCurrent;
+    if(!w) return;
+    var hint = jpvQuizHintLevel(jpvQuizViewLevel);
+
+    document.getElementById('jpvQuizKanji').textContent = w.k;
+    var kanaEl = document.getElementById('jpvQuizKana');
+    if(hint === 'full'){
+      kanaEl.style.display = '';
+      kanaEl.textContent = (w.kn || '') + (w.r ? '  ・ ' + w.r : '');
+    } else if(hint === 'kana'){
+      kanaEl.style.display = '';
+      kanaEl.textContent = w.kn || '';
+    } else {
+      kanaEl.style.display = 'none';
+      kanaEl.textContent = '';
+    }
+
+    jpvQuizCorrectText = w.a;
+    var opts = jpvQuizPickOptions(w);
+    var wrap = document.getElementById('jpvQuizOptions');
+    wrap.innerHTML = '';
+    opts.forEach(function(text){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-quiz-opt';
+      b.textContent = text;
+      b.onclick = function(){ jpvQuizAnswer(text, b); };
+      wrap.appendChild(b);
+    });
+
+    jpvQuizAnswered = false;
+    if(jpvQuizAutoNextTimer){ clearTimeout(jpvQuizAutoNextTimer); jpvQuizAutoNextTimer = null; }
+    var fb = document.getElementById('jpvQuizFeedback');
+    fb.textContent = '';
+    fb.className = 'jpv-quiz-feedback';
+    document.getElementById('jpvQuizNextBtn').classList.remove('show');
+    jpvQuizRenderTopBar();
+
+    if(jpvAutoSpeak && jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 150);
+    }
+  }
+
+  window.jpvQuizAnswer = function(text, btnEl){
+    if(jpvQuizAnswered) return;
+    jpvQuizAnswered = true;
+    var correct = (text === jpvQuizCorrectText);
+
+    var buttons = document.querySelectorAll('#jpvQuizOptions .jpv-quiz-opt');
+    buttons.forEach(function(b){
+      b.disabled = true;
+      if(b.textContent === jpvQuizCorrectText){ b.classList.add('correct'); }
+      else if(b === btnEl){ b.classList.add('wrong'); }
+      else { b.classList.add('dim'); }
+    });
+
+    var review = jpvQuizIsReview();
+    var fb = document.getElementById('jpvQuizFeedback');
+    if(correct){
+      fb.textContent = 'Benar! 正解（せいかい）';
+      fb.className = 'jpv-quiz-feedback ok';
+      jpvQuizScore++;
+      if(!review) jpvQuizProgress++;
+    } else {
+      fb.textContent = 'Belum tepat — jawaban benar: ' + jpvQuizCorrectText;
+      fb.className = 'jpv-quiz-feedback no';
+      if(!review) jpvQuizProgress = Math.max(0, jpvQuizProgress - 1);
+    }
+
+    // Naik level hanya berlaku saat mengerjakan level terdepan (bukan saat
+    // mode ulang mengerjakan level yang sudah lewat).
+    var leveledUp = false;
+    if(!review){
+      var needed = jpvQuizCorrectNeeded(jpvQuizLevel);
+      if(jpvQuizProgress >= needed){
+        jpvQuizLevel++;
+        jpvQuizViewLevel = jpvQuizLevel;
+        jpvQuizProgress = 0;
+        leveledUp = true;
+      }
+    }
+    jpvQuizSaveProgress();
+    jpvQuizRenderTopBar();
+    if(leveledUp) jpvQuizShowLevelup();
+
+    if(correct){
+      // Jawaban benar -> otomatis lanjut ke soal berikutnya, tanpa perlu klik.
+      jpvQuizAutoNextTimer = window.setTimeout(function(){
+        jpvQuizAutoNextTimer = null;
+        jpvQuizNext();
+      }, leveledUp ? 1100 : 650);
+    } else {
+      // Jawaban salah -> tunggu diklik dulu supaya sempat baca jawaban yang benar.
+      document.getElementById('jpvQuizNextBtn').classList.add('show');
+    }
+  };
+
+  function jpvQuizShowLevelup(){
+    var toast = document.getElementById('jpvLevelupToast');
+    if(!toast) return;
+    var text = document.getElementById('jpvLevelupText');
+    if(text) text.textContent = 'Lv. ' + jpvQuizLevel;
+    toast.classList.add('show');
+    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+
+  window.jpvQuizNext = function(){
+    jpvQuizCurrent = jpvQuizPickWord();
+    jpvQuizRender();
+  };
+  // ============== akhir logika ujian kosa kata berjenjang ==============
+
+  function jpvRender(){
+    var list = jpvGetList();
+    if(jpvIdx < 0 || jpvIdx >= list.length) jpvIdx = 0;
+    var v = list[jpvIdx];
+    var meta = JPV_MODE_META[jpvMode];
+
+    document.getElementById('jpvTag').textContent = meta.tag;
+    document.getElementById('jpvBubbleGlyph').textContent = meta.bubble;
+    document.getElementById('jpvBackEyebrow').textContent = meta.eyebrow;
+    document.getElementById('jpvKanji').textContent = v.k;
+
+    var kanaEl = document.getElementById('jpvKana');
+    var romajiEl = document.getElementById('jpvRomaji');
+    var artiEl = document.getElementById('jpvArti');
+
+    if(jpvMode === 'vocab'){
+      kanaEl.style.display = '';
+      kanaEl.textContent = v.kn;
+      romajiEl.style.display = '';
+      romajiEl.textContent = v.r;
+      artiEl.textContent = v.a;
+    } else {
+      kanaEl.style.display = 'none';
+      romajiEl.style.display = 'none';
+      artiEl.textContent = v.r;
+    }
+
+    jpvFlipped = false;
+    document.getElementById('jpvFlipInner').classList.remove('flipped');
+    document.getElementById('jpvHint').textContent = meta.hint;
+
+    if(jpvAutoSpeak && jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 120);
+    }
+  }
+
+  // Bubble kecil di pojok layar ikut menunjukkan mode aktif (kartu biasa,
+  // ujian, atau huruf) walau kartu sedang ditutup.
+  function jpvSyncBubbleGlyph(){
+    var el = document.getElementById('jpvBubbleGlyph');
+    if(!el) return;
+    if(jpvMode === 'quiz') el.textContent = '試';
+    else if(JPV_MODE_META[jpvMode]) el.textContent = JPV_MODE_META[jpvMode].bubble;
+  }
+
+  window.jpvNext = function(){
+    jpvIdx = jpvPickIndex();
+    jpvRender();
+  };
+
+  window.jpvToggleArti = function(){
+    jpvFlipped = !jpvFlipped;
+    document.getElementById('jpvFlipInner').classList.toggle('flipped', jpvFlipped);
+  };
+
+  window.jpvGoSettings = function(){
+    document.getElementById('jpvViewScreen').classList.remove('show');
+    document.getElementById('jpvQuizScreen').classList.remove('show');
+    document.getElementById('jpvSettingsScreen').classList.add('show');
+  };
+
+  window.jpvGoView = function(){
+    document.getElementById('jpvSettingsScreen').classList.remove('show');
+    if(jpvMode === 'quiz'){
+      document.getElementById('jpvViewScreen').classList.remove('show');
+      document.getElementById('jpvQuizScreen').classList.add('show');
+      document.getElementById('jpvCard').classList.add('jpv-wide');
+    } else {
+      document.getElementById('jpvQuizScreen').classList.remove('show');
+      document.getElementById('jpvViewScreen').classList.add('show');
+      document.getElementById('jpvCard').classList.remove('jpv-wide');
+    }
+  };
+
+  function jpvUpdateModeButtons(){
+    ['vocab','quiz','hiragana','katakana'].forEach(function(m){
+      var btn = document.getElementById('jpvModeBtn-' + m);
+      if(btn) btn.classList.toggle('active', m === jpvMode);
+    });
+  }
+
+  window.jpvSetMode = function(mode){
+    jpvUpdateModeButtons();
+    if(mode !== jpvMode){
+      jpvMode = mode;
+      try{ localStorage.setItem('jpvMode', jpvMode); }catch(e){}
+      if(mode === 'quiz'){
+        if(!jpvQuizCurrent) jpvQuizNext(); else jpvQuizRenderTopBar();
+      } else {
+        jpvIdx = -1;
+        jpvIdx = jpvPickIndex();
+        jpvRender();
+      }
+      jpvSyncBubbleGlyph();
+      jpvUpdateModeButtons();
+    }
+    jpvGoView();
+  };
+
+  window.jpvOpen = function(){
+    if(jpvMode === 'quiz'){
+      if(!jpvQuizCurrent) jpvQuizNext();
+    } else if(jpvIdx === -1){
+      jpvIdx = jpvPickIndex(); jpvRender();
+    }
+    jpvSyncBubbleGlyph();
+    document.getElementById('jpvBubble').classList.add('hide');
+    document.getElementById('jpvCard').classList.add('show');
+    jpvGoView();
+    try{ localStorage.setItem('jpvCollapsed', '0'); }catch(e){}
+  };
+
+  window.jpvClose = function(){
+    document.getElementById('jpvCard').classList.remove('show');
+    document.getElementById('jpvBubble').classList.remove('hide');
+    jpvGoView();
+    try{ localStorage.setItem('jpvCollapsed', '1'); }catch(e){}
+  };
+
+  // Ingat mode, status terakhir & preferensi suara dari kunjungan sebelumnya
+  try{
+    var savedMode = localStorage.getItem('jpvMode');
+    if(savedMode === 'hiragana' || savedMode === 'katakana' || savedMode === 'vocab' || savedMode === 'quiz'){
+      jpvMode = savedMode;
+    }
+  }catch(e){}
+  jpvUpdateModeButtons();
+  jpvSyncBubbleGlyph();
+
+  try{
+    jpvAutoSpeak = localStorage.getItem('jpvAutoSpeak') === '1';
+  }catch(e){}
+
+  try{
+    var savedQLevel = parseInt(localStorage.getItem('jpvQuizLevel'), 10);
+    if(!isNaN(savedQLevel) && savedQLevel >= 1) jpvQuizLevel = savedQLevel;
+    jpvQuizViewLevel = jpvQuizLevel;
+    var savedQProgress = parseInt(localStorage.getItem('jpvQuizProgress'), 10);
+    if(!isNaN(savedQProgress) && savedQProgress >= 0) jpvQuizProgress = savedQProgress;
+    var savedQScore = parseInt(localStorage.getItem('jpvQuizScore'), 10);
+    if(!isNaN(savedQScore) && savedQScore >= 0) jpvQuizScore = savedQScore;
+  }catch(e){}
+  var autoSpeakBtn = document.getElementById('jpvAutoSpeakBtn');
+  if(autoSpeakBtn) autoSpeakBtn.classList.toggle('active', jpvAutoSpeak);
+
+  if(!jpvSpeechOK){
+    var speakBtn = document.getElementById('jpvSpeakBtn');
+    if(speakBtn) speakBtn.style.display = 'none';
+    var voiceTitle = document.getElementById('jpvVoiceTitle');
+    if(voiceTitle) voiceTitle.style.display = 'none';
+    if(autoSpeakBtn) autoSpeakBtn.style.display = 'none';
+  } else {
+    try{ window.speechSynthesis.getVoices(); }catch(e){}
+    if('onvoiceschanged' in window.speechSynthesis){
+      window.speechSynthesis.onvoiceschanged = function(){};
+    }
+  }
+
+  try{
+    if(localStorage.getItem('jpvCollapsed') === '0'){
+      jpvOpen();
+    }
+  }catch(e){}
+})();
 </script>
 
 </body>
