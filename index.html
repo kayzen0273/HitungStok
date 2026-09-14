@@ -3947,7 +3947,7 @@ function subscribeScreenBroadcast(){
     .subscribe();
 }
 
-// ====== Kontrol Modal Sinkronisasi Tim (dari panel admin) ======
+// ====== Kontrol Modal Sinkronisasi Tim & Kata-kata AI Agent (dari panel admin) ======
 const SETTINGS_TABLE = 'stok_opname_settings';
 
 function applySyncCardVisibility(visible){
@@ -3960,7 +3960,10 @@ async function initSyncCardVisibilityListener(){
   if(!client) return;
   try{
     const { data, error } = await sb.from(SETTINGS_TABLE).select('*').eq('screen_code', BROADCAST_SCREEN_CODE).maybeSingle();
-    if(!error) applySyncCardVisibility(data ? data.sync_card_visible !== false : true);
+    if(!error){
+      applySyncCardVisibility(data ? data.sync_card_visible !== false : true);
+      if(window.aiHintBubble) window.aiHintBubble.setAdminEnabled(data ? data.hint_bubble_enabled !== false : true);
+    }
   } catch(e){
     console.error('Gagal memuat status modal sinkronisasi dari admin:', e);
   }
@@ -3975,9 +3978,11 @@ function subscribeSettingsChannel(){
       event: '*', schema: 'public', table: SETTINGS_TABLE, filter: `screen_code=eq.${BROADCAST_SCREEN_CODE}`
     }, payload => {
       applySyncCardVisibility(payload.new ? payload.new.sync_card_visible !== false : true);
+      if(window.aiHintBubble) window.aiHintBubble.setAdminEnabled(payload.new ? payload.new.hint_bubble_enabled !== false : true);
     })
     .subscribe();
 }
+
 
 // ====== Daftar Nama Petugas (dari panel admin) ======
 // Sinkron langsung dari tabel `stok_opname_petugas` yang dikelola lewat kartu
@@ -8803,21 +8808,20 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   }
 
   // ---------------------------------------------------------------------
-  // Saklar on/off untuk bubble "kata semangat" di atas ikon robot — dikontrol
-  // dari saklar "Kata-kata di atas AI Agent" di Panel Admin lewat window.aiHintBubble
-  // (lihat pemasangannya di bagian bawah file ini). Disimpan di localStorage
-  // supaya pilihan pengguna diingat, default AKTIF (perilaku lama).
+  // Saklar on/off untuk bubble "kata semangat" di atas ikon robot — sekarang
+  // sepenuhnya dikontrol dari saklar "Kata-kata di atas AI Agent" di Panel
+  // Admin (disiarkan lewat Supabase Realtime lalu diteruskan ke sini lewat
+  // window.aiHintBubble.setAdminEnabled(...)). Begitu dimatikan dari Panel
+  // Admin, langsung mati di SEMUA HP yang sedang membuka halaman ini.
+  // Default AKTIF selama status dari admin belum sempat dimuat.
   // ---------------------------------------------------------------------
-  var LS_KEY_HINT_ENABLED = 'bb_agent_hint_enabled_v1';
+  var hintAdminEnabled = true;
   var hintElRef = null; // referensi elemen bubble, diisi saat startHintBubble() dipanggil
   function isHintBubbleEnabled() {
-    try {
-      var v = localStorage.getItem(LS_KEY_HINT_ENABLED);
-      return v === null ? true : v === '1';
-    } catch (e) { return true; }
+    return hintAdminEnabled;
   }
   function setHintBubbleEnabled(val) {
-    try { localStorage.setItem(LS_KEY_HINT_ENABLED, val ? '1' : '0'); } catch (e) { /* abaikan */ }
+    hintAdminEnabled = !!val;
     if (!val && hintElRef) {
       // Sembunyikan seketika supaya efek tombolnya langsung terasa.
       hintElRef.classList.remove('show');
@@ -9082,13 +9086,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     mount();
   }
 
-  // Jembatan ke luar IIFE ini supaya bagian lain (mis. saklar di Panel Admin,
-  // yang membaca/menulis localStorage key yang sama lewat browser yang sama)
-  // bisa membaca & mengubah status on/off bubble "kata semangat" tanpa perlu
-  // duplikasi logika/penyimpanan.
+  // Jembatan ke luar IIFE ini supaya kode di luar widget (listener realtime
+  // yang menerima siaran saklar "Kata-kata di atas AI Agent" dari Panel
+  // Admin) bisa meneruskan status on/off ke sini tanpa duplikasi logika.
   window.aiHintBubble = {
     isEnabled: isHintBubbleEnabled,
-    setEnabled: setHintBubbleEnabled
+    setAdminEnabled: setHintBubbleEnabled
   };
 })();
 </script>
