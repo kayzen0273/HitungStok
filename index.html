@@ -9632,6 +9632,48 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         </div>
       </div>
 
+      <div class="jpv-screen" id="jpvQuizBacaScreen">
+        <div class="jpv-quiz-top">
+          <span class="jpv-tag" id="jpvBacaTag">Ujian cara baca</span>
+          <span class="jpv-level-badge" id="jpvBacaLevelBadge">Lv. 1</span>
+          <div class="jpv-top-actions">
+            <button class="jpv-icon-btn jpv-speak-btn" id="jpvBacaSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jpv-progress-track"><div class="jpv-progress-fill" id="jpvBacaProgressFill"></div></div>
+        <div class="jpv-level-select" id="jpvBacaLevelSelect"></div>
+        <div class="jpv-quiz-review-tag" id="jpvBacaReviewTag" style="display:none;">Mode ulang — jawaban di sini tidak memengaruhi level saat ini</div>
+
+        <div class="jpv-quiz-question">
+          <div class="jpv-quiz-kanji" id="jpvBacaKanji">水</div>
+          <div class="jpv-quiz-kana" id="jpvBacaHint">みず</div>
+          <div class="jpv-quiz-prompt">Cara baca yang tepat (romaji)?</div>
+        </div>
+
+        <div class="jpv-quiz-options" id="jpvBacaOptions"></div>
+        <div class="jpv-quiz-feedback" id="jpvBacaFeedback"></div>
+        <div class="jpv-quiz-score" id="jpvBacaScoreLine">Skor benar: 0</div>
+
+        <button class="jpv-quiz-next-btn" id="jpvBacaNextBtn" onclick="jpvBacaNext()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Soal berikutnya
+        </button>
+
+        <div class="jpv-levelup-toast" id="jpvBacaLevelupToast">
+          <b id="jpvBacaLevelupText">Lv. 2</b>
+          <span>Naik level! Cara baca makin menantang</span>
+        </div>
+      </div>
+
       <div class="jpv-screen" id="jpvSettingsScreen">
         <div class="jpv-card-top">
           <button class="jpv-back-btn" onclick="jpvGoView()">
@@ -9644,7 +9686,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         </div>
         <div class="jpv-settings-title">Mau belajar apa?</div>
         <button class="jpv-mode-btn" id="jpvModeBtn-vocab" onclick="jpvSetMode('vocab')">Kosa kata (kartu biasa) <span class="jpv-mode-check">✓</span></button>
-        <button class="jpv-mode-btn" id="jpvModeBtn-quiz" onclick="jpvSetMode('quiz')">Ujian kosa kata (naik level) <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-quiz" onclick="jpvSetMode('quiz')">Ujian kosa kata — arti (naik level) <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-quizbaca" onclick="jpvSetMode('quizbaca')">Ujian kosa kata — cara baca (naik level) <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-hiragana" onclick="jpvSetMode('hiragana')">Huruf hiragana <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-katakana" onclick="jpvSetMode('katakana')">Huruf katakana <span class="jpv-mode-check">✓</span></button>
 
@@ -9925,6 +9968,10 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var jpvIdx = -1;
   var jpvFlipped = false;
   var jpvAutoSpeak = false;
+  // Auto-ucap KHUSUS mode "Ujian cara baca": sengaja TIDAK dibaca/disimpan
+  // dari localStorage — selalu default mati tiap kali halaman di-refresh,
+  // walau sempat dinyalakan manual di sesi sebelumnya.
+  var jpvBacaAutoSpeak = false;
   var jpvSpeechOK = ('speechSynthesis' in window) && (typeof SpeechSynthesisUtterance !== 'undefined');
 
   // ---- Status ujian kosa kata (level tak terhingga) ----
@@ -9938,6 +9985,17 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var jpvQuizAutoNextTimer = null;
   var jpvQuizCorrectText = '';
   var JPV_QUIZ_MAX_TIER = null;
+
+  // ---- Status ujian CARA BACA (level & progres terpisah dari ujian arti di atas) ----
+  var jpvBacaLevel = 1;
+  var jpvBacaViewLevel = 1; // level yang sedang dikerjakan sekarang (bisa level lama saat "mode ulang")
+  var jpvBacaProgress = 0;
+  var jpvBacaScore = 0;
+  var jpvBacaCurrent = null;
+  var jpvBacaLastWord = null;
+  var jpvBacaAnswered = false;
+  var jpvBacaAutoNextTimer = null;
+  var jpvBacaCorrectText = '';
 
   function jpvPickJaVoice(){
     if(!jpvSpeechOK) return null;
@@ -9958,6 +10016,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if(!w) return;
       text = w.kn || w.k;
       btn = document.getElementById('jpvQuizSpeakBtn');
+    } else if(jpvMode === 'quizbaca'){
+      var wb = jpvBacaCurrent;
+      if(!wb) return;
+      text = wb.kn || wb.k;
+      btn = document.getElementById('jpvBacaSpeakBtn');
     } else {
       var list = jpvGetList();
       var v = list[jpvIdx];
@@ -9979,11 +10042,22 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   };
 
   window.jpvToggleAutoSpeak = function(){
-    jpvAutoSpeak = !jpvAutoSpeak;
-    var btn = document.getElementById('jpvAutoSpeakBtn');
-    if(btn) btn.classList.toggle('active', jpvAutoSpeak);
-    try{ localStorage.setItem('jpvAutoSpeak', jpvAutoSpeak ? '1' : '0'); }catch(e){}
+    if(jpvMode === 'quizbaca'){
+      jpvBacaAutoSpeak = !jpvBacaAutoSpeak;
+      // sengaja tidak disimpan ke localStorage — reset ke mati tiap refresh.
+    } else {
+      jpvAutoSpeak = !jpvAutoSpeak;
+      try{ localStorage.setItem('jpvAutoSpeak', jpvAutoSpeak ? '1' : '0'); }catch(e){}
+    }
+    jpvSyncAutoSpeakBtn();
   };
+
+  function jpvSyncAutoSpeakBtn(){
+    var btn = document.getElementById('jpvAutoSpeakBtn');
+    if(!btn) return;
+    var active = (jpvMode === 'quizbaca') ? jpvBacaAutoSpeak : jpvAutoSpeak;
+    btn.classList.toggle('active', active);
+  }
 
   function jpvGetList(){
     if(jpvMode === 'hiragana') return JPV_HIRAGANA;
@@ -10264,6 +10338,220 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   };
   // ============== akhir logika ujian kosa kata berjenjang ==============
 
+  // ========= Logika ujian CARA BACA berjenjang (level sendiri, terpisah) =========
+  // Memakai bank kosa kata & tier level yang sama (JPV_VOCAB, jpvQuizMaxTier,
+  // jpvQuizTierFor, jpvQuizPool, jpvQuizCorrectNeeded) supaya jenjang kesulitan
+  // konsisten dengan ujian arti, TAPI progres/level/skor disimpan & dilacak
+  // sendiri-sendiri (jpvBaca...), jadi naik level di satu ujian tidak
+  // memengaruhi ujian yang lain.
+  function jpvBacaPickWord(){
+    var pool = jpvQuizPool(jpvBacaViewLevel);
+    if(pool.length === 0) pool = JPV_VOCAB;
+    var w, attempts = 0;
+    do{
+      w = pool[Math.floor(Math.random() * pool.length)];
+      attempts++;
+    } while(pool.length > 1 && jpvBacaLastWord && w.k === jpvBacaLastWord.k && attempts < 12);
+    jpvBacaLastWord = w;
+    return w;
+  }
+
+  // Pilihan jawaban berupa bacaan (kana + romaji), pengecoh diutamakan dari
+  // kosa kata di level yang sama dulu, baru dilengkapi dari level lain.
+  function jpvBacaOptionText(v){
+    return v.r || v.kn;
+  }
+  function jpvBacaPickOptions(correct){
+    var texts = [jpvBacaOptionText(correct)];
+    var samePool = jpvQuizPool(jpvBacaViewLevel).filter(function(v){ return v.kn !== correct.kn; });
+    var restPool = JPV_VOCAB.filter(function(v){ return v.kn !== correct.kn; });
+    function shuffle(arr){
+      for(var i = arr.length - 1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      }
+      return arr;
+    }
+    shuffle(samePool);
+    shuffle(restPool);
+    var distractPool = samePool.concat(restPool);
+    for(var k = 0; k < distractPool.length && texts.length < 4; k++){
+      var t = jpvBacaOptionText(distractPool[k]);
+      if(texts.indexOf(t) === -1) texts.push(t);
+    }
+    return shuffle(texts);
+  }
+
+  function jpvBacaSaveProgress(){
+    try{
+      localStorage.setItem('jpvBacaLevel', String(jpvBacaLevel));
+      localStorage.setItem('jpvBacaProgress', String(jpvBacaProgress));
+      localStorage.setItem('jpvBacaScore', String(jpvBacaScore));
+    }catch(e){}
+  }
+
+  function jpvBacaIsReview(){
+    return jpvBacaViewLevel !== jpvBacaLevel;
+  }
+
+  function jpvBacaRenderTopBar(){
+    var badge = document.getElementById('jpvBacaLevelBadge');
+    if(badge) badge.textContent = 'Lv. ' + jpvBacaViewLevel;
+    var review = jpvBacaIsReview();
+    var fill = document.getElementById('jpvBacaProgressFill');
+    if(fill){
+      if(review){
+        fill.style.width = '100%';
+      } else {
+        var needed = jpvQuizCorrectNeeded(jpvBacaLevel);
+        var pct = Math.max(0, Math.min(100, Math.round((jpvBacaProgress / needed) * 100)));
+        fill.style.width = pct + '%';
+      }
+    }
+    var reviewTag = document.getElementById('jpvBacaReviewTag');
+    if(reviewTag) reviewTag.style.display = review ? '' : 'none';
+    var scoreLine = document.getElementById('jpvBacaScoreLine');
+    if(scoreLine) scoreLine.textContent = 'Skor benar: ' + jpvBacaScore;
+    jpvBacaRenderLevelSelect();
+  }
+
+  function jpvBacaRenderLevelSelect(){
+    var wrap = document.getElementById('jpvBacaLevelSelect');
+    if(!wrap) return;
+    var maxTier = jpvQuizMaxTier();
+    var reachable = jpvQuizTierFor(jpvBacaLevel);
+    var showUpTo = Math.min(maxTier, reachable + 1);
+    wrap.innerHTML = '';
+    for(var lvl = 1; lvl <= showUpTo; lvl++){
+      var locked = lvl > reachable;
+      var isCurrent = (lvl === jpvQuizTierFor(jpvBacaViewLevel)) && !(locked);
+      var isDone = lvl < reachable;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-level-chip' + (locked ? ' locked' : '') + (isCurrent ? ' current' : '') + (isDone && !isCurrent ? ' done' : '');
+      if(locked){
+        b.disabled = true;
+        b.title = 'Selesaikan level ' + reachable + ' dulu untuk membuka level ini';
+        b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' + lvl;
+      } else {
+        b.textContent = lvl;
+        b.onclick = function(l){ return function(){ jpvBacaGoLevel(l); }; }(lvl);
+      }
+      wrap.appendChild(b);
+    }
+  }
+
+  window.jpvBacaGoLevel = function(level){
+    var reachable = jpvQuizTierFor(jpvBacaLevel);
+    if(level > reachable) return; // level selanjutnya masih terkunci
+    jpvBacaViewLevel = level;
+    jpvBacaLastWord = null;
+    jpvBacaNext();
+  };
+
+  // Kata soal SELALU ditampilkan lengkap dengan hiragananya (gaya furigana)
+  // di semua level — ujian ini menguji kemampuan membaca hiragana jadi
+  // romaji yang tepat, bukan menghafal cara baca kanji dari nol.
+  function jpvBacaRender(){
+    var w = jpvBacaCurrent;
+    if(!w) return;
+
+    document.getElementById('jpvBacaKanji').textContent = w.k;
+    var hintEl = document.getElementById('jpvBacaHint');
+    hintEl.style.display = '';
+    hintEl.textContent = w.kn;
+
+    jpvBacaCorrectText = jpvBacaOptionText(w);
+    var opts = jpvBacaPickOptions(w);
+    var wrap = document.getElementById('jpvBacaOptions');
+    wrap.innerHTML = '';
+    opts.forEach(function(text){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-quiz-opt';
+      b.textContent = text;
+      b.onclick = function(){ jpvBacaAnswer(text, b); };
+      wrap.appendChild(b);
+    });
+
+    jpvBacaAnswered = false;
+    if(jpvBacaAutoNextTimer){ clearTimeout(jpvBacaAutoNextTimer); jpvBacaAutoNextTimer = null; }
+    var fb = document.getElementById('jpvBacaFeedback');
+    fb.textContent = '';
+    fb.className = 'jpv-quiz-feedback';
+    document.getElementById('jpvBacaNextBtn').classList.remove('show');
+    jpvBacaRenderTopBar();
+
+    if(jpvBacaAutoSpeak && jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 150);
+    }
+  }
+
+  window.jpvBacaAnswer = function(text, btnEl){
+    if(jpvBacaAnswered) return;
+    jpvBacaAnswered = true;
+    var correct = (text === jpvBacaCorrectText);
+
+    var buttons = document.querySelectorAll('#jpvBacaOptions .jpv-quiz-opt');
+    buttons.forEach(function(b){
+      b.disabled = true;
+      if(b.textContent === jpvBacaCorrectText){ b.classList.add('correct'); }
+      else if(b === btnEl){ b.classList.add('wrong'); }
+      else { b.classList.add('dim'); }
+    });
+
+    var review = jpvBacaIsReview();
+    var fb = document.getElementById('jpvBacaFeedback');
+    if(correct){
+      fb.textContent = 'Benar! 正解（せいかい）';
+      fb.className = 'jpv-quiz-feedback ok';
+      jpvBacaScore++;
+      if(!review) jpvBacaProgress++;
+    } else {
+      fb.textContent = 'Belum tepat — cara baca yang benar: ' + jpvBacaCorrectText;
+      fb.className = 'jpv-quiz-feedback no';
+      if(!review) jpvBacaProgress = Math.max(0, jpvBacaProgress - 1);
+    }
+
+    var leveledUp = false;
+    if(!review){
+      var needed = jpvQuizCorrectNeeded(jpvBacaLevel);
+      if(jpvBacaProgress >= needed){
+        jpvBacaLevel++;
+        jpvBacaViewLevel = jpvBacaLevel;
+        jpvBacaProgress = 0;
+        leveledUp = true;
+      }
+    }
+    jpvBacaSaveProgress();
+    jpvBacaRenderTopBar();
+    if(leveledUp) jpvBacaShowLevelup();
+
+    if(correct){
+      jpvBacaAutoNextTimer = window.setTimeout(function(){
+        jpvBacaAutoNextTimer = null;
+        jpvBacaNext();
+      }, leveledUp ? 1100 : 650);
+    } else {
+      document.getElementById('jpvBacaNextBtn').classList.add('show');
+    }
+  };
+
+  function jpvBacaShowLevelup(){
+    var toast = document.getElementById('jpvBacaLevelupToast');
+    if(!toast) return;
+    var text = document.getElementById('jpvBacaLevelupText');
+    if(text) text.textContent = 'Lv. ' + jpvBacaLevel;
+    toast.classList.add('show');
+    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+
+  window.jpvBacaNext = function(){
+    jpvBacaCurrent = jpvBacaPickWord();
+    jpvBacaRender();
+  };
+  // ============== akhir logika ujian cara baca berjenjang ==============
+
   function jpvRender(){
     var list = jpvGetList();
     if(jpvIdx < 0 || jpvIdx >= list.length) jpvIdx = 0;
@@ -10306,6 +10594,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var el = document.getElementById('jpvBubbleGlyph');
     if(!el) return;
     if(jpvMode === 'quiz') el.textContent = '試';
+    else if(jpvMode === 'quizbaca') el.textContent = '読';
     else if(JPV_MODE_META[jpvMode]) el.textContent = JPV_MODE_META[jpvMode].bubble;
   }
 
@@ -10322,24 +10611,30 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   window.jpvGoSettings = function(){
     document.getElementById('jpvViewScreen').classList.remove('show');
     document.getElementById('jpvQuizScreen').classList.remove('show');
+    document.getElementById('jpvQuizBacaScreen').classList.remove('show');
     document.getElementById('jpvSettingsScreen').classList.add('show');
+    jpvSyncAutoSpeakBtn();
   };
 
   window.jpvGoView = function(){
     document.getElementById('jpvSettingsScreen').classList.remove('show');
+    document.getElementById('jpvViewScreen').classList.remove('show');
+    document.getElementById('jpvQuizScreen').classList.remove('show');
+    document.getElementById('jpvQuizBacaScreen').classList.remove('show');
     if(jpvMode === 'quiz'){
-      document.getElementById('jpvViewScreen').classList.remove('show');
       document.getElementById('jpvQuizScreen').classList.add('show');
       document.getElementById('jpvCard').classList.add('jpv-wide');
+    } else if(jpvMode === 'quizbaca'){
+      document.getElementById('jpvQuizBacaScreen').classList.add('show');
+      document.getElementById('jpvCard').classList.add('jpv-wide');
     } else {
-      document.getElementById('jpvQuizScreen').classList.remove('show');
       document.getElementById('jpvViewScreen').classList.add('show');
       document.getElementById('jpvCard').classList.remove('jpv-wide');
     }
   };
 
   function jpvUpdateModeButtons(){
-    ['vocab','quiz','hiragana','katakana'].forEach(function(m){
+    ['vocab','quiz','quizbaca','hiragana','katakana'].forEach(function(m){
       var btn = document.getElementById('jpvModeBtn-' + m);
       if(btn) btn.classList.toggle('active', m === jpvMode);
     });
@@ -10352,6 +10647,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       try{ localStorage.setItem('jpvMode', jpvMode); }catch(e){}
       if(mode === 'quiz'){
         if(!jpvQuizCurrent) jpvQuizNext(); else jpvQuizRenderTopBar();
+      } else if(mode === 'quizbaca'){
+        if(!jpvBacaCurrent) jpvBacaNext(); else jpvBacaRenderTopBar();
       } else {
         jpvIdx = -1;
         jpvIdx = jpvPickIndex();
@@ -10366,6 +10663,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   window.jpvOpen = function(){
     if(jpvMode === 'quiz'){
       if(!jpvQuizCurrent) jpvQuizNext();
+    } else if(jpvMode === 'quizbaca'){
+      if(!jpvBacaCurrent) jpvBacaNext();
     } else if(jpvIdx === -1){
       jpvIdx = jpvPickIndex(); jpvRender();
     }
@@ -10386,7 +10685,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // Ingat mode, status terakhir & preferensi suara dari kunjungan sebelumnya
   try{
     var savedMode = localStorage.getItem('jpvMode');
-    if(savedMode === 'hiragana' || savedMode === 'katakana' || savedMode === 'vocab' || savedMode === 'quiz'){
+    if(savedMode === 'hiragana' || savedMode === 'katakana' || savedMode === 'vocab' || savedMode === 'quiz' || savedMode === 'quizbaca'){
       jpvMode = savedMode;
     }
   }catch(e){}
@@ -10406,15 +10705,25 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var savedQScore = parseInt(localStorage.getItem('jpvQuizScore'), 10);
     if(!isNaN(savedQScore) && savedQScore >= 0) jpvQuizScore = savedQScore;
   }catch(e){}
-  var autoSpeakBtn = document.getElementById('jpvAutoSpeakBtn');
-  if(autoSpeakBtn) autoSpeakBtn.classList.toggle('active', jpvAutoSpeak);
+
+  try{
+    var savedBLevel = parseInt(localStorage.getItem('jpvBacaLevel'), 10);
+    if(!isNaN(savedBLevel) && savedBLevel >= 1) jpvBacaLevel = savedBLevel;
+    jpvBacaViewLevel = jpvBacaLevel;
+    var savedBProgress = parseInt(localStorage.getItem('jpvBacaProgress'), 10);
+    if(!isNaN(savedBProgress) && savedBProgress >= 0) jpvBacaProgress = savedBProgress;
+    var savedBScore = parseInt(localStorage.getItem('jpvBacaScore'), 10);
+    if(!isNaN(savedBScore) && savedBScore >= 0) jpvBacaScore = savedBScore;
+  }catch(e){}
+  jpvSyncAutoSpeakBtn();
 
   if(!jpvSpeechOK){
     var speakBtn = document.getElementById('jpvSpeakBtn');
     if(speakBtn) speakBtn.style.display = 'none';
     var voiceTitle = document.getElementById('jpvVoiceTitle');
     if(voiceTitle) voiceTitle.style.display = 'none';
-    if(autoSpeakBtn) autoSpeakBtn.style.display = 'none';
+    var autoSpeakBtnEl = document.getElementById('jpvAutoSpeakBtn');
+    if(autoSpeakBtnEl) autoSpeakBtnEl.style.display = 'none';
   } else {
     try{ window.speechSynthesis.getVoices(); }catch(e){}
     if('onvoiceschanged' in window.speechSynthesis){
