@@ -9463,6 +9463,16 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   .jpv-quiz-kana{ font-family:'Zen Maru Gothic', sans-serif; font-size:12px; color:var(--jpv-ink-soft); font-weight:700; margin-top:3px; min-height:15px; }
   .jpv-quiz-prompt{ font-size:10px; color:var(--jpv-gold); font-weight:700; margin-top:7px; }
   .jpv-quiz-options{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+  /* Varian untuk ujian huruf: 4 pilihan A/B/C/D disusun 2 baris x 2 kolom */
+  .jpv-quiz-options.jpv-quiz-options-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .jpv-quiz-options-grid2 .jpv-quiz-opt{ display:flex; align-items:center; gap:8px; text-align:left; }
+  .jpv-quiz-opt-letter{
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:20px; height:20px; border-radius:6px; background:var(--mint); color:var(--teal-deep);
+    font-size:11px; font-weight:800; font-family:'JetBrains Mono', monospace;
+  }
+  .jpv-quiz-opt.correct .jpv-quiz-opt-letter{ background:#c9ecd7; color:#256b40; }
+  .jpv-quiz-opt.wrong .jpv-quiz-opt-letter{ background:#f6d6cc; color:var(--jpv-seal-deep); }
   .jpv-quiz-opt{
     text-align:left; background:#fff; border:1.5px solid var(--jpv-line); border-radius:9px; padding:8px 10px;
     font-size:12px; line-height:1.35; font-weight:600; color:var(--jpv-ink); font-family:'Zen Maru Gothic', sans-serif;
@@ -9635,6 +9645,88 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         </div>
       </div>
 
+      <div class="jpv-screen" id="jpvQuizHiraScreen">
+        <div class="jpv-quiz-top">
+          <span class="jpv-tag" id="jpvHiraTag">Ujian huruf hiragana</span>
+          <span class="jpv-level-badge" id="jpvHiraLevelBadge">Lv. 1</span>
+          <div class="jpv-top-actions">
+            <button class="jpv-icon-btn jpv-speak-btn" id="jpvHiraSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jpv-progress-track"><div class="jpv-progress-fill" id="jpvHiraProgressFill"></div></div>
+        <div class="jpv-level-select" id="jpvHiraLevelSelect"></div>
+        <div class="jpv-quiz-review-tag" id="jpvHiraReviewTag" style="display:none;">Mode ulang — jawaban di sini tidak memengaruhi level saat ini</div>
+
+        <div class="jpv-quiz-question">
+          <div class="jpv-quiz-kanji" id="jpvHiraKanji">あ</div>
+          <div class="jpv-quiz-prompt">Cara baca (romaji) huruf ini?</div>
+        </div>
+
+        <div class="jpv-quiz-options jpv-quiz-options-grid2" id="jpvHiraOptions"></div>
+        <div class="jpv-quiz-feedback" id="jpvHiraFeedback"></div>
+        <div class="jpv-quiz-score" id="jpvHiraScoreLine">Skor benar: 0</div>
+
+        <button class="jpv-quiz-next-btn" id="jpvHiraNextBtn" onclick="jpvHurufNext('hiragana')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Soal berikutnya
+        </button>
+
+        <div class="jpv-levelup-toast" id="jpvHiraLevelupToast">
+          <b id="jpvHiraLevelupText">Lv. 2</b>
+          <span>Naik level! Huruf makin menantang</span>
+        </div>
+      </div>
+
+      <div class="jpv-screen" id="jpvQuizKataScreen">
+        <div class="jpv-quiz-top">
+          <span class="jpv-tag" id="jpvKataTag">Ujian huruf katakana</span>
+          <span class="jpv-level-badge" id="jpvKataLevelBadge">Lv. 1</span>
+          <div class="jpv-top-actions">
+            <button class="jpv-icon-btn jpv-speak-btn" id="jpvKataSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jpv-progress-track"><div class="jpv-progress-fill" id="jpvKataProgressFill"></div></div>
+        <div class="jpv-level-select" id="jpvKataLevelSelect"></div>
+        <div class="jpv-quiz-review-tag" id="jpvKataReviewTag" style="display:none;">Mode ulang — jawaban di sini tidak memengaruhi level saat ini</div>
+
+        <div class="jpv-quiz-question">
+          <div class="jpv-quiz-kanji" id="jpvKataKanji">ア</div>
+          <div class="jpv-quiz-prompt">Cara baca (romaji) huruf ini?</div>
+        </div>
+
+        <div class="jpv-quiz-options jpv-quiz-options-grid2" id="jpvKataOptions"></div>
+        <div class="jpv-quiz-feedback" id="jpvKataFeedback"></div>
+        <div class="jpv-quiz-score" id="jpvKataScoreLine">Skor benar: 0</div>
+
+        <button class="jpv-quiz-next-btn" id="jpvKataNextBtn" onclick="jpvHurufNext('katakana')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Soal berikutnya
+        </button>
+
+        <div class="jpv-levelup-toast" id="jpvKataLevelupToast">
+          <b id="jpvKataLevelupText">Lv. 2</b>
+          <span>Naik level! Huruf makin menantang</span>
+        </div>
+      </div>
+
       <div class="jpv-screen" id="jpvSettingsScreen">
         <div class="jpv-card-top">
           <button class="jpv-back-btn" onclick="jpvGoView()">
@@ -9650,7 +9742,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         <button class="jpv-mode-btn" id="jpvModeBtn-quiz" onclick="jpvSetMode('quiz')">Ujian kosa kata — arti (naik level) <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-quizbaca" onclick="jpvSetMode('quizbaca')">Ujian kosa kata — cara baca (naik level) <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-hiragana" onclick="jpvSetMode('hiragana')">Huruf hiragana <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-quizhiragana" onclick="jpvSetMode('quizhiragana')">Ujian huruf hiragana (naik level) <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-katakana" onclick="jpvSetMode('katakana')">Huruf katakana <span class="jpv-mode-check">✓</span></button>
+        <button class="jpv-mode-btn" id="jpvModeBtn-quizkatakana" onclick="jpvSetMode('quizkatakana')">Ujian huruf katakana (naik level) <span class="jpv-mode-check">✓</span></button>
 
         <div class="jpv-settings-title" id="jpvVoiceTitle" style="margin-top:14px;">Suara</div>
         <button class="jpv-mode-btn" id="jpvAutoSpeakBtn" onclick="jpvToggleAutoSpeak()">Ucapkan otomatis tiap ganti kata <span class="jpv-mode-check">✓</span></button>
@@ -9882,41 +9976,44 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   ];
 
   // Huruf Hiragana (gojuon + dakuten + handakuten)
+  // Tiap baris gojuon diberi "lvl" (1-15) supaya bisa dipakai untuk ujian
+  // huruf berjenjang (mode quizhiragana), mengikuti pola level kosa kata.
   var JPV_HIRAGANA = [
-    {k:'あ',r:'a'},{k:'い',r:'i'},{k:'う',r:'u'},{k:'え',r:'e'},{k:'お',r:'o'},
-    {k:'か',r:'ka'},{k:'き',r:'ki'},{k:'く',r:'ku'},{k:'け',r:'ke'},{k:'こ',r:'ko'},
-    {k:'さ',r:'sa'},{k:'し',r:'shi'},{k:'す',r:'su'},{k:'せ',r:'se'},{k:'そ',r:'so'},
-    {k:'た',r:'ta'},{k:'ち',r:'chi'},{k:'つ',r:'tsu'},{k:'て',r:'te'},{k:'と',r:'to'},
-    {k:'な',r:'na'},{k:'に',r:'ni'},{k:'ぬ',r:'nu'},{k:'ね',r:'ne'},{k:'の',r:'no'},
-    {k:'は',r:'ha'},{k:'ひ',r:'hi'},{k:'ふ',r:'fu'},{k:'へ',r:'he'},{k:'ほ',r:'ho'},
-    {k:'ま',r:'ma'},{k:'み',r:'mi'},{k:'む',r:'mu'},{k:'め',r:'me'},{k:'も',r:'mo'},
-    {k:'や',r:'ya'},{k:'ゆ',r:'yu'},{k:'よ',r:'yo'},
-    {k:'ら',r:'ra'},{k:'り',r:'ri'},{k:'る',r:'ru'},{k:'れ',r:'re'},{k:'ろ',r:'ro'},
-    {k:'わ',r:'wa'},{k:'を',r:'wo'},{k:'ん',r:'n'},
-    {k:'が',r:'ga'},{k:'ぎ',r:'gi'},{k:'ぐ',r:'gu'},{k:'げ',r:'ge'},{k:'ご',r:'go'},
-    {k:'ざ',r:'za'},{k:'じ',r:'ji'},{k:'ず',r:'zu'},{k:'ぜ',r:'ze'},{k:'ぞ',r:'zo'},
-    {k:'だ',r:'da'},{k:'ぢ',r:'ji (di)'},{k:'づ',r:'zu (du)'},{k:'で',r:'de'},{k:'ど',r:'do'},
-    {k:'ば',r:'ba'},{k:'び',r:'bi'},{k:'ぶ',r:'bu'},{k:'べ',r:'be'},{k:'ぼ',r:'bo'},
-    {k:'ぱ',r:'pa'},{k:'ぴ',r:'pi'},{k:'ぷ',r:'pu'},{k:'ぺ',r:'pe'},{k:'ぽ',r:'po'}
+    {k:'あ',r:'a',lvl:1},{k:'い',r:'i',lvl:1},{k:'う',r:'u',lvl:1},{k:'え',r:'e',lvl:1},{k:'お',r:'o',lvl:1},
+    {k:'か',r:'ka',lvl:2},{k:'き',r:'ki',lvl:2},{k:'く',r:'ku',lvl:2},{k:'け',r:'ke',lvl:2},{k:'こ',r:'ko',lvl:2},
+    {k:'さ',r:'sa',lvl:3},{k:'し',r:'shi',lvl:3},{k:'す',r:'su',lvl:3},{k:'せ',r:'se',lvl:3},{k:'そ',r:'so',lvl:3},
+    {k:'た',r:'ta',lvl:4},{k:'ち',r:'chi',lvl:4},{k:'つ',r:'tsu',lvl:4},{k:'て',r:'te',lvl:4},{k:'と',r:'to',lvl:4},
+    {k:'な',r:'na',lvl:5},{k:'に',r:'ni',lvl:5},{k:'ぬ',r:'nu',lvl:5},{k:'ね',r:'ne',lvl:5},{k:'の',r:'no',lvl:5},
+    {k:'は',r:'ha',lvl:6},{k:'ひ',r:'hi',lvl:6},{k:'ふ',r:'fu',lvl:6},{k:'へ',r:'he',lvl:6},{k:'ほ',r:'ho',lvl:6},
+    {k:'ま',r:'ma',lvl:7},{k:'み',r:'mi',lvl:7},{k:'む',r:'mu',lvl:7},{k:'め',r:'me',lvl:7},{k:'も',r:'mo',lvl:7},
+    {k:'や',r:'ya',lvl:8},{k:'ゆ',r:'yu',lvl:8},{k:'よ',r:'yo',lvl:8},
+    {k:'ら',r:'ra',lvl:9},{k:'り',r:'ri',lvl:9},{k:'る',r:'ru',lvl:9},{k:'れ',r:'re',lvl:9},{k:'ろ',r:'ro',lvl:9},
+    {k:'わ',r:'wa',lvl:10},{k:'を',r:'wo',lvl:10},{k:'ん',r:'n',lvl:10},
+    {k:'が',r:'ga',lvl:11},{k:'ぎ',r:'gi',lvl:11},{k:'ぐ',r:'gu',lvl:11},{k:'げ',r:'ge',lvl:11},{k:'ご',r:'go',lvl:11},
+    {k:'ざ',r:'za',lvl:12},{k:'じ',r:'ji',lvl:12},{k:'ず',r:'zu',lvl:12},{k:'ぜ',r:'ze',lvl:12},{k:'ぞ',r:'zo',lvl:12},
+    {k:'だ',r:'da',lvl:13},{k:'ぢ',r:'ji (di)',lvl:13},{k:'づ',r:'zu (du)',lvl:13},{k:'で',r:'de',lvl:13},{k:'ど',r:'do',lvl:13},
+    {k:'ば',r:'ba',lvl:14},{k:'び',r:'bi',lvl:14},{k:'ぶ',r:'bu',lvl:14},{k:'べ',r:'be',lvl:14},{k:'ぼ',r:'bo',lvl:14},
+    {k:'ぱ',r:'pa',lvl:15},{k:'ぴ',r:'pi',lvl:15},{k:'ぷ',r:'pu',lvl:15},{k:'ぺ',r:'pe',lvl:15},{k:'ぽ',r:'po',lvl:15}
   ];
 
   // Huruf Katakana (gojuon + dakuten + handakuten)
+  // Sama seperti JPV_HIRAGANA — level 1-15 mengikuti baris gojuon.
   var JPV_KATAKANA = [
-    {k:'ア',r:'a'},{k:'イ',r:'i'},{k:'ウ',r:'u'},{k:'エ',r:'e'},{k:'オ',r:'o'},
-    {k:'カ',r:'ka'},{k:'キ',r:'ki'},{k:'ク',r:'ku'},{k:'ケ',r:'ke'},{k:'コ',r:'ko'},
-    {k:'サ',r:'sa'},{k:'シ',r:'shi'},{k:'ス',r:'su'},{k:'セ',r:'se'},{k:'ソ',r:'so'},
-    {k:'タ',r:'ta'},{k:'チ',r:'chi'},{k:'ツ',r:'tsu'},{k:'テ',r:'te'},{k:'ト',r:'to'},
-    {k:'ナ',r:'na'},{k:'ニ',r:'ni'},{k:'ヌ',r:'nu'},{k:'ネ',r:'ne'},{k:'ノ',r:'no'},
-    {k:'ハ',r:'ha'},{k:'ヒ',r:'hi'},{k:'フ',r:'fu'},{k:'ヘ',r:'he'},{k:'ホ',r:'ho'},
-    {k:'マ',r:'ma'},{k:'ミ',r:'mi'},{k:'ム',r:'mu'},{k:'メ',r:'me'},{k:'モ',r:'mo'},
-    {k:'ヤ',r:'ya'},{k:'ユ',r:'yu'},{k:'ヨ',r:'yo'},
-    {k:'ラ',r:'ra'},{k:'リ',r:'ri'},{k:'ル',r:'ru'},{k:'レ',r:'re'},{k:'ロ',r:'ro'},
-    {k:'ワ',r:'wa'},{k:'ヲ',r:'wo'},{k:'ン',r:'n'},
-    {k:'ガ',r:'ga'},{k:'ギ',r:'gi'},{k:'グ',r:'gu'},{k:'ゲ',r:'ge'},{k:'ゴ',r:'go'},
-    {k:'ザ',r:'za'},{k:'ジ',r:'ji'},{k:'ズ',r:'zu'},{k:'ゼ',r:'ze'},{k:'ゾ',r:'zo'},
-    {k:'ダ',r:'da'},{k:'ヂ',r:'ji (di)'},{k:'ヅ',r:'zu (du)'},{k:'デ',r:'de'},{k:'ド',r:'do'},
-    {k:'バ',r:'ba'},{k:'ビ',r:'bi'},{k:'ブ',r:'bu'},{k:'ベ',r:'be'},{k:'ボ',r:'bo'},
-    {k:'パ',r:'pa'},{k:'ピ',r:'pi'},{k:'プ',r:'pu'},{k:'ペ',r:'pe'},{k:'ポ',r:'po'}
+    {k:'ア',r:'a',lvl:1},{k:'イ',r:'i',lvl:1},{k:'ウ',r:'u',lvl:1},{k:'エ',r:'e',lvl:1},{k:'オ',r:'o',lvl:1},
+    {k:'カ',r:'ka',lvl:2},{k:'キ',r:'ki',lvl:2},{k:'ク',r:'ku',lvl:2},{k:'ケ',r:'ke',lvl:2},{k:'コ',r:'ko',lvl:2},
+    {k:'サ',r:'sa',lvl:3},{k:'シ',r:'shi',lvl:3},{k:'ス',r:'su',lvl:3},{k:'セ',r:'se',lvl:3},{k:'ソ',r:'so',lvl:3},
+    {k:'タ',r:'ta',lvl:4},{k:'チ',r:'chi',lvl:4},{k:'ツ',r:'tsu',lvl:4},{k:'テ',r:'te',lvl:4},{k:'ト',r:'to',lvl:4},
+    {k:'ナ',r:'na',lvl:5},{k:'ニ',r:'ni',lvl:5},{k:'ヌ',r:'nu',lvl:5},{k:'ネ',r:'ne',lvl:5},{k:'ノ',r:'no',lvl:5},
+    {k:'ハ',r:'ha',lvl:6},{k:'ヒ',r:'hi',lvl:6},{k:'フ',r:'fu',lvl:6},{k:'ヘ',r:'he',lvl:6},{k:'ホ',r:'ho',lvl:6},
+    {k:'マ',r:'ma',lvl:7},{k:'ミ',r:'mi',lvl:7},{k:'ム',r:'mu',lvl:7},{k:'メ',r:'me',lvl:7},{k:'モ',r:'mo',lvl:7},
+    {k:'ヤ',r:'ya',lvl:8},{k:'ユ',r:'yu',lvl:8},{k:'ヨ',r:'yo',lvl:8},
+    {k:'ラ',r:'ra',lvl:9},{k:'リ',r:'ri',lvl:9},{k:'ル',r:'ru',lvl:9},{k:'レ',r:'re',lvl:9},{k:'ロ',r:'ro',lvl:9},
+    {k:'ワ',r:'wa',lvl:10},{k:'ヲ',r:'wo',lvl:10},{k:'ン',r:'n',lvl:10},
+    {k:'ガ',r:'ga',lvl:11},{k:'ギ',r:'gi',lvl:11},{k:'グ',r:'gu',lvl:11},{k:'ゲ',r:'ge',lvl:11},{k:'ゴ',r:'go',lvl:11},
+    {k:'ザ',r:'za',lvl:12},{k:'ジ',r:'ji',lvl:12},{k:'ズ',r:'zu',lvl:12},{k:'ゼ',r:'ze',lvl:12},{k:'ゾ',r:'zo',lvl:12},
+    {k:'ダ',r:'da',lvl:13},{k:'ヂ',r:'ji (di)',lvl:13},{k:'ヅ',r:'zu (du)',lvl:13},{k:'デ',r:'de',lvl:13},{k:'ド',r:'do',lvl:13},
+    {k:'バ',r:'ba',lvl:14},{k:'ビ',r:'bi',lvl:14},{k:'ブ',r:'bu',lvl:14},{k:'ベ',r:'be',lvl:14},{k:'ボ',r:'bo',lvl:14},
+    {k:'パ',r:'pa',lvl:15},{k:'ピ',r:'pi',lvl:15},{k:'プ',r:'pu',lvl:15},{k:'ペ',r:'pe',lvl:15},{k:'ポ',r:'po',lvl:15}
   ];
 
   var JPV_MODE_META = {
@@ -9982,6 +10079,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if(!wb) return;
       text = wb.kn || wb.k;
       btn = document.getElementById('jpvBacaSpeakBtn');
+    } else if(jpvMode === 'quizhiragana' || jpvMode === 'quizkatakana'){
+      var hurufKind = (jpvMode === 'quizhiragana') ? 'hiragana' : 'katakana';
+      var wh = jpvHurufState[hurufKind].current;
+      if(!wh) return;
+      text = wh.k;
+      btn = jpvHurufEl(hurufKind, 'SpeakBtn');
     } else {
       var list = jpvGetList();
       var v = list[jpvIdx];
@@ -10453,6 +10556,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     jpvBacaAnswered = true;
     var correct = (text === jpvBacaCorrectText);
 
+    // Ucapkan cara baca kata ini begitu jawaban diklik (terlepas dari
+    // pengaturan "ucapkan otomatis" yang hanya berlaku saat soal baru muncul).
+    if(jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 150);
+    }
+
     var buttons = document.querySelectorAll('#jpvBacaOptions .jpv-quiz-opt');
     buttons.forEach(function(b){
       b.disabled = true;
@@ -10513,6 +10622,288 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   };
   // ============== akhir logika ujian cara baca berjenjang ==============
 
+  // ========= Logika ujian HURUF (hiragana/katakana) berjenjang =========
+  // Satu set fungsi generik dipakai untuk kedua huruf ("kind" = 'hiragana'
+  // atau 'katakana'), masing-masing dengan level/skor/progres sendiri-sendiri
+  // (tersimpan terpisah di localStorage), mengikuti pola yang sama seperti
+  // ujian kosa kata & ujian cara baca di atas.
+  var JPV_HURUF_ID = { hiragana: 'Hira', katakana: 'Kata' };
+  var JPV_HURUF_LIST = { hiragana: JPV_HIRAGANA, katakana: JPV_KATAKANA };
+  var jpvHurufState = {
+    hiragana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null },
+    katakana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null }
+  };
+
+  function jpvHurufEl(kind, suffix){ return document.getElementById('jpv' + JPV_HURUF_ID[kind] + suffix); }
+
+  function jpvHurufMaxTier(kind){
+    var st = jpvHurufState[kind];
+    if(st.maxTier) return st.maxTier;
+    var list = JPV_HURUF_LIST[kind];
+    var max = 1;
+    for(var i = 0; i < list.length; i++){
+      var l = list[i].lvl || 1;
+      if(l > max) max = l;
+    }
+    st.maxTier = max;
+    return max;
+  }
+
+  function jpvHurufCorrectNeeded(level){
+    return 5 + Math.floor((level - 1) / 3);
+  }
+
+  function jpvHurufTierFor(kind, level){
+    var maxTier = jpvHurufMaxTier(kind);
+    return Math.min(Math.max(1, level), maxTier);
+  }
+
+  function jpvHurufPool(kind, level){
+    var tier = jpvHurufTierFor(kind, level);
+    var list = JPV_HURUF_LIST[kind];
+    var pool = list.filter(function(v){ return (v.lvl || 1) === tier; });
+    if(pool.length === 0) pool = list;
+    return pool;
+  }
+
+  function jpvHurufPickLetter(kind){
+    var st = jpvHurufState[kind];
+    var pool = jpvHurufPool(kind, st.viewLevel);
+    if(pool.length === 0) pool = JPV_HURUF_LIST[kind];
+    var w, attempts = 0;
+    do{
+      w = pool[Math.floor(Math.random() * pool.length)];
+      attempts++;
+    } while(pool.length > 1 && st.lastLetter && w.k === st.lastLetter.k && attempts < 12);
+    st.lastLetter = w;
+    return w;
+  }
+
+  function jpvHurufPickOptions(kind, correct){
+    var st = jpvHurufState[kind];
+    var texts = [correct.r];
+    var samePool = jpvHurufPool(kind, st.viewLevel).filter(function(v){ return v.r !== correct.r; });
+    var restPool = JPV_HURUF_LIST[kind].filter(function(v){ return v.r !== correct.r; });
+    function shuffle(arr){
+      for(var i = arr.length - 1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      }
+      return arr;
+    }
+    shuffle(samePool);
+    shuffle(restPool);
+    var distractPool = samePool.concat(restPool);
+    for(var k = 0; k < distractPool.length && texts.length < 4; k++){
+      if(texts.indexOf(distractPool[k].r) === -1) texts.push(distractPool[k].r);
+    }
+    return shuffle(texts);
+  }
+
+  function jpvHurufSaveProgress(kind){
+    var st = jpvHurufState[kind];
+    try{
+      localStorage.setItem('jpv' + JPV_HURUF_ID[kind] + 'QuizLevel', String(st.level));
+      localStorage.setItem('jpv' + JPV_HURUF_ID[kind] + 'QuizProgress', String(st.progress));
+      localStorage.setItem('jpv' + JPV_HURUF_ID[kind] + 'QuizScore', String(st.score));
+    }catch(e){}
+  }
+
+  function jpvHurufIsReview(kind){
+    var st = jpvHurufState[kind];
+    return st.viewLevel !== st.level;
+  }
+
+  function jpvHurufRenderTopBar(kind){
+    var st = jpvHurufState[kind];
+    var badge = jpvHurufEl(kind, 'LevelBadge');
+    if(badge) badge.textContent = 'Lv. ' + st.viewLevel;
+    var review = jpvHurufIsReview(kind);
+    var fill = jpvHurufEl(kind, 'ProgressFill');
+    if(fill){
+      if(review){
+        fill.style.width = '100%';
+      } else {
+        var needed = jpvHurufCorrectNeeded(st.level);
+        var pct = Math.max(0, Math.min(100, Math.round((st.progress / needed) * 100)));
+        fill.style.width = pct + '%';
+      }
+    }
+    var reviewTag = jpvHurufEl(kind, 'ReviewTag');
+    if(reviewTag) reviewTag.style.display = review ? '' : 'none';
+    var scoreLine = jpvHurufEl(kind, 'ScoreLine');
+    if(scoreLine) scoreLine.textContent = 'Skor benar: ' + st.score;
+    jpvHurufRenderLevelSelect(kind);
+  }
+
+  function jpvHurufRenderLevelSelect(kind){
+    var st = jpvHurufState[kind];
+    var wrap = jpvHurufEl(kind, 'LevelSelect');
+    if(!wrap) return;
+    var maxTier = jpvHurufMaxTier(kind);
+    var reachable = jpvHurufTierFor(kind, st.level);
+    var showUpTo = Math.min(maxTier, reachable + 1);
+    wrap.innerHTML = '';
+    for(var lvl = 1; lvl <= showUpTo; lvl++){
+      var locked = lvl > reachable;
+      var isCurrent = (lvl === jpvHurufTierFor(kind, st.viewLevel)) && !(locked);
+      var isDone = lvl < reachable;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-level-chip' + (locked ? ' locked' : '') + (isCurrent ? ' current' : '') + (isDone && !isCurrent ? ' done' : '');
+      if(locked){
+        b.disabled = true;
+        b.title = 'Selesaikan level ' + reachable + ' dulu untuk membuka level ini';
+        b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' + lvl;
+      } else {
+        b.textContent = lvl;
+        b.onclick = function(l){ return function(){ jpvHurufGoLevel(kind, l); }; }(lvl);
+      }
+      wrap.appendChild(b);
+    }
+  }
+
+  window.jpvHurufGoLevel = function(kind, level){
+    var st = jpvHurufState[kind];
+    var reachable = jpvHurufTierFor(kind, st.level);
+    if(level > reachable) return; // level selanjutnya masih terkunci
+    st.viewLevel = level;
+    st.lastLetter = null;
+    jpvHurufNext(kind);
+  };
+
+  var JPV_OPT_LETTERS = ['A', 'B', 'C', 'D'];
+
+  function jpvHurufRender(kind){
+    var st = jpvHurufState[kind];
+    var w = st.current;
+    if(!w) return;
+
+    jpvHurufEl(kind, 'Kanji').textContent = w.k;
+
+    st.correctText = w.r;
+    var opts = jpvHurufPickOptions(kind, w);
+    var wrap = jpvHurufEl(kind, 'Options');
+    wrap.innerHTML = '';
+    opts.forEach(function(text, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jpv-quiz-opt';
+      var letterSpan = document.createElement('span');
+      letterSpan.className = 'jpv-quiz-opt-letter';
+      letterSpan.textContent = JPV_OPT_LETTERS[i] || '';
+      var textSpan = document.createElement('span');
+      textSpan.textContent = text;
+      b.appendChild(letterSpan);
+      b.appendChild(textSpan);
+      b.onclick = function(){ jpvHurufAnswer(kind, text, b); };
+      wrap.appendChild(b);
+    });
+
+    st.answered = false;
+    if(st.timer){ clearTimeout(st.timer); st.timer = null; }
+    var fb = jpvHurufEl(kind, 'Feedback');
+    fb.textContent = '';
+    fb.className = 'jpv-quiz-feedback';
+    jpvHurufEl(kind, 'NextBtn').classList.remove('show');
+    jpvHurufRenderTopBar(kind);
+
+    if(jpvAutoSpeak && jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 150);
+    }
+  }
+
+  window.jpvHurufAnswer = function(kind, text, btnEl){
+    var st = jpvHurufState[kind];
+    if(st.answered) return;
+    st.answered = true;
+    var correct = (text === st.correctText);
+
+    // Ucapkan huruf ini begitu jawaban diklik (terlepas dari pengaturan
+    // "ucapkan otomatis" yang hanya berlaku saat soal baru muncul).
+    if(jpvSpeechOK){
+      window.setTimeout(function(){ jpvSpeak(); }, 150);
+    }
+
+    var buttons = jpvHurufEl(kind, 'Options').querySelectorAll('.jpv-quiz-opt');
+    buttons.forEach(function(b){
+      b.disabled = true;
+      var textEl = b.lastChild;
+      var txt = textEl ? textEl.textContent : b.textContent;
+      if(txt === st.correctText){ b.classList.add('correct'); }
+      else if(b === btnEl){ b.classList.add('wrong'); }
+      else { b.classList.add('dim'); }
+    });
+
+    var review = jpvHurufIsReview(kind);
+    var fb = jpvHurufEl(kind, 'Feedback');
+    if(correct){
+      fb.textContent = 'Benar! 正解（せいかい）';
+      fb.className = 'jpv-quiz-feedback ok';
+      st.score++;
+      if(!review) st.progress++;
+    } else {
+      fb.textContent = 'Belum tepat — cara baca yang benar: ' + st.correctText;
+      fb.className = 'jpv-quiz-feedback no';
+      if(!review) st.progress = Math.max(0, st.progress - 1);
+    }
+
+    var leveledUp = false;
+    if(!review){
+      var needed = jpvHurufCorrectNeeded(st.level);
+      if(st.progress >= needed){
+        st.level++;
+        st.viewLevel = st.level;
+        st.progress = 0;
+        leveledUp = true;
+      }
+    }
+    jpvHurufSaveProgress(kind);
+    jpvHurufRenderTopBar(kind);
+    if(leveledUp) jpvHurufShowLevelup(kind);
+
+    if(correct){
+      st.timer = window.setTimeout(function(){
+        st.timer = null;
+        jpvHurufNext(kind);
+      }, leveledUp ? 1100 : 650);
+    } else {
+      jpvHurufEl(kind, 'NextBtn').classList.add('show');
+    }
+  };
+
+  function jpvHurufShowLevelup(kind){
+    var st = jpvHurufState[kind];
+    var toast = jpvHurufEl(kind, 'LevelupToast');
+    if(!toast) return;
+    var text = jpvHurufEl(kind, 'LevelupText');
+    if(text) text.textContent = 'Lv. ' + st.level;
+    toast.classList.add('show');
+    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+
+  window.jpvHurufNext = function(kind){
+    var st = jpvHurufState[kind];
+    st.current = jpvHurufPickLetter(kind);
+    jpvHurufRender(kind);
+  };
+
+  // Ingat level/skor ujian huruf dari kunjungan sebelumnya
+  ['hiragana', 'katakana'].forEach(function(kind){
+    var st = jpvHurufState[kind];
+    var idp = JPV_HURUF_ID[kind];
+    try{
+      var savedLvl = parseInt(localStorage.getItem('jpv' + idp + 'QuizLevel'), 10);
+      if(!isNaN(savedLvl) && savedLvl >= 1) st.level = savedLvl;
+      st.viewLevel = st.level;
+      var savedProg = parseInt(localStorage.getItem('jpv' + idp + 'QuizProgress'), 10);
+      if(!isNaN(savedProg) && savedProg >= 0) st.progress = savedProg;
+      var savedScore = parseInt(localStorage.getItem('jpv' + idp + 'QuizScore'), 10);
+      if(!isNaN(savedScore) && savedScore >= 0) st.score = savedScore;
+    }catch(e){}
+  });
+  // ============== akhir logika ujian huruf berjenjang ==============
+
   function jpvRender(){
     var list = jpvGetList();
     if(jpvIdx < 0 || jpvIdx >= list.length) jpvIdx = 0;
@@ -10556,6 +10947,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(!el) return;
     if(jpvMode === 'quiz') el.textContent = '試';
     else if(jpvMode === 'quizbaca') el.textContent = '読';
+    else if(jpvMode === 'quizhiragana') el.textContent = 'あ';
+    else if(jpvMode === 'quizkatakana') el.textContent = 'ア';
     else if(JPV_MODE_META[jpvMode]) el.textContent = JPV_MODE_META[jpvMode].bubble;
   }
 
@@ -10569,24 +10962,34 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     document.getElementById('jpvFlipInner').classList.toggle('flipped', jpvFlipped);
   };
 
+  var JPV_ALL_SCREEN_IDS = ['jpvViewScreen', 'jpvQuizScreen', 'jpvQuizBacaScreen', 'jpvQuizHiraScreen', 'jpvQuizKataScreen'];
+
   window.jpvGoSettings = function(){
-    document.getElementById('jpvViewScreen').classList.remove('show');
-    document.getElementById('jpvQuizScreen').classList.remove('show');
-    document.getElementById('jpvQuizBacaScreen').classList.remove('show');
+    JPV_ALL_SCREEN_IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.classList.remove('show');
+    });
     document.getElementById('jpvSettingsScreen').classList.add('show');
     jpvSyncAutoSpeakBtn();
   };
 
   window.jpvGoView = function(){
     document.getElementById('jpvSettingsScreen').classList.remove('show');
-    document.getElementById('jpvViewScreen').classList.remove('show');
-    document.getElementById('jpvQuizScreen').classList.remove('show');
-    document.getElementById('jpvQuizBacaScreen').classList.remove('show');
+    JPV_ALL_SCREEN_IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.classList.remove('show');
+    });
     if(jpvMode === 'quiz'){
       document.getElementById('jpvQuizScreen').classList.add('show');
       document.getElementById('jpvCard').classList.add('jpv-wide');
     } else if(jpvMode === 'quizbaca'){
       document.getElementById('jpvQuizBacaScreen').classList.add('show');
+      document.getElementById('jpvCard').classList.add('jpv-wide');
+    } else if(jpvMode === 'quizhiragana'){
+      document.getElementById('jpvQuizHiraScreen').classList.add('show');
+      document.getElementById('jpvCard').classList.add('jpv-wide');
+    } else if(jpvMode === 'quizkatakana'){
+      document.getElementById('jpvQuizKataScreen').classList.add('show');
       document.getElementById('jpvCard').classList.add('jpv-wide');
     } else {
       document.getElementById('jpvViewScreen').classList.add('show');
@@ -10595,7 +10998,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   };
 
   function jpvUpdateModeButtons(){
-    ['vocab','quiz','quizbaca','hiragana','katakana'].forEach(function(m){
+    ['vocab','quiz','quizbaca','hiragana','quizhiragana','katakana','quizkatakana'].forEach(function(m){
       var btn = document.getElementById('jpvModeBtn-' + m);
       if(btn) btn.classList.toggle('active', m === jpvMode);
     });
@@ -10610,6 +11013,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         if(!jpvQuizCurrent) jpvQuizNext(); else jpvQuizRenderTopBar();
       } else if(mode === 'quizbaca'){
         if(!jpvBacaCurrent) jpvBacaNext(); else jpvBacaRenderTopBar();
+      } else if(mode === 'quizhiragana' || mode === 'quizkatakana'){
+        var kind = (mode === 'quizhiragana') ? 'hiragana' : 'katakana';
+        if(!jpvHurufState[kind].current) jpvHurufNext(kind); else jpvHurufRenderTopBar(kind);
       } else {
         jpvIdx = -1;
         jpvIdx = jpvPickIndex();
@@ -10626,6 +11032,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if(!jpvQuizCurrent) jpvQuizNext();
     } else if(jpvMode === 'quizbaca'){
       if(!jpvBacaCurrent) jpvBacaNext();
+    } else if(jpvMode === 'quizhiragana' || jpvMode === 'quizkatakana'){
+      var openKind = (jpvMode === 'quizhiragana') ? 'hiragana' : 'katakana';
+      if(!jpvHurufState[openKind].current) jpvHurufNext(openKind);
     } else if(jpvIdx === -1){
       jpvIdx = jpvPickIndex(); jpvRender();
     }
@@ -10646,7 +11055,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   // Ingat mode, status terakhir & preferensi suara dari kunjungan sebelumnya
   try{
     var savedMode = localStorage.getItem('jpvMode');
-    if(savedMode === 'hiragana' || savedMode === 'katakana' || savedMode === 'vocab' || savedMode === 'quiz' || savedMode === 'quizbaca'){
+    if(savedMode === 'hiragana' || savedMode === 'katakana' || savedMode === 'vocab' || savedMode === 'quiz' || savedMode === 'quizbaca' || savedMode === 'quizhiragana' || savedMode === 'quizkatakana'){
       jpvMode = savedMode;
     }
   }catch(e){}
