@@ -9386,7 +9386,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   .jpv-icon-btn.active{ color:var(--jpv-seal); opacity:1; }
   .jpv-icon-btn svg{ width:13.5px; height:13.5px; }
   .jpv-speak-btn.speaking{ color:var(--jpv-seal); animation:jpvSpeakPulse .7s ease-in-out infinite alternate; }
-  .jpv-speak-btn.jpv-speak-disabled{ opacity:0.3 !important; pointer-events:none; cursor:not-allowed; }
+  .jpv-speak-btn.jpv-speak-disabled, .jpv-speak-disabled{ opacity:0.3 !important; pointer-events:none; cursor:not-allowed; }
   @keyframes jpvSpeakPulse{ from{ opacity:.5; transform:scale(.94); } to{ opacity:1; transform:scale(1.08); } }
 
   /* ---- Layar pengaturan (terpisah dari layar kata, pakai tombol Kembali) ---- */
@@ -9527,10 +9527,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         <div class="jpv-card-top">
           <span class="jpv-tag" id="jpvTag">Kosa kata</span>
           <div class="jpv-top-actions">
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
             <button class="jpv-icon-btn jpv-speak-btn" id="jpvSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
-            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+            <button class="jpv-icon-btn" id="jpvAutoGearBtn-view" onclick="jpvGoSound()" title="Pengaturan suara">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
@@ -9567,10 +9570,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvQuizTag">Ujian kosa kata</span>
           <span class="jpv-level-badge" id="jpvLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
             <button class="jpv-icon-btn jpv-speak-btn" id="jpvQuizSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
-            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+            <button class="jpv-icon-btn" id="jpvAutoGearBtn-quiz" onclick="jpvGoSound()" title="Pengaturan suara">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
@@ -9609,10 +9615,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvBacaTag">Ujian cara baca</span>
           <span class="jpv-level-badge" id="jpvBacaLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
             <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvBacaSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
-            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+            <button class="jpv-icon-btn jpv-speak-disabled" disabled title="Otomatis diucapkan saat menjawab">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
@@ -9651,10 +9660,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvHiraTag">Ujian huruf hiragana</span>
           <span class="jpv-level-badge" id="jpvHiraLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
             <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvHiraSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
-            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+            <button class="jpv-icon-btn jpv-speak-disabled" disabled title="Otomatis diucapkan saat menjawab">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
@@ -9692,10 +9704,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvKataTag">Ujian huruf katakana</span>
           <span class="jpv-level-badge" id="jpvKataLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
+            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
             <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvKataSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
-            <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
+            <button class="jpv-icon-btn jpv-speak-disabled" disabled title="Otomatis diucapkan saat menjawab">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
@@ -9746,8 +9761,19 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         <button class="jpv-mode-btn" id="jpvModeBtn-quizhiragana" onclick="jpvSetMode('quizhiragana')">Ujian huruf hiragana (naik level) <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-katakana" onclick="jpvSetMode('katakana')">Huruf katakana <span class="jpv-mode-check">✓</span></button>
         <button class="jpv-mode-btn" id="jpvModeBtn-quizkatakana" onclick="jpvSetMode('quizkatakana')">Ujian huruf katakana (naik level) <span class="jpv-mode-check">✓</span></button>
+      </div>
 
-        <div class="jpv-settings-title" id="jpvVoiceTitle" style="margin-top:14px;">Suara</div>
+      <div class="jpv-screen" id="jpvSoundScreen">
+        <div class="jpv-card-top">
+          <button class="jpv-back-btn" onclick="jpvGoView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Kembali
+          </button>
+          <button class="jpv-icon-btn" onclick="jpvClose()" title="Sembunyikan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="jpv-settings-title" id="jpvVoiceTitle">Suara</div>
         <button class="jpv-mode-btn" id="jpvAutoSpeakBtn" onclick="jpvToggleAutoSpeak()">Ucapkan otomatis tiap ganti kata <span class="jpv-mode-check">✓</span></button>
       </div>
 
@@ -10121,16 +10147,25 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   function jpvSyncAutoSpeakBtn(){
     var btn = document.getElementById('jpvAutoSpeakBtn');
-    if(!btn) return;
-    // Mode ujian cara baca & ujian huruf (hiragana/katakana) sudah punya
-    // suaranya sendiri (langsung dibunyikan saat jawaban diklik), jadi
-    // pengaturan "ucapkan otomatis tiap ganti kata" tidak relevan lagi dan
-    // disembunyikan di mode-mode itu.
-    var hideForMode = (jpvMode === 'quizbaca' || jpvMode === 'quizhiragana' || jpvMode === 'quizkatakana');
-    btn.style.display = hideForMode ? 'none' : '';
-    if(hideForMode) return;
-    var active = (jpvMode === 'quizbaca') ? jpvBacaAutoSpeak : jpvAutoSpeak;
-    btn.classList.toggle('active', active);
+    if(btn){
+      // Mode ujian cara baca & ujian huruf (hiragana/katakana) sudah punya
+      // suaranya sendiri (langsung dibunyikan saat jawaban diklik), jadi
+      // pengaturan "ucapkan otomatis tiap ganti kata" tidak relevan lagi dan
+      // disembunyikan di mode-mode itu.
+      var hideForMode = (jpvMode === 'quizbaca' || jpvMode === 'quizhiragana' || jpvMode === 'quizkatakana');
+      btn.style.display = hideForMode ? 'none' : '';
+      if(!hideForMode){
+        var active = (jpvMode === 'quizbaca') ? jpvBacaAutoSpeak : jpvAutoSpeak;
+        btn.classList.toggle('active', active);
+      }
+    }
+    // Tombol gear cepat di kartu (jpvViewScreen & jpvQuizScreen) — merefleksikan
+    // status "ucapkan otomatis tiap ganti kata". Gear di layar ujian cara baca/
+    // huruf tidak dipakai untuk ini karena suaranya sudah otomatis diucapkan.
+    var gv = document.getElementById('jpvAutoGearBtn-view');
+    var gq = document.getElementById('jpvAutoGearBtn-quiz');
+    if(gv) gv.classList.toggle('active', jpvAutoSpeak);
+    if(gq) gq.classList.toggle('active', jpvAutoSpeak);
   }
 
   function jpvGetList(){
@@ -11026,12 +11061,23 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       var el = document.getElementById(id);
       if(el) el.classList.remove('show');
     });
+    document.getElementById('jpvSoundScreen').classList.remove('show');
     document.getElementById('jpvSettingsScreen').classList.add('show');
+  };
+
+  window.jpvGoSound = function(){
+    JPV_ALL_SCREEN_IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.classList.remove('show');
+    });
+    document.getElementById('jpvSettingsScreen').classList.remove('show');
+    document.getElementById('jpvSoundScreen').classList.add('show');
     jpvSyncAutoSpeakBtn();
   };
 
   window.jpvGoView = function(){
     document.getElementById('jpvSettingsScreen').classList.remove('show');
+    document.getElementById('jpvSoundScreen').classList.remove('show');
     JPV_ALL_SCREEN_IDS.forEach(function(id){
       var el = document.getElementById(id);
       if(el) el.classList.remove('show');
