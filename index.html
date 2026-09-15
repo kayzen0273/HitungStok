@@ -10121,6 +10121,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function jpvSyncAutoSpeakBtn(){
     var btn = document.getElementById('jpvAutoSpeakBtn');
     if(!btn) return;
+    // Mode ujian cara baca & ujian huruf (hiragana/katakana) sudah punya
+    // suaranya sendiri (langsung dibunyikan saat jawaban diklik), jadi
+    // pengaturan "ucapkan otomatis tiap ganti kata" tidak relevan lagi dan
+    // disembunyikan di mode-mode itu.
+    var hideForMode = (jpvMode === 'quizbaca' || jpvMode === 'quizhiragana' || jpvMode === 'quizkatakana');
+    btn.style.display = hideForMode ? 'none' : '';
+    if(hideForMode) return;
     var active = (jpvMode === 'quizbaca') ? jpvBacaAutoSpeak : jpvAutoSpeak;
     btn.classList.toggle('active', active);
   }
@@ -10564,10 +10571,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     fb.className = 'jpv-quiz-feedback';
     document.getElementById('jpvBacaNextBtn').classList.remove('show');
     jpvBacaRenderTopBar();
-
-    if(jpvBacaAutoSpeak && jpvSpeechOK){
-      window.setTimeout(function(){ jpvSpeak(); }, 150);
-    }
+    // Catatan: ucapan otomatis tiap ganti kata SENGAJA tidak dipakai di mode
+    // ujian cara baca — di mode ini suara sudah dibunyikan begitu jawaban
+    // diklik (lihat jpvBacaAnswer), jadi tidak perlu diucapkan lagi di sini.
   }
 
   window.jpvBacaAnswer = function(text, btnEl){
@@ -10843,10 +10849,10 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     fb.className = 'jpv-quiz-feedback';
     jpvHurufEl(kind, 'NextBtn').classList.remove('show');
     jpvHurufRenderTopBar(kind);
-
-    if(jpvAutoSpeak && jpvSpeechOK){
-      window.setTimeout(function(){ jpvSpeak(); }, 150);
-    }
+    // Catatan: ucapan otomatis tiap ganti kata SENGAJA tidak dipakai di mode
+    // ujian huruf (hiragana/katakana) — di mode ini suara sudah dibunyikan
+    // begitu jawaban diklik (lihat jpvHurufAnswer), jadi tidak perlu
+    // diucapkan lagi di sini.
   }
 
   window.jpvHurufAnswer = function(kind, text, btnEl){
