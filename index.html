@@ -9511,12 +9511,214 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   .jpv-quiz-review-tag{ text-align:center; font-size:10px; font-weight:700; color:var(--jpv-gold); margin:-4px 0 6px; }
   .jpv-levelup-toast{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
-    gap:4px; background:rgba(248,241,222,0.97); border-radius:9px; opacity:0; pointer-events:none;
-    transition:opacity .25s ease; z-index:5; text-align:center; padding:10px;
+    gap:2px; background:rgba(248,241,222,0.97); border-radius:9px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease; z-index:5; text-align:center; padding:10px; overflow:hidden;
+    perspective:700px;
   }
   .jpv-levelup-toast.show{ opacity:1; }
   .jpv-levelup-toast b{ font-family:'Shippori Mincho', serif; font-size:22px; color:var(--jpv-seal-deep); }
   .jpv-levelup-toast span{ font-size:10.5px; color:var(--jpv-ink-soft); font-weight:700; }
+
+  /* ---- Animasi 3D naik level ---- */
+  .jpv-lvl3d-stage{ position:relative; display:flex; align-items:center; justify-content:center; }
+  .jpv-lvl3d-ring{
+    position:absolute; width:78px; height:78px; border-radius:50%;
+    border:2px solid var(--jpv-gold, #cf9a3a); opacity:0; pointer-events:none;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-ring{ animation:jpvRingPulse .9s ease-out .05s; }
+  .jpv-levelup-toast.show .jpv-lvl3d-ring.jpv-lvl3d-ring2{ animation:jpvRingPulse .9s ease-out .22s; border-color:var(--jpv-seal, #c0503a); }
+  .jpv-lvl3d-medal{
+    width:58px; height:58px; border-radius:50%; position:relative;
+    background:radial-gradient(circle at 32% 28%, #fff5da, var(--jpv-gold, #cf9a3a) 55%, #8f611c 100%);
+    box-shadow:0 10px 16px rgba(35,25,10,0.32), inset 0 2px 3px rgba(255,255,255,.75), inset 0 -4px 6px rgba(0,0,0,.28);
+    display:flex; align-items:center; justify-content:center; transform-style:preserve-3d;
+    opacity:0;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-medal{ animation:jpvMedalSpin .95s cubic-bezier(.22,.85,.3,1.2) forwards; }
+  .jpv-lvl3d-medal::before{
+    content:''; position:absolute; inset:0; border-radius:50%; overflow:hidden;
+    background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.9) 50%, transparent 65%);
+    transform:translateX(-140%);
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-medal::before{ animation:jpvMedalShine 1s .25s ease-out forwards; }
+  .jpv-lvl3d-star{ font-size:24px; line-height:1; transform:translateZ(6px); filter:drop-shadow(0 1px 1px rgba(60,35,5,.35)); }
+  .jpv-lvl3d-particles{ position:absolute; inset:0; pointer-events:none; }
+  .jpv-lvl3d-particle{
+    position:absolute; left:50%; top:44%; width:6px; height:6px; border-radius:1px;
+    opacity:0;
+  }
+  .jpv-lvl3d-particle-cute{
+    width:auto; height:auto; top:56%; line-height:1; font-weight:700;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-particle{ animation:jpvParticleBurst .75s ease-out forwards; animation-delay:.15s; }
+  .jpv-levelup-toast.show .jpv-lvl3d-particle-cute{ animation:jpvParticleBurst .95s ease-out forwards; animation-delay:.2s; }
+  .jpv-lvl3d-caption{ margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  @keyframes jpvMedalSpin{
+    0%{ transform:translateY(26px) rotateY(0deg) rotateX(20deg) scale(.25); opacity:0; }
+    50%{ transform:translateY(-8px) rotateY(720deg) rotateX(0deg) scale(1.18); opacity:1; }
+    72%{ transform:translateY(0) rotateY(770deg) rotateX(0deg) scale(.94); opacity:1; }
+    100%{ transform:translateY(0) rotateY(760deg) rotateX(0deg) scale(1); opacity:1; }
+  }
+  @keyframes jpvMedalShine{ to{ transform:translateX(140%); } }
+  @keyframes jpvRingPulse{
+    0%{ transform:scale(.5); opacity:.85; }
+    100%{ transform:scale(1.9); opacity:0; }
+  }
+  @keyframes jpvParticleBurst{
+    0%{ transform:translate3d(0,0,0) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform:translate3d(var(--px,0px), var(--py,0px), 0) rotate(var(--pr,180deg)) scale(0); opacity:0; }
+  }
+
+  /* ---- Varian 2: Kartu Emas (flip 3D) ---- */
+  .jpv-lvl3d-card{
+    width:88px; height:114px; border-radius:12px; position:relative; transform-style:preserve-3d;
+    background:linear-gradient(155deg, #fff3d6, var(--jpv-gold,#cf9a3a) 60%, #8f611c);
+    box-shadow:0 14px 22px rgba(30,20,5,.35), inset 0 2px 3px rgba(255,255,255,.7), inset 0 -4px 8px rgba(0,0,0,.25);
+    border:1.5px solid rgba(255,255,255,.5);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    opacity:0;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-card{ animation:jpvCardFlip 1s cubic-bezier(.2,.85,.3,1.15) forwards; }
+  .jpv-lvl3d-card::before{
+    content:''; position:absolute; inset:0; border-radius:12px; overflow:hidden;
+    background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.85) 48%, transparent 66%);
+    transform:translateX(-160%);
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-card::before{ animation:jpvMedalShine 1.05s .3s ease-out forwards; }
+  .jpv-lvl3d-card-level{ font-family:'Shippori Mincho', serif; font-weight:800; font-size:22px; color:#3f2705; transform:translateZ(8px); }
+  .jpv-lvl3d-card-sub{ font-size:9px; font-weight:800; letter-spacing:.12em; color:#5c3f10; transform:translateZ(8px); }
+  @keyframes jpvCardFlip{
+    0%{ transform:translateY(18px) rotateY(-110deg) rotateX(10deg) scale(.6); opacity:0; }
+    55%{ transform:translateY(-6px) rotateY(12deg) rotateX(0deg) scale(1.08); opacity:1; }
+    75%{ transform:translateY(0) rotateY(-6deg) scale(.98); opacity:1; }
+    100%{ transform:translateY(0) rotateY(0deg) scale(1); opacity:1; }
+  }
+
+  /* ---- Varian 3: Ledakan Bintang (sunburst) ---- */
+  .jpv-lvl3d-burst-stage{ width:100px; height:100px; }
+  .jpv-lvl3d-rays{
+    position:absolute; width:150px; height:150px; border-radius:50%;
+    background:conic-gradient(from 0deg, var(--jpv-gold,#cf9a3a) 0deg 8deg, transparent 8deg 24deg,
+      var(--jpv-seal,#c0503a) 24deg 32deg, transparent 32deg 48deg,
+      var(--jpv-gold,#cf9a3a) 48deg 56deg, transparent 56deg 72deg,
+      var(--jpv-seal,#c0503a) 72deg 80deg, transparent 80deg 96deg,
+      var(--jpv-gold,#cf9a3a) 96deg 104deg, transparent 104deg 120deg,
+      var(--jpv-seal,#c0503a) 120deg 128deg, transparent 128deg 144deg,
+      var(--jpv-gold,#cf9a3a) 144deg 152deg, transparent 152deg 168deg,
+      var(--jpv-seal,#c0503a) 168deg 176deg, transparent 176deg 192deg,
+      var(--jpv-gold,#cf9a3a) 192deg 200deg, transparent 200deg 216deg,
+      var(--jpv-seal,#c0503a) 216deg 224deg, transparent 224deg 240deg,
+      var(--jpv-gold,#cf9a3a) 240deg 248deg, transparent 248deg 264deg,
+      var(--jpv-seal,#c0503a) 264deg 272deg, transparent 272deg 288deg,
+      var(--jpv-gold,#cf9a3a) 288deg 296deg, transparent 296deg 312deg,
+      var(--jpv-seal,#c0503a) 312deg 320deg, transparent 320deg 336deg,
+      var(--jpv-gold,#cf9a3a) 336deg 344deg, transparent 344deg 360deg);
+    opacity:0; pointer-events:none;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-rays{ animation:jpvRaysSpin 1.6s linear forwards; }
+  .jpv-lvl3d-burst-badge{
+    position:relative; width:64px; height:64px; border-radius:50%;
+    background:radial-gradient(circle at 34% 30%, #ffffff, var(--jpv-seal,#c0503a) 60%, #7a3020);
+    box-shadow:0 10px 18px rgba(30,10,5,.35), inset 0 2px 3px rgba(255,255,255,.6);
+    display:flex; align-items:center; justify-content:center; transform-style:preserve-3d;
+    opacity:0;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-burst-badge{ animation:jpvBurstBadgePop .8s cubic-bezier(.25,.9,.3,1.3) forwards; }
+  .jpv-lvl3d-burst-level{ font-family:'Shippori Mincho', serif; font-weight:800; font-size:16px; color:#fff; transform:translateZ(10px); }
+  @keyframes jpvRaysSpin{
+    0%{ transform:rotate(0deg) scale(.3); opacity:0; }
+    30%{ opacity:.9; }
+    100%{ transform:rotate(200deg) scale(1); opacity:0; }
+  }
+  @keyframes jpvBurstBadgePop{
+    0%{ transform:scale(.2) rotateX(40deg); opacity:0; }
+    55%{ transform:scale(1.25) rotateX(0deg); opacity:1; }
+    75%{ transform:scale(.92); }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  /* ---- Varian 4: Imut & Lucu (mochi bounce) ---- */
+  .jpv-lvl3d-cute-stage{ width:110px; height:100px; }
+  .jpv-lvl3d-cute-glow{
+    position:absolute; width:130px; height:130px; border-radius:50%; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(.5); margin-top:-4px;
+    background:radial-gradient(circle, rgba(255,197,224,.85), rgba(255,197,224,0) 68%);
+    opacity:0; pointer-events:none;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-cute-glow{ animation:jpvCuteGlow 1.4s ease-out forwards; }
+  .jpv-lvl3d-cute-mochi{
+    position:relative; width:62px; height:56px;
+    background:linear-gradient(160deg, #fff2f8, #ffc3e0 55%, #ff96c3);
+    border-radius:50% 50% 46% 46% / 58% 58% 42% 42%;
+    box-shadow:0 10px 16px rgba(255,110,170,.32), inset 0 2px 3px rgba(255,255,255,.85), inset 0 -3px 5px rgba(210,80,140,.25);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:3px;
+    opacity:0; transform-style:preserve-3d;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-cute-mochi{ animation:jpvCuteBounce 1.15s cubic-bezier(.28,.85,.35,1.3) forwards; }
+  .jpv-lvl3d-cute-eyes{ display:flex; gap:15px; }
+  .jpv-lvl3d-cute-eye{ width:5px; height:7px; border-radius:50%; background:#6b3f5c; display:inline-block; }
+  .jpv-lvl3d-cute-blush{ position:absolute; width:9px; height:6px; border-radius:50%; background:rgba(255,110,170,.55); bottom:15px; }
+  .jpv-lvl3d-cute-blush-l{ left:5px; }
+  .jpv-lvl3d-cute-blush-r{ right:5px; }
+  .jpv-lvl3d-cute-mouth{ width:9px; height:5px; border-bottom:2px solid #6b3f5c; border-radius:0 0 9px 9px; }
+  .jpv-lvl3d-cute-star{
+    position:absolute; top:-11px; right:-5px; font-size:15px; color:#ffb84d;
+    filter:drop-shadow(0 1px 1px rgba(150,90,20,.3)); opacity:0;
+  }
+  .jpv-levelup-toast.show .jpv-lvl3d-cute-star{ animation:jpvCuteStarPop .8s .25s cubic-bezier(.3,.9,.4,1.4) forwards; }
+  .jpv-lvl3d-cute-caption b{ color:#e0518f; }
+  @keyframes jpvCuteGlow{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.4); }
+    35%{ opacity:.9; }
+    100%{ opacity:0; transform:translate(-50%,-50%) scale(1.25); }
+  }
+  @keyframes jpvCuteBounce{
+    0%{ transform:translateY(34px) scale(.35,.5) rotateZ(-10deg) rotateY(25deg); opacity:0; }
+    45%{ transform:translateY(-15px) scale(1.12,.88) rotateZ(5deg) rotateY(-12deg); opacity:1; }
+    62%{ transform:translateY(0) scale(.92,1.1) rotateZ(-4deg) rotateY(8deg); }
+    78%{ transform:translateY(-6px) scale(1.05,.96) rotateZ(2deg) rotateY(-4deg); }
+    100%{ transform:translateY(0) scale(1,1) rotateZ(0deg) rotateY(0deg); opacity:1; }
+  }
+  @keyframes jpvCuteStarPop{
+    0%{ transform:scale(0) rotate(-35deg); opacity:0; }
+    60%{ transform:scale(1.35) rotate(12deg); opacity:1; }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
+
+  /* ---- Panel pemilih animasi (di Setelan) ---- */
+  .jpv-lvl3d-preview-box{
+    position:relative; height:150px; border-radius:12px; margin-bottom:10px; overflow:hidden;
+    background:radial-gradient(circle at 1px 1px, rgba(184,134,59,0.14) 1px, transparent 0);
+    background-size:16px 16px; background-color:var(--jpv-paper-soft,#f8f1de);
+    border:1.5px dashed var(--jpv-line);
+  }
+  .jpv-lvl3d-preview-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:var(--jpv-ink-soft); font-weight:700; text-align:center; padding:10px;
+  }
+  .jpv-lvl3d-style-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:6px; }
+  .jpv-lvl3d-style-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left;
+    background:#fff; border:1.5px solid var(--jpv-line); border-radius:10px; padding:9px 11px;
+    font-family:'Zen Maru Gothic', sans-serif; cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .jpv-lvl3d-style-btn:active{ transform:scale(0.98); }
+  .jpv-lvl3d-style-btn.active{ border-color:var(--jpv-seal,#c0503a); background:#fbebe6; }
+  .jpv-lvl3d-style-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .jpv-lvl3d-style-name{ font-size:12.5px; font-weight:800; color:var(--jpv-ink); line-height:1.3; }
+  .jpv-lvl3d-style-desc{ font-size:10px; color:var(--jpv-ink-soft); font-weight:600; line-height:1.35; }
+  .jpv-lvl3d-style-check{
+    flex-shrink:0; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--jpv-line);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800;
+  }
+  .jpv-lvl3d-style-btn.active .jpv-lvl3d-style-check{ background:var(--jpv-seal,#c0503a); border-color:var(--jpv-seal,#c0503a); }
+  .jpv-lvl3d-replay-btn{
+    display:flex; align-items:center; justify-content:center; gap:6px; width:100%;
+    background:var(--jpv-ink); color:#fbe9d8; border:none; padding:9px 14px; border-radius:20px;
+    font-size:12px; font-weight:700; cursor:pointer; font-family:'Zen Maru Gothic', sans-serif; margin-top:2px;
+  }
+  .jpv-lvl3d-replay-btn:active{ transform:scale(0.96); }
+  .jpv-lvl3d-replay-btn svg{ width:13px; height:13px; }
 </style>
 
 <div class="jpv-holder" id="jpvHolder">
@@ -9605,10 +9807,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           Soal berikutnya
         </button>
 
-        <div class="jpv-levelup-toast" id="jpvLevelupToast">
-          <b id="jpvLevelupText">Lv. 2</b>
-          <span>Naik level! Kosa kata makin menantang</span>
-        </div>
+        <div class="jpv-levelup-toast" id="jpvLevelupToast"></div>
       </div>
 
       <div class="jpv-screen" id="jpvQuizBacaScreen">
@@ -9650,10 +9849,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           Soal berikutnya
         </button>
 
-        <div class="jpv-levelup-toast" id="jpvBacaLevelupToast">
-          <b id="jpvBacaLevelupText">Lv. 2</b>
-          <span>Naik level! Cara baca makin menantang</span>
-        </div>
+        <div class="jpv-levelup-toast" id="jpvBacaLevelupToast"></div>
       </div>
 
       <div class="jpv-screen" id="jpvQuizHiraScreen">
@@ -9694,10 +9890,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           Soal berikutnya
         </button>
 
-        <div class="jpv-levelup-toast" id="jpvHiraLevelupToast">
-          <b id="jpvHiraLevelupText">Lv. 2</b>
-          <span>Naik level! Huruf makin menantang</span>
-        </div>
+        <div class="jpv-levelup-toast" id="jpvHiraLevelupToast"></div>
       </div>
 
       <div class="jpv-screen" id="jpvQuizKataScreen">
@@ -9738,10 +9931,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           Soal berikutnya
         </button>
 
-        <div class="jpv-levelup-toast" id="jpvKataLevelupToast">
-          <b id="jpvKataLevelupText">Lv. 2</b>
-          <span>Naik level! Huruf makin menantang</span>
-        </div>
+        <div class="jpv-levelup-toast" id="jpvKataLevelupToast"></div>
       </div>
 
       <div class="jpv-screen" id="jpvSettingsScreen">
@@ -10440,20 +10630,159 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       jpvQuizAutoNextTimer = window.setTimeout(function(){
         jpvQuizAutoNextTimer = null;
         jpvQuizNext();
-      }, leveledUp ? 1100 : 650);
+      }, leveledUp ? 1750 : 650);
     } else {
       // Jawaban salah -> tunggu diklik dulu supaya sempat baca jawaban yang benar.
       document.getElementById('jpvQuizNextBtn').classList.add('show');
     }
   };
 
+  // ============== Animasi 3D naik level: beberapa gaya, bisa diganti-ganti ==============
+  var JPV_LVL3D_COLORS = ['#cf9a3a', '#c0503a', '#0d5c52', '#e7b65e', '#3c8a5c'];
+  var JPV_LVL3D_STYLE_KEY = 'jpvLevelupStyle_v1';
+  var JPV_LVL3D_STYLES = [
+    { id:'cute',  name:'Imut & Lucu', desc:'Maskot mochi melompat-lompat + bintang & hati beterbangan' }
+  ];
+
+  function jpvGetLevelupStyle(){
+    // Hanya ada satu gaya animasi (Imut & Lucu), jadi selalu pakai ini.
+    return 'cute';
+  }
+  function jpvSetLevelupStyle(id){
+    try{ localStorage.setItem(JPV_LVL3D_STYLE_KEY, id); }catch(e){}
+  }
+
+  // Meledakkan partikel/confetti 3D di sekitar lencana saat naik level.
+  function jpvSpawnLevelupParticles(particlesEl, style){
+    if(!particlesEl) return;
+    particlesEl.innerHTML = '';
+    var cute = style === 'cute';
+    var n = 14;
+    var cuteSymbols = ['♡', '★', '✦', '☆'];
+    var cuteColors = ['#ff8fc0', '#ffb84d', '#8ecae6', '#b892ff', '#7bdfa0'];
+    for(var i = 0; i < n; i++){
+      var p = document.createElement('span');
+      p.className = 'jpv-lvl3d-particle' + (cute ? ' jpv-lvl3d-particle-cute' : '');
+      var angle = (Math.PI * 2 * i / n) + (Math.random() * 0.5 - 0.25);
+      if(cute){
+        // Hati & bintang melayang pelan ke atas, sedikit goyang ke samping.
+        var px = Math.cos(angle) * (18 + Math.random() * 22);
+        var py = -(55 + Math.random() * 45);
+        p.style.setProperty('--px', px.toFixed(1) + 'px');
+        p.style.setProperty('--py', py.toFixed(1) + 'px');
+        p.style.setProperty('--pr', (Math.random() * 70 - 35).toFixed(0) + 'deg');
+        p.textContent = cuteSymbols[i % cuteSymbols.length];
+        p.style.color = cuteColors[i % cuteColors.length];
+        p.style.fontSize = (11 + Math.random() * 7).toFixed(1) + 'px';
+        p.style.lineHeight = '1';
+      } else {
+        var dist = 46 + Math.random() * 30;
+        var px2 = Math.cos(angle) * dist;
+        var py2 = Math.sin(angle) * dist - 10;
+        p.style.setProperty('--px', px2.toFixed(1) + 'px');
+        p.style.setProperty('--py', py2.toFixed(1) + 'px');
+        p.style.setProperty('--pr', (Math.random() * 360 + 180).toFixed(0) + 'deg');
+        p.style.background = JPV_LVL3D_COLORS[i % JPV_LVL3D_COLORS.length];
+        p.style.width = p.style.height = (4 + Math.random() * 4).toFixed(1) + 'px';
+        p.style.borderRadius = (Math.random() > 0.5) ? '50%' : '1px';
+      }
+      particlesEl.appendChild(p);
+    }
+  }
+
+  // Bikin markup HTML untuk tiap gaya animasi. levelText mis. "Lv. 3", captionText = kalimat kecil di bawahnya.
+  function jpvLevelupTemplate(style, levelText, captionText){
+    var capHtml = captionText ? '<span>' + captionText + '</span>' : '';
+    if(style === 'card'){
+      return '' +
+        '<div class="jpv-lvl3d-stage">' +
+          '<div class="jpv-lvl3d-card">' +
+            '<span class="jpv-lvl3d-card-level">' + levelText + '</span>' +
+            '<span class="jpv-lvl3d-card-sub">NAIK LEVEL</span>' +
+          '</div>' +
+          '<div class="jpv-lvl3d-particles"></div>' +
+        '</div>' +
+        '<div class="jpv-lvl3d-caption">' + capHtml + '</div>';
+    }
+    if(style === 'burst'){
+      return '' +
+        '<div class="jpv-lvl3d-stage jpv-lvl3d-burst-stage">' +
+          '<div class="jpv-lvl3d-rays"></div>' +
+          '<div class="jpv-lvl3d-burst-badge"><span class="jpv-lvl3d-burst-level">' + levelText + '</span></div>' +
+          '<div class="jpv-lvl3d-particles"></div>' +
+        '</div>' +
+        '<div class="jpv-lvl3d-caption"><b>' + levelText + '</b>' + capHtml + '</div>';
+    }
+    if(style === 'cute'){
+      return '' +
+        '<div class="jpv-lvl3d-stage jpv-lvl3d-cute-stage">' +
+          '<div class="jpv-lvl3d-cute-glow"></div>' +
+          '<div class="jpv-lvl3d-cute-mochi">' +
+            '<span class="jpv-lvl3d-cute-star">✦</span>' +
+            '<div class="jpv-lvl3d-cute-blush jpv-lvl3d-cute-blush-l"></div>' +
+            '<div class="jpv-lvl3d-cute-blush jpv-lvl3d-cute-blush-r"></div>' +
+            '<div class="jpv-lvl3d-cute-eyes"><span class="jpv-lvl3d-cute-eye"></span><span class="jpv-lvl3d-cute-eye"></span></div>' +
+            '<div class="jpv-lvl3d-cute-mouth"></div>' +
+          '</div>' +
+          '<div class="jpv-lvl3d-particles"></div>' +
+        '</div>' +
+        '<div class="jpv-lvl3d-caption jpv-lvl3d-cute-caption"><b>' + levelText + '</b>' + capHtml + '</div>';
+    }
+    // default: medal
+    return '' +
+      '<div class="jpv-lvl3d-stage">' +
+        '<div class="jpv-lvl3d-ring"></div>' +
+        '<div class="jpv-lvl3d-ring jpv-lvl3d-ring2"></div>' +
+        '<div class="jpv-lvl3d-medal"><span class="jpv-lvl3d-star">★</span></div>' +
+        '<div class="jpv-lvl3d-particles"></div>' +
+      '</div>' +
+      '<div class="jpv-lvl3d-caption"><b>' + levelText + '</b>' + capHtml + '</div>';
+  }
+
+  // Menampilkan toast naik level dengan animasi 3D sesuai gaya yang sedang dipilih.
+  // toastEl: elemen .jpv-levelup-toast kosong.
+  function jpvPlayLevelup3D(toastEl, levelText, captionText, duration, styleOverride){
+    if(!toastEl) return;
+    var style = styleOverride || jpvGetLevelupStyle();
+    // Restart animasi CSS dengan cara reflow, kalau toast masih dalam proses tampil sebelumnya.
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth;
+    toastEl.innerHTML = jpvLevelupTemplate(style, levelText, captionText);
+    jpvSpawnLevelupParticles(toastEl.querySelector('.jpv-lvl3d-particles'), style);
+    toastEl.classList.add('show');
+    window.setTimeout(function(){ toastEl.classList.remove('show'); }, duration || 1800);
+  }
+
+  // ---- Info gaya animasi naik level (di layar Setelan) ----
+  // Hanya ada satu gaya ("Imut & Lucu"), jadi tampil sebagai info saja,
+  // tanpa daftar pilihan untuk dipilih/di-review.
+  function jpvRenderLevelupStyleList(){
+    var list = document.getElementById('jpvLevelupStyleList');
+    if(!list) return;
+    var s = JPV_LVL3D_STYLES[0];
+    list.innerHTML = '' +
+      '<div class="jpv-lvl3d-style-btn active" style="cursor:default;">' +
+        '<div class="jpv-lvl3d-style-info">' +
+          '<span class="jpv-lvl3d-style-name">' + s.name + '</span>' +
+          '<span class="jpv-lvl3d-style-desc">' + s.desc + '</span>' +
+        '</div>' +
+        '<span class="jpv-lvl3d-style-check">✓</span>' +
+      '</div>';
+  }
+  function jpvLevelupPlayPreview(styleOverride){
+    var toast = document.getElementById('jpvLevelupPreviewToast');
+    var hint = document.getElementById('jpvLevelupPreviewHint');
+    if(hint) hint.style.display = 'none';
+    jpvPlayLevelup3D(toast, 'Lv. 5', 'Contoh tampilan waktu kamu naik level', 1800, styleOverride);
+  }
+  window.jpvLevelupReplayPreview = function(){
+    jpvLevelupPlayPreview();
+  };
+
   function jpvQuizShowLevelup(){
     var toast = document.getElementById('jpvLevelupToast');
     if(!toast) return;
-    var text = document.getElementById('jpvLevelupText');
-    if(text) text.textContent = 'Lv. ' + jpvQuizLevel;
-    toast.classList.add('show');
-    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+    jpvPlayLevelup3D(toast, 'Lv. ' + jpvQuizLevel, 'Naik level! Kosa kata makin menantang', 1800);
   }
 
   window.jpvQuizNext = function(){
@@ -10677,7 +11006,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       jpvBacaAutoNextTimer = window.setTimeout(function(){
         jpvBacaAutoNextTimer = null;
         jpvBacaNext();
-      }, leveledUp ? 1300 : 900);
+      }, leveledUp ? 1750 : 900);
     } else {
       document.getElementById('jpvBacaNextBtn').classList.add('show');
     }
@@ -10686,10 +11015,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   function jpvBacaShowLevelup(){
     var toast = document.getElementById('jpvBacaLevelupToast');
     if(!toast) return;
-    var text = document.getElementById('jpvBacaLevelupText');
-    if(text) text.textContent = 'Lv. ' + jpvBacaLevel;
-    toast.classList.add('show');
-    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+    jpvPlayLevelup3D(toast, 'Lv. ' + jpvBacaLevel, 'Naik level! Cara baca makin menantang', 1800);
   }
 
   window.jpvBacaNext = function(){
@@ -10959,7 +11285,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       st.timer = window.setTimeout(function(){
         st.timer = null;
         jpvHurufNext(kind);
-      }, leveledUp ? 1300 : 900);
+      }, leveledUp ? 1750 : 900);
     } else {
       jpvHurufEl(kind, 'NextBtn').classList.add('show');
     }
@@ -10969,10 +11295,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var st = jpvHurufState[kind];
     var toast = jpvHurufEl(kind, 'LevelupToast');
     if(!toast) return;
-    var text = jpvHurufEl(kind, 'LevelupText');
-    if(text) text.textContent = 'Lv. ' + st.level;
-    toast.classList.add('show');
-    window.setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+    jpvPlayLevelup3D(toast, 'Lv. ' + st.level, 'Naik level! Huruf makin menantang', 1800);
   }
 
   window.jpvHurufNext = function(kind){
@@ -11190,6 +11513,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(!isNaN(savedBScore) && savedBScore >= 0) jpvBacaScore = savedBScore;
   }catch(e){}
   jpvSyncAutoSpeakBtn();
+  jpvRenderLevelupStyleList();
 
   if(!jpvSpeechOK){
     var speakBtn = document.getElementById('jpvSpeakBtn');
