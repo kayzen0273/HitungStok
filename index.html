@@ -9370,14 +9370,15 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   .jpv-card-inner{ border:1px solid var(--jpv-line); border-radius:9px; padding:11px 11px 9px; position:relative; }
   .jpv-card.jpv-wide{ width:280px; }
 
-  .jpv-card-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+  .jpv-card-top{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:9px; }
   .jpv-tag{
-    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700;
+    display:inline-flex; align-items:flex-start; gap:5px; font-size:10.5px; font-weight:700;
     color:var(--jpv-seal-deep); background:rgba(178,60,40,0.09); border:1px solid rgba(178,60,40,0.25);
-    padding:2.5px 8px 3px; border-radius:20px;
+    padding:2.5px 8px 3px; border-radius:20px; min-width:0;
   }
-  .jpv-tag:before{ content:''; width:5px; height:5px; border-radius:50%; background:var(--jpv-seal); flex-shrink:0; }
-  .jpv-top-actions{ display:flex; align-items:center; gap:1px; }
+  .jpv-tag span{ white-space:normal; word-break:break-word; line-height:1.35; }
+  .jpv-tag:before{ content:''; width:5px; height:5px; border-radius:50%; background:var(--jpv-seal); flex-shrink:0; margin-top:4px; }
+  .jpv-top-actions{ display:flex; align-items:center; gap:1px; margin-left:auto; flex-shrink:0; }
   .jpv-icon-btn{
     background:none; border:none; padding:3px; color:var(--jpv-ink-soft); cursor:pointer; opacity:.7;
     display:flex; align-items:center; justify-content:center; border-radius:6px;
@@ -9451,11 +9452,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   /* ---- Kuis kosa kata (pilihan ganda berjenjang) ---- */
   #jpvQuizScreen{ position:relative; }
-  .jpv-quiz-top{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+  .jpv-quiz-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:6px; margin-bottom:8px; flex-wrap:nowrap; }
   .jpv-level-badge{
     display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:800; color:#fff;
     background:linear-gradient(135deg, var(--jpv-seal), var(--jpv-seal-deep)); padding:3px 9px 4px;
-    border-radius:20px; font-family:'Zen Maru Gothic', sans-serif; white-space:nowrap;
+    border-radius:20px; font-family:'Zen Maru Gothic', sans-serif; white-space:nowrap; flex-shrink:0;
   }
   .jpv-progress-track{ height:5px; border-radius:6px; background:rgba(42,35,24,0.1); overflow:hidden; margin:2px 0 10px; }
   .jpv-progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--jpv-gold), var(--jpv-seal)); border-radius:6px; transition:width .35s ease; }
@@ -9525,7 +9526,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
       <div class="jpv-screen show" id="jpvViewScreen">
         <div class="jpv-card-top">
-          <span class="jpv-tag" id="jpvTag">Kosa kata</span>
+          <span class="jpv-tag" id="jpvTag"><span id="jpvTagText">Kosa kata</span></span>
           <div class="jpv-top-actions">
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -9567,7 +9568,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
       <div class="jpv-screen" id="jpvQuizScreen">
         <div class="jpv-quiz-top">
-          <span class="jpv-tag" id="jpvQuizTag">Ujian kosa kata</span>
+          <span class="jpv-tag" id="jpvQuizTag"><span>Ujian kosa kata</span></span>
           <span class="jpv-level-badge" id="jpvLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
@@ -9612,7 +9613,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
       <div class="jpv-screen" id="jpvQuizBacaScreen">
         <div class="jpv-quiz-top">
-          <span class="jpv-tag" id="jpvBacaTag">Ujian cara baca</span>
+          <span class="jpv-tag" id="jpvBacaTag"><span>Ujian cara baca</span></span>
           <span class="jpv-level-badge" id="jpvBacaLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
@@ -9657,7 +9658,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
       <div class="jpv-screen" id="jpvQuizHiraScreen">
         <div class="jpv-quiz-top">
-          <span class="jpv-tag" id="jpvHiraTag">Ujian huruf hiragana</span>
+          <span class="jpv-tag" id="jpvHiraTag"><span>Ujian huruf hiragana</span></span>
           <span class="jpv-level-badge" id="jpvHiraLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
@@ -9701,7 +9702,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
       <div class="jpv-screen" id="jpvQuizKataScreen">
         <div class="jpv-quiz-top">
-          <span class="jpv-tag" id="jpvKataTag">Ujian huruf katakana</span>
+          <span class="jpv-tag" id="jpvKataTag"><span>Ujian huruf katakana</span></span>
           <span class="jpv-level-badge" id="jpvKataLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Ganti mode belajar">
@@ -11002,7 +11003,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var v = list[jpvIdx];
     var meta = JPV_MODE_META[jpvMode];
 
-    document.getElementById('jpvTag').textContent = meta.tag;
+    document.getElementById('jpvTagText').textContent = meta.tag;
     document.getElementById('jpvBubbleGlyph').textContent = meta.bubble;
     document.getElementById('jpvBackEyebrow').textContent = meta.eyebrow;
     document.getElementById('jpvKanji').textContent = v.k;
