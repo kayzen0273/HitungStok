@@ -10043,6 +10043,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var jpvQuizAutoNextTimer = null;
   var jpvQuizCorrectText = '';
   var JPV_QUIZ_MAX_TIER = null;
+  var jpvQuizReviewProgress = 0; // progres jawaban benar saat "mode ulang" (level lama), supaya bisa jalan maju ke level lama berikutnya
 
   // ---- Status ujian CARA BACA (level & progres terpisah dari ujian arti di atas) ----
   var jpvBacaLevel = 1;
@@ -10054,6 +10055,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var jpvBacaAnswered = false;
   var jpvBacaAutoNextTimer = null;
   var jpvBacaCorrectText = '';
+  var jpvBacaReviewProgress = 0; // progres jawaban benar saat "mode ulang" (level lama), supaya bisa jalan maju ke level lama berikutnya
 
   function jpvPickJaVoice(){
     if(!jpvSpeechOK) return null;
@@ -10235,7 +10237,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var fill = document.getElementById('jpvProgressFill');
     if(fill){
       if(review){
-        fill.style.width = '100%';
+        var reviewNeeded = jpvQuizCorrectNeeded(jpvQuizViewLevel);
+        var reviewPct = Math.max(0, Math.min(100, Math.round((jpvQuizReviewProgress / reviewNeeded) * 100)));
+        fill.style.width = reviewPct + '%';
       } else {
         var needed = jpvQuizCorrectNeeded(jpvQuizLevel);
         var pct = Math.max(0, Math.min(100, Math.round((jpvQuizProgress / needed) * 100)));
@@ -10285,6 +10289,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var reachable = jpvQuizTierFor(jpvQuizLevel);
     if(level > reachable) return; // level selanjutnya masih terkunci
     jpvQuizViewLevel = level;
+    jpvQuizReviewProgress = 0;
     jpvQuizLastWord = null;
     jpvQuizNext();
   };
@@ -10359,8 +10364,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       if(!review) jpvQuizProgress = Math.max(0, jpvQuizProgress - 1);
     }
 
-    // Naik level hanya berlaku saat mengerjakan level terdepan (bukan saat
-    // mode ulang mengerjakan level yang sudah lewat).
+    // Naik level sungguhan hanya berlaku saat mengerjakan level terdepan
+    // (bukan saat mode ulang mengerjakan level yang sudah lewat).
     var leveledUp = false;
     if(!review){
       var needed = jpvQuizCorrectNeeded(jpvQuizLevel);
@@ -10369,6 +10374,17 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         jpvQuizViewLevel = jpvQuizLevel;
         jpvQuizProgress = 0;
         leveledUp = true;
+      }
+    } else {
+      // Mode ulang tetap "jalan": kalau jawaban benar cukup banyak di level
+      // lama yang sedang diulang, otomatis maju ke level lama berikutnya,
+      // sampai akhirnya kembali menyusul level sungguhan saat ini.
+      if(correct) jpvQuizReviewProgress++;
+      else jpvQuizReviewProgress = Math.max(0, jpvQuizReviewProgress - 1);
+      var reviewNeeded = jpvQuizCorrectNeeded(jpvQuizViewLevel);
+      if(jpvQuizReviewProgress >= reviewNeeded){
+        jpvQuizReviewProgress = 0;
+        jpvQuizViewLevel = Math.min(jpvQuizViewLevel + 1, jpvQuizLevel);
       }
     }
     jpvQuizSaveProgress();
@@ -10465,7 +10481,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var fill = document.getElementById('jpvBacaProgressFill');
     if(fill){
       if(review){
-        fill.style.width = '100%';
+        var reviewNeeded = jpvQuizCorrectNeeded(jpvBacaViewLevel);
+        var reviewPct = Math.max(0, Math.min(100, Math.round((jpvBacaReviewProgress / reviewNeeded) * 100)));
+        fill.style.width = reviewPct + '%';
       } else {
         var needed = jpvQuizCorrectNeeded(jpvBacaLevel);
         var pct = Math.max(0, Math.min(100, Math.round((jpvBacaProgress / needed) * 100)));
@@ -10509,6 +10527,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var reachable = jpvQuizTierFor(jpvBacaLevel);
     if(level > reachable) return; // level selanjutnya masih terkunci
     jpvBacaViewLevel = level;
+    jpvBacaReviewProgress = 0;
     jpvBacaLastWord = null;
     jpvBacaNext();
   };
@@ -10558,8 +10577,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     // Ucapkan cara baca kata ini begitu jawaban diklik (terlepas dari
     // pengaturan "ucapkan otomatis" yang hanya berlaku saat soal baru muncul).
+    // Dipanggil langsung (tanpa delay) supaya bunyi tepat saat diklik.
     if(jpvSpeechOK){
-      window.setTimeout(function(){ jpvSpeak(); }, 150);
+      jpvSpeak();
     }
 
     var buttons = document.querySelectorAll('#jpvBacaOptions .jpv-quiz-opt');
@@ -10592,16 +10612,29 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         jpvBacaProgress = 0;
         leveledUp = true;
       }
+    } else {
+      // Mode ulang tetap "jalan": kalau jawaban benar cukup banyak di level
+      // lama yang sedang diulang, otomatis maju ke level lama berikutnya,
+      // sampai akhirnya kembali menyusul level sungguhan saat ini.
+      if(correct) jpvBacaReviewProgress++;
+      else jpvBacaReviewProgress = Math.max(0, jpvBacaReviewProgress - 1);
+      var reviewNeeded = jpvQuizCorrectNeeded(jpvBacaViewLevel);
+      if(jpvBacaReviewProgress >= reviewNeeded){
+        jpvBacaReviewProgress = 0;
+        jpvBacaViewLevel = Math.min(jpvBacaViewLevel + 1, jpvBacaLevel);
+      }
     }
     jpvBacaSaveProgress();
     jpvBacaRenderTopBar();
     if(leveledUp) jpvBacaShowLevelup();
 
     if(correct){
+      // Delay sedikit lebih panjang supaya bunyi ucapan sempat kedengaran
+      // dulu sebelum berpindah ke soal berikutnya.
       jpvBacaAutoNextTimer = window.setTimeout(function(){
         jpvBacaAutoNextTimer = null;
         jpvBacaNext();
-      }, leveledUp ? 1100 : 650);
+      }, leveledUp ? 1300 : 900);
     } else {
       document.getElementById('jpvBacaNextBtn').classList.add('show');
     }
@@ -10630,8 +10663,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var JPV_HURUF_ID = { hiragana: 'Hira', katakana: 'Kata' };
   var JPV_HURUF_LIST = { hiragana: JPV_HIRAGANA, katakana: JPV_KATAKANA };
   var jpvHurufState = {
-    hiragana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null },
-    katakana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null }
+    hiragana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null, reviewProgress:0 },
+    katakana: { level:1, viewLevel:1, progress:0, score:0, current:null, lastLetter:null, answered:false, timer:null, correctText:'', maxTier:null, reviewProgress:0 }
   };
 
   function jpvHurufEl(kind, suffix){ return document.getElementById('jpv' + JPV_HURUF_ID[kind] + suffix); }
@@ -10722,7 +10755,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var fill = jpvHurufEl(kind, 'ProgressFill');
     if(fill){
       if(review){
-        fill.style.width = '100%';
+        var reviewNeeded = jpvHurufCorrectNeeded(st.viewLevel);
+        var reviewPct = Math.max(0, Math.min(100, Math.round((st.reviewProgress / reviewNeeded) * 100)));
+        fill.style.width = reviewPct + '%';
       } else {
         var needed = jpvHurufCorrectNeeded(st.level);
         var pct = Math.max(0, Math.min(100, Math.round((st.progress / needed) * 100)));
@@ -10768,6 +10803,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     var reachable = jpvHurufTierFor(kind, st.level);
     if(level > reachable) return; // level selanjutnya masih terkunci
     st.viewLevel = level;
+    st.reviewProgress = 0;
     st.lastLetter = null;
     jpvHurufNext(kind);
   };
@@ -10821,8 +10857,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
     // Ucapkan huruf ini begitu jawaban diklik (terlepas dari pengaturan
     // "ucapkan otomatis" yang hanya berlaku saat soal baru muncul).
+    // Dipanggil langsung (tanpa delay) supaya bunyi tepat saat diklik.
     if(jpvSpeechOK){
-      window.setTimeout(function(){ jpvSpeak(); }, 150);
+      jpvSpeak();
     }
 
     var buttons = jpvHurufEl(kind, 'Options').querySelectorAll('.jpv-quiz-opt');
@@ -10857,16 +10894,29 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
         st.progress = 0;
         leveledUp = true;
       }
+    } else {
+      // Mode ulang tetap "jalan": kalau jawaban benar cukup banyak di level
+      // lama yang sedang diulang, otomatis maju ke level lama berikutnya,
+      // sampai akhirnya kembali menyusul level sungguhan saat ini.
+      if(correct) st.reviewProgress++;
+      else st.reviewProgress = Math.max(0, st.reviewProgress - 1);
+      var reviewNeeded = jpvHurufCorrectNeeded(st.viewLevel);
+      if(st.reviewProgress >= reviewNeeded){
+        st.reviewProgress = 0;
+        st.viewLevel = Math.min(st.viewLevel + 1, st.level);
+      }
     }
     jpvHurufSaveProgress(kind);
     jpvHurufRenderTopBar(kind);
     if(leveledUp) jpvHurufShowLevelup(kind);
 
     if(correct){
+      // Delay sedikit lebih panjang supaya bunyi ucapan sempat kedengaran
+      // dulu sebelum berpindah ke soal berikutnya.
       st.timer = window.setTimeout(function(){
         st.timer = null;
         jpvHurufNext(kind);
-      }, leveledUp ? 1100 : 650);
+      }, leveledUp ? 1300 : 900);
     } else {
       jpvHurufEl(kind, 'NextBtn').classList.add('show');
     }
