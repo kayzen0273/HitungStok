@@ -9386,6 +9386,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   .jpv-icon-btn.active{ color:var(--jpv-seal); opacity:1; }
   .jpv-icon-btn svg{ width:13.5px; height:13.5px; }
   .jpv-speak-btn.speaking{ color:var(--jpv-seal); animation:jpvSpeakPulse .7s ease-in-out infinite alternate; }
+  .jpv-speak-btn.jpv-speak-disabled{ opacity:0.3 !important; pointer-events:none; cursor:not-allowed; }
   @keyframes jpvSpeakPulse{ from{ opacity:.5; transform:scale(.94); } to{ opacity:1; transform:scale(1.08); } }
 
   /* ---- Layar pengaturan (terpisah dari layar kata, pakai tombol Kembali) ---- */
@@ -9608,7 +9609,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvBacaTag">Ujian cara baca</span>
           <span class="jpv-level-badge" id="jpvBacaLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
-            <button class="jpv-icon-btn jpv-speak-btn" id="jpvBacaSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+            <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvBacaSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
@@ -9650,7 +9651,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvHiraTag">Ujian huruf hiragana</span>
           <span class="jpv-level-badge" id="jpvHiraLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
-            <button class="jpv-icon-btn jpv-speak-btn" id="jpvHiraSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+            <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvHiraSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
@@ -9691,7 +9692,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
           <span class="jpv-tag" id="jpvKataTag">Ujian huruf katakana</span>
           <span class="jpv-level-badge" id="jpvKataLevelBadge">Lv. 1</span>
           <div class="jpv-top-actions">
-            <button class="jpv-icon-btn jpv-speak-btn" id="jpvKataSpeakBtn" onclick="jpvSpeak(event)" title="Dengar cara baca">
+            <button class="jpv-icon-btn jpv-speak-btn jpv-speak-disabled" id="jpvKataSpeakBtn" disabled title="Suara dinonaktifkan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
             </button>
             <button class="jpv-icon-btn" onclick="jpvGoSettings()" title="Pengaturan">
