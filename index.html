@@ -440,7 +440,9 @@
     display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:11px;
     border:1.5px solid var(--line); border-left:4px solid var(--amber); background:var(--card);
     box-shadow:0 1px 2px rgba(23,59,54,0.03); transition:background .16s ease, border-color .16s ease;
+    cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
   }
+  .order-row:active{background:var(--klop-bg);}
   .order-row.is-ordered{background:var(--klop-bg); border-color:#bfe0cb; border-left-color:var(--klop);}
   .order-row .order-no{
     flex-shrink:0; min-width:20px; text-align:center; font-family:'JetBrains Mono', monospace;
@@ -6851,9 +6853,9 @@ function renderOrderList(){
     // hasil filter yang bisa berubah-ubah tiap kali difilter.
     const noUrut = typeof item.seq === 'number' ? item.seq + 1 : idx + 1;
     return `
-    <div class="order-row${eff ? ' is-ordered' : ''}${isPending ? ' is-pending' : ''}">
+    <div class="order-row${eff ? ' is-ordered' : ''}${isPending ? ' is-pending' : ''}" onclick="toggleOrderItem('${item.id}')">
       <div class="order-no" title="Nomor urut">${noUrut}</div>
-      <button type="button" class="order-check" onclick="toggleOrderItem('${item.id}')" title="Centang lalu tekan Simpan">
+      <button type="button" class="order-check" title="Centang lalu tekan Simpan">
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="order-main">
@@ -6864,7 +6866,7 @@ function renderOrderList(){
           <span class="order-pending-dot" title="Belum disimpan"></span>
         </div>
       </div>
-      <button type="button" class="del-btn order-del" onclick="deleteOrderItem('${item.id}')" title="Hapus dari daftar">
+      <button type="button" class="del-btn order-del" onclick="event.stopPropagation(); deleteOrderItem('${item.id}')" title="Hapus dari daftar">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-8 0 1 13a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
