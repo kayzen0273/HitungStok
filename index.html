@@ -57,14 +57,14 @@
   }
 
   .masthead{
-    display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;
     position:sticky; top:0; z-index:40;
+    display:flex; flex-direction:column; gap:12px;
     background:linear-gradient(165deg, var(--teal), var(--teal-deep));
-    padding:16px 12px 14px; margin:-18px -12px 16px; border-radius:0 0 20px 20px;
+    padding:16px 12px 12px; margin:-18px -12px 16px; border-radius:0 0 20px 20px;
     box-shadow:0 6px 16px rgba(10,69,62,0.22);
   }
-  .masthead > div:last-child{width:100%; text-align:left; order:3; margin-top:2px;}
-  .masthead > div:last-child > *{display:inline-block; margin-right:12px;}
+  .mh-top{display:flex; align-items:center; gap:10px;}
+  .mh-title{flex:1; min-width:0;}
   .pill{
     width:38px; height:38px; border-radius:11px; background:rgba(255,255,255,0.16);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
@@ -73,9 +73,117 @@
   .pill svg{width:20px;height:20px;}
   .masthead h1{font-size:16.5px; font-weight:800; margin:0; letter-spacing:-0.01em; color:#fff;}
   .masthead p{margin:1px 0 0; font-size:11.5px; color:#cfe6df; font-weight:500;}
-  .masthead #saveStatus{color:#cfe6df !important;}
-  .masthead .rekap-btn, .masthead .riwayat-btn{color:#fff !important;}
-  .masthead .reset-btn{color:#d8ece5 !important;}
+  .masthead .mh-save{margin-top:2px; min-height:14px; font-size:10.5px; font-weight:600; color:#cfe6df;}
+
+  /* Reset data: dipindah ke bawah halaman, jauh dari tombol yang sering disentuh */
+  .reset-zone{
+    display:flex; align-items:center; gap:12px; margin:4px 0 10px; padding:13px 14px;
+    border:1.5px dashed #dfb3a7; border-radius:16px; background:rgba(251,235,230,0.55);
+  }
+  .reset-zone .rz-text{flex:1; min-width:0;}
+  .reset-zone .rz-title{font-size:12.5px; font-weight:800; color:var(--minus);}
+  .reset-zone .rz-sub{margin-top:2px; font-size:11px; line-height:1.4; color:var(--ink-soft);}
+  .reset-zone .rz-btn{
+    display:flex; align-items:center; gap:6px; flex-shrink:0; padding:9px 12px;
+    border:1.5px solid var(--minus); border-radius:11px; background:#fff; color:var(--minus);
+    font:inherit; font-size:11.5px; font-weight:800; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    transition:background .15s, color .15s;
+  }
+  .reset-zone .rz-btn svg{width:15px; height:15px;}
+  .reset-zone .rz-btn:hover, .reset-zone .rz-btn:active{background:var(--minus); color:#fff;}
+  .reset-zone .rz-btn:focus-visible{outline:2px solid var(--minus); outline-offset:2px;}
+
+  /* Tombol aksi header: dock putih dengan tile warna + animasi ikon */
+  .masthead{margin-bottom:56px;}
+  .mh-actions{
+    position:relative; margin-bottom:-44px;
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:2px;
+    padding:9px 4px 8px; background:#fff; border-radius:20px;
+    border:1px solid var(--line);
+    box-shadow:0 10px 26px rgba(10,40,35,0.2);
+  }
+  .mh-btn{
+    --c1:#2fa08f; --c2:#0d5c52;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:2px 0 0; border:0; background:none; border-radius:12px;
+    color:var(--ink); font:inherit; font-size:10.5px; font-weight:700; line-height:1.1; white-space:nowrap;
+    text-decoration:none; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    animation:mhPop .55s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .mh-btn:nth-child(1){--c1:#e6b04f; --c2:#b8863b; animation-delay:.05s;}
+  .mh-btn:nth-child(2){--c1:#5a9bd8; --c2:#2f6fae; animation-delay:.11s;}
+  .mh-btn:nth-child(3){--c1:#33a794; --c2:#0d5c52; animation-delay:.17s;}
+  .mh-btn:nth-child(4){--c1:#9878d0; --c2:#6a4ba6; animation-delay:.23s;}
+  .mh-btn:nth-child(5){--c1:#f08466; --c2:#c0503a; animation-delay:.29s;}
+  @keyframes mhPop{
+    from{opacity:0; transform:translateY(16px) scale(.7);}
+    to{opacity:1; transform:none;}
+  }
+  .mh-ico{
+    position:relative; width:42px; height:42px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    background:linear-gradient(150deg, var(--c1), var(--c2));
+    box-shadow:0 6px 12px -5px var(--c2), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
+  }
+  .mh-ico svg{width:21px; height:21px; overflow:visible;}
+  .mh-btn:active .mh-ico{transform:scale(.88); box-shadow:0 2px 6px -3px var(--c2), inset 0 1px 0 rgba(255,255,255,0.35);}
+  /* Animasi selalu jalan: tiap ikon punya gerakan sendiri, saling bergantian (delay berbeda) */
+  .mh-ico{animation:mhFloat 3.6s ease-in-out infinite;}
+  .mh-btn:nth-child(2) .mh-ico{animation-delay:-.7s;}
+  .mh-btn:nth-child(3) .mh-ico{animation-delay:-1.4s;}
+  .mh-btn:nth-child(4) .mh-ico{animation-delay:-2.1s;}
+  .mh-btn:nth-child(5) .mh-ico{animation-delay:-2.8s;}
+  @keyframes mhFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);}}
+  .mh-btn:active .mh-ico{animation:none;}
+  /* kilau cahaya menyapu tile */
+  .mh-ico::before{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.42) 50%, transparent 62%);
+    background-size:280% 100%; background-position:160% 0;
+    animation:mhShine 4.2s ease-in-out infinite;
+  }
+  .mh-btn:nth-child(2) .mh-ico::before{animation-delay:.5s;}
+  .mh-btn:nth-child(3) .mh-ico::before{animation-delay:1s;}
+  .mh-btn:nth-child(4) .mh-ico::before{animation-delay:1.5s;}
+  .mh-btn:nth-child(5) .mh-ico::before{animation-delay:2s;}
+  @keyframes mhShine{0%{background-position:160% 0;} 45%,100%{background-position:-60% 0;}}
+
+  /* Rekap: batang grafik naik-turun seperti equalizer */
+  .mh-ico .b1, .mh-ico .b2, .mh-ico .b3{transform-box:fill-box; transform-origin:50% 100%; animation:mhBar 1.4s ease-in-out infinite alternate;}
+  .mh-ico .b1{animation-duration:1.1s;} .mh-ico .b2{animation-duration:1.5s; animation-delay:-.4s;} .mh-ico .b3{animation-duration:1.25s; animation-delay:-.8s;}
+  @keyframes mhBar{from{transform:scaleY(.35);} to{transform:scaleY(1);}}
+  /* Riwayat: jarum jam berputar */
+  .mh-ico .hm, .mh-ico .hh{transform-box:view-box; transform-origin:12px 12px;}
+  .mh-ico .hm{animation:mhTick 4s linear infinite;}
+  .mh-ico .hh{animation:mhTick 24s linear infinite;}
+  @keyframes mhTick{to{transform:rotate(360deg);}}
+  /* Browser: bola dunia berputar (garis bujur menyempit-melebar) */
+  .mh-ico .gl{transform-box:view-box; transform-origin:12px 12px; animation:mhGlobe 3.4s ease-in-out infinite;}
+  @keyframes mhGlobe{0%,100%{transform:scaleX(1);} 50%{transform:scaleX(.1);}}
+  /* Catatan JS: kurung kode bernapas */
+  .mh-ico .cl{animation:mhL 2.2s ease-in-out infinite;} .mh-ico .cr{animation:mhR 2.2s ease-in-out infinite;}
+  @keyframes mhL{0%,100%{transform:translateX(0);} 50%{transform:translateX(-2.5px);}}
+  @keyframes mhR{0%,100%{transform:translateX(0);} 50%{transform:translateX(2.5px);}}
+  /* Pesan: lonceng bergoyang berkala (lebih sering kalau ada yang belum dibaca) */
+  .mh-ico .bell{transform-box:fill-box; transform-origin:50% 8%; animation:mhRing 3.6s ease-in-out infinite;}
+  .mh-btn:has(.nm-badge[style*="inline-block"]) .bell{animation-duration:2s;}
+  @keyframes mhRing{
+    0%,38%,100%{transform:rotate(0);}
+    6%{transform:rotate(17deg);} 12%{transform:rotate(-15deg);} 18%{transform:rotate(10deg);}
+    24%{transform:rotate(-6deg);} 30%{transform:rotate(3deg);}
+  }
+  .mh-btn .nm-badge{
+    position:absolute; top:-6px; right:-6px; margin:0; box-shadow:0 0 0 2px #fff;
+    animation:mhBadge 2.2s ease-in-out infinite;
+  }
+  @keyframes mhBadge{0%,100%{transform:scale(1);} 50%{transform:scale(1.14);}}
+  .mh-btn:focus-visible{outline:2px solid var(--teal); outline-offset:1px;}
+  @media (prefers-reduced-motion: reduce){
+    .mh-btn, .mh-btn *, .mh-ico, .mh-ico::before, .mh-btn .nm-badge{animation:none !important;}
+    .mh-ico{transition:none;}
+    .mh-btn:active .mh-ico{transform:none;}
+  }
 
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:14px;
@@ -1103,22 +1211,23 @@
 <div class="wrap">
 
   <div class="masthead">
-    <div class="pill">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg>
+    <div class="mh-top">
+      <div class="pill">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg>
+      </div>
+      <div class="mh-title">
+        <h1>Stok Opname — Pencatatan Barang</h1>
+        <p>Rafa 1 + Rafa 2 dicocokkan dengan stok aplikasi (web/apk)</p>
+        <div id="saveStatus" class="mh-save">&nbsp;</div>
+      </div>
     </div>
-    <div style="flex:1;">
-      <h1>Stok Opname — Pencatatan Barang</h1>
-      <p>Rafa 1 + Rafa 2 dicocokkan dengan stok aplikasi (web/apk)</p>
-    </div>
-    <div style="text-align:right;">
-      <div id="saveStatus" style="font-size:11px; color:var(--ink-soft); font-weight:600;">&nbsp;</div>
-      <a class="link-btn rekap-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" style="display:inline-block; color:var(--teal); text-decoration:underline;">Rekap Setoran</a>
-      <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
-      <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
-      <button class="link-btn riwayat-btn" onclick="openJsNotesModal()">Catatan JS</button>
-      <button class="link-btn riwayat-btn nm-open-btn" id="nmOpenBtn" onclick="openNotifModal()">🔔 Pesan<span class="nm-badge" id="nmBadge" style="display:none;">0</span></button>
-      <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
-    </div>
+    <nav class="mh-actions" aria-label="Menu cepat">
+      <a class="mh-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" title="Rekap Setoran" aria-label="Rekap Setoran"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="b1" d="M6 20v-6"/><path class="b2" d="M12 20V5"/><path class="b3" d="M18 20V10"/></svg></span><span>Rekap</span></a>
+      <button type="button" class="mh-btn" onclick="openHistoryModal()"><span class="mh-ico"><svg class="ic-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path class="hm" d="M12 12V7.5"/><path class="hh" d="M12 12l3 2"/></svg></span><span>Riwayat</span></button>
+      <button type="button" class="mh-btn" onclick="openCashierPopup()"><span class="mh-ico"><svg class="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse class="gl" cx="12" cy="12" rx="4.2" ry="9"/></svg></span><span>Browser</span></button>
+      <button type="button" class="mh-btn" onclick="openJsNotesModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="cl" d="m9 8-4 4 4 4"/><path class="cr" d="m15 8 4 4-4 4"/><path d="m13.5 6-3 12"/></svg></span><span>Catatan JS</span></button>
+      <button type="button" class="mh-btn nm-open-btn" id="nmOpenBtn" onclick="openNotifModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="bell"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></g></svg><span class="nm-badge" id="nmBadge" style="display:none;">0</span></span><span>Pesan</span></button>
+    </nav>
   </div>
 
   <div class="page-tabs" id="pageTabs">
@@ -1359,6 +1468,14 @@
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak. Untuk barang minus/plus, ada tombol catatan (ikon pensil) di sebelah badge untuk isi keterangan opsional kenapa selisihnya terjadi.</div>
   </div>
+  </div>
+
+  <div class="reset-zone">
+    <div class="rz-text">
+      <div class="rz-title">Reset data</div>
+      <div class="rz-sub">Hapus semua isian dan mulai dari kosong.</div>
+    </div>
+    <button type="button" class="rz-btn" onclick="resetAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m6 7 1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>Hapus semua</button>
   </div>
 
   </div>
