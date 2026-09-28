@@ -942,6 +942,65 @@
   .order-save-bar .osb-save{background:#fff; color:var(--teal-deep);}
   .order-save-bar .osb-save:hover{background:#eafff8;}
 
+
+  /* ===== Notifikasi & Pesan (chat ke admin) ===== */
+  .nm-open-btn{position:relative;}
+  .nm-badge{display:inline-block; margin-left:5px; min-width:16px; padding:0 5px; height:16px; line-height:16px; border-radius:99px;
+    background:#e5484d; color:#fff; font-size:10px; font-weight:800; text-align:center; text-decoration:none;}
+  .nm-overlay{display:none; position:fixed; inset:0; z-index:650; background:rgba(15,30,27,0.5);
+    align-items:center; justify-content:center; padding:14px 14px 110px; backdrop-filter:blur(2px);}
+  .nm-overlay.show{display:flex;}
+  .nm-card{width:100%; max-width:440px; max-height:min(680px, calc(100dvh - 130px)); display:flex; flex-direction:column;
+    background:var(--card); border-radius:22px; overflow:hidden; box-shadow:0 18px 50px rgba(10,40,35,0.4);}
+  .nm-head{display:flex; align-items:center; justify-content:space-between; padding:16px 16px 16px 20px;
+    background:linear-gradient(135deg,var(--teal-deep),var(--teal)); color:#fff; flex-shrink:0;}
+  .nm-head-title{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:800;}
+  .nm-x{border:none; background:rgba(255,255,255,0.22); color:#fff; width:36px; height:36px; border-radius:11px; font-size:16px; font-weight:800; cursor:pointer;}
+  .nm-tabs{display:flex; flex-shrink:0; border-bottom:1.5px solid var(--line); background:#f4f7f5;}
+  .nm-tab{flex:1; position:relative; border:none; background:transparent; padding:13px 6px; font-family:inherit; font-size:13.5px;
+    font-weight:700; color:var(--ink-soft); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1.5px;}
+  .nm-tab.active{background:var(--card); color:var(--teal-deep); border-bottom-color:var(--teal);}
+  .nm-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#e5484d; margin-left:6px; vertical-align:middle;}
+  .nm-body{flex:1; min-height:170px; overflow-y:auto; padding:14px; background:var(--card); overscroll-behavior:contain;}
+  .nm-empty{text-align:center; padding:26px 12px; color:var(--ink-soft);}
+  .nm-empty .nm-empty-ico{width:56px; height:56px; margin:0 auto 12px; border-radius:16px; background:#e6f4ef; display:flex; align-items:center; justify-content:center; font-size:26px;}
+  .nm-empty b{display:block; font-size:15px; color:var(--ink-soft); margin-bottom:4px;}
+  .nm-empty span{font-size:12.5px; line-height:1.4;}
+  .nm-msg{display:flex; flex-direction:column; max-width:84%; margin-bottom:10px;}
+  .nm-msg.me{margin-left:auto; align-items:flex-end;}
+  .nm-msg.admin{margin-right:auto; align-items:flex-start;}
+  .nm-bubble{padding:9px 12px; border-radius:15px; font-size:13px; line-height:1.4; white-space:pre-wrap; word-break:break-word;}
+  .nm-msg.me .nm-bubble{background:var(--teal); color:#fff; border-bottom-right-radius:5px;}
+  .nm-msg.admin .nm-bubble{background:#eef2ef; color:var(--ink); border-bottom-left-radius:5px;}
+  .nm-tag{font-size:10.5px; font-weight:800; margin-bottom:3px; color:var(--ink-soft);}
+  .nm-msg.admin .nm-tag{color:var(--teal-deep);}
+  .nm-img{max-width:100%; max-height:190px; border-radius:11px; margin-bottom:5px; cursor:zoom-in; display:block;}
+  .nm-time{font-size:10px; color:var(--ink-soft); margin-top:3px;}
+  .nm-upd{border:1px solid var(--line); border-left:4px solid var(--teal); border-radius:12px; padding:11px 13px; margin-bottom:10px; background:var(--card);}
+  .nm-upd b{display:block; font-size:13.5px; color:var(--ink); margin-bottom:3px;}
+  .nm-upd p{margin:0 0 5px; font-size:12.5px; line-height:1.45; color:var(--ink); white-space:pre-wrap;}
+  .nm-upd span{font-size:10.5px; color:var(--ink-soft);}
+  .nm-upd.unread{background:#f0faf6; border-left-color:#e5484d;}
+  .nm-foot{flex-shrink:0; padding:12px 14px 14px; background:#f4f7f5; border-top:1.5px solid var(--line);}
+  .nm-chips{display:flex; gap:8px; margin-bottom:10px;}
+  .nm-chip{flex:1; border:1.5px solid var(--line); background:var(--card); color:var(--ink-soft); border-radius:12px; padding:9px 4px;
+    font-family:inherit; font-weight:800; font-size:12.5px; cursor:pointer; white-space:nowrap;}
+  .nm-chip.active{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .nm-compose{display:flex; align-items:flex-end; gap:8px;}
+  .nm-cam,.nm-send{flex-shrink:0; width:46px; height:46px; border:1.5px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .nm-send{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .nm-send:disabled{opacity:.4; cursor:default;}
+  .nm-compose textarea{flex:1; min-width:0; box-sizing:border-box; resize:none; max-height:110px; font-family:inherit; font-size:13.5px; padding:11px 13px;
+    border:1.5px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink);}
+  .nm-compose textarea:focus{outline:none; border-color:var(--teal);}
+  .nm-preview{position:relative; display:inline-block; margin-bottom:10px;}
+  .nm-preview img{height:64px; border-radius:10px; display:block; border:1.5px solid var(--line);}
+  .nm-preview button{position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%; border:none; background:#e5484d; color:#fff; font-size:11px; cursor:pointer;}
+  .nm-lightbox{display:none; position:fixed; inset:0; z-index:700; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; padding:14px;}
+  .nm-lightbox.show{display:flex;}
+  .nm-lightbox img{max-width:100%; max-height:100%; border-radius:8px;}
+
   .order-row.is-pending{border-style:dashed; border-color:var(--amber);}
   .order-row .order-pending-dot{
     display:none; flex-shrink:0; width:6px; height:6px; border-radius:50%;
@@ -1055,6 +1114,7 @@
       <button class="link-btn riwayat-btn" onclick="openHistoryModal()">Riwayat</button>
       <button class="link-btn riwayat-btn" onclick="openCashierPopup()">Browser</button>
       <button class="link-btn riwayat-btn" onclick="openJsNotesModal()">Catatan JS</button>
+      <button class="link-btn riwayat-btn nm-open-btn" id="nmOpenBtn" onclick="openNotifModal()">🔔 Pesan<span class="nm-badge" id="nmBadge" style="display:none;">0</span></button>
       <button class="link-btn reset-btn" onclick="resetAll()">Reset data</button>
     </div>
   </div>
@@ -1477,6 +1537,41 @@
     <div class="history-modal-body" id="historyListBody"></div>
   </div>
 </div>
+
+<div class="nm-overlay" id="nmOverlay" onclick="if(event.target===this) closeNotifModal()">
+  <div class="nm-card" role="dialog" aria-label="Notifikasi dan Pesan">
+    <div class="nm-head">
+      <div class="nm-head-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 22a2.3 2.3 0 0 0 2.3-2.3h-4.6A2.3 2.3 0 0 0 12 22Zm7-6.2V11a7 7 0 0 0-5.3-6.8V3.5a1.7 1.7 0 0 0-3.4 0v.7A7 7 0 0 0 5 11v4.8l-1.6 1.6v.9h17.2v-.9L19 15.8Z"/></svg>Notifikasi &amp; Pesan</div>
+      <button class="nm-x" onclick="closeNotifModal()" aria-label="Tutup">✕</button>
+    </div>
+    <div class="nm-tabs">
+      <button class="nm-tab" id="nmTabUpdate" onclick="nmSwitchTab('update')">🔔 Update<span class="nm-dot" id="nmDotUpdate" style="display:none;"></span></button>
+      <button class="nm-tab active" id="nmTabPesan" onclick="nmSwitchTab('pesan')">💬 Pesan &amp; Lapor<span class="nm-dot" id="nmDotPesan" style="display:none;"></span></button>
+    </div>
+    <div class="nm-body" id="nmBody"></div>
+    <div class="nm-foot" id="nmFoot">
+      <div class="nm-chips" id="nmChips">
+        <button type="button" class="nm-chip active" data-k="bug" onclick="nmSetKategori('bug')">🐛 Bug</button>
+        <button type="button" class="nm-chip" data-k="masukan" onclick="nmSetKategori('masukan')">💡 Masukkan</button>
+        <button type="button" class="nm-chip" data-k="request" onclick="nmSetKategori('request')">✨ Request</button>
+      </div>
+      <div class="nm-preview" id="nmPreview" style="display:none;">
+        <img id="nmPreviewImg" alt="Lampiran"><button type="button" onclick="nmClearImage()" aria-label="Hapus lampiran">✕</button>
+      </div>
+      <div class="nm-compose">
+        <button type="button" class="nm-cam" onclick="document.getElementById('nmFile').click()" aria-label="Lampirkan foto/screenshot">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg>
+        </button>
+        <input type="file" id="nmFile" accept="image/*" style="display:none;" onchange="nmPickImage(this)">
+        <textarea id="nmText" rows="2" maxlength="2000" placeholder="Tulis pesan…" oninput="nmSyncSend()"></textarea>
+        <button type="button" class="nm-send" id="nmSend" onclick="nmSend()" disabled aria-label="Kirim">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M21.4 3.3 2.9 10.6c-.8.3-.8 1.4 0 1.7l4.6 1.7 1.8 5.5c.2.7 1.1.9 1.6.3l2.5-2.9 4.5 3.3c.6.4 1.4.1 1.6-.6L22.9 4.6c.2-.9-.7-1.6-1.5-1.3ZM9.5 13.2l8.6-5.5-6.7 7.3-.4 2.6-1.5-4.4Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="nm-lightbox" id="nmLightbox" onclick="this.classList.remove('show')"><img id="nmLightboxImg" alt=""></div>
 
 <div class="history-overlay" id="jsNotesOverlay" onclick="if(event.target===this) closeJsNotesModal()">
   <div class="history-modal">
@@ -7155,6 +7250,226 @@ initOrderListListener();
     }
   }catch(e){ /* abaikan */ }
 })();
+
+
+// ====== Notifikasi & Pesan: chat petugas <-> admin + pengumuman "Update" ======
+// Tabel Supabase: stok_opname_pesan (chat/laporan) & stok_opname_pengumuman
+// (update dari admin). Lihat pesan_setup.sql. Satu "thread" = satu perangkat
+// (CLIENT_ID), jadi tiap petugas hanya melihat percakapannya sendiri dengan admin.
+const NM_TABLE = 'stok_opname_pesan';
+const NM_UPD_TABLE = 'stok_opname_pengumuman';
+const NM_PENDING_KEY = 'stok-opname-pesan-pending';
+const NM_READ_MSG_KEY = 'stok-opname-pesan-lastread';
+const NM_READ_UPD_KEY = 'stok-opname-update-lastread';
+const NM_KAT_LABEL = { bug:'🐛 Bug', masukan:'💡 Masukkan', request:'✨ Request' };
+let nmKategori = 'bug', nmTab = 'pesan', nmImage = null;
+let nmServer = [], nmUpdates = [], nmChannel = null, nmWatching = false;
+
+function nmLS(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function nmLSset(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function nmEsc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// Identitas percakapan: per PETUGAS (id dari tabel petugas, ikut pindah HP & tahan ganti nama).
+// Kalau HP belum memilih petugas, dipakai id perangkat sebagai cadangan.
+function nmDevKey(){ return 'dev-' + ((typeof CLIENT_ID !== 'undefined' && CLIENT_ID) ? String(CLIENT_ID) : 'anon'); }
+function nmKey(){
+  let pid = null;
+  try{ pid = (typeof getMyPetugasId === 'function') ? getMyPetugasId() : null; }catch(e){}
+  return pid ? 'p-' + pid : nmDevKey();
+}
+function nmKeys(){ const a = [nmKey()], d = nmDevKey(); if(a[0] !== d) a.push(d); return a; }
+function nmPending(){ return nmLS(NM_PENDING_KEY, []); }
+function nmFmt(iso){
+  const d = new Date(iso), now = new Date();
+  const jam = d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  return d.toDateString() === now.toDateString() ? jam : d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) + ' ' + jam;
+}
+function nmAll(){
+  const ids = new Set(nmServer.map(m => m.id));
+  return [...nmServer, ...nmPending().filter(m => !ids.has(m.id))].sort((a,b) => a.created_at < b.created_at ? -1 : 1);
+}
+function nmUnread(){
+  const lm = localStorage.getItem(NM_READ_MSG_KEY) || '', lu = localStorage.getItem(NM_READ_UPD_KEY) || '';
+  return {
+    msg: nmServer.filter(m => m.sender === 'admin' && m.created_at > lm).length,
+    upd: nmUpdates.filter(u => u.created_at > lu).length
+  };
+}
+function nmRefreshBadge(){
+  const u = nmUnread(), n = u.msg + u.upd;
+  const b = document.getElementById('nmBadge');
+  if(b){ b.textContent = n > 9 ? '9+' : n; b.style.display = n ? 'inline-block' : 'none'; }
+  const dp = document.getElementById('nmDotPesan'), du = document.getElementById('nmDotUpdate');
+  if(dp) dp.style.display = u.msg ? 'inline-block' : 'none';
+  if(du) du.style.display = u.upd ? 'inline-block' : 'none';
+}
+function nmMarkRead(){
+  if(nmTab === 'pesan'){
+    const last = nmServer.filter(m => m.sender === 'admin').map(m => m.created_at).sort().pop();
+    if(last) localStorage.setItem(NM_READ_MSG_KEY, last);
+  } else {
+    const last = nmUpdates.map(u => u.created_at).sort().pop();
+    if(last) localStorage.setItem(NM_READ_UPD_KEY, last);
+  }
+  nmRefreshBadge();
+}
+
+async function nmFetch(){
+  const client = initSupabaseClient(); if(!client) return;
+  try{
+    const r1 = await sb.from(NM_TABLE).select('*').in('thread_key', nmKeys()).order('created_at', {ascending:true}).limit(200);
+    if(!r1.error && r1.data) nmServer = r1.data;
+    const r2 = await sb.from(NM_UPD_TABLE).select('*').eq('aktif', true).order('created_at', {ascending:false}).limit(30);
+    if(!r2.error && r2.data) nmUpdates = r2.data;
+  }catch(e){ console.error('Gagal memuat pesan:', e); }
+  nmRefreshBadge();
+}
+
+function nmRender(scroll){
+  const body = document.getElementById('nmBody'); if(!body) return;
+  const keepBottom = scroll || (body.scrollHeight - body.scrollTop - body.clientHeight < 80);
+  if(nmTab === 'pesan'){
+    const list = nmAll();
+    const pend = new Set(nmPending().map(m => m.id));
+    body.innerHTML = list.length ? list.map(m => {
+      const me = m.sender !== 'admin';
+      const tag = me ? (NM_KAT_LABEL[m.kategori] || '') : 'Admin';
+      return '<div class="nm-msg ' + (me ? 'me' : 'admin') + '">' + (tag ? '<div class="nm-tag">' + tag + '</div>' : '') +
+        '<div class="nm-bubble">' +
+        (m.gambar ? '<img class="nm-img" src="' + m.gambar + '" onclick="nmZoom(this.src)" alt="Lampiran">' : '') +
+        nmEsc(m.pesan) + '</div><div class="nm-time">' + nmFmt(m.created_at) + (me && pend.has(m.id) ? ' · ⏳ menunggu koneksi' : '') + '</div></div>';
+    }).join('') : '<div class="nm-empty"><div class="nm-empty-ico">💬</div><b>Belum ada pesan</b><span>Kirim laporan bug, masukkan, atau request fitur ke admin.</span></div>';
+  } else {
+    const lu = localStorage.getItem(NM_READ_UPD_KEY) || '';
+    body.innerHTML = nmUpdates.length ? nmUpdates.map(u =>
+      '<div class="nm-upd' + (u.created_at > lu ? ' unread' : '') + '"><b>' + nmEsc(u.judul) + '</b><p>' + nmEsc(u.isi) + '</p><span>' + nmFmt(u.created_at) + '</span></div>'
+    ).join('') : '<div class="nm-empty"><div class="nm-empty-ico">🔔</div><b>Belum ada update</b><span>Pengumuman dan info pembaruan dari admin akan muncul di sini.</span></div>';
+  }
+  if(keepBottom && nmTab === 'pesan') body.scrollTop = body.scrollHeight;
+  else if(nmTab !== 'pesan') body.scrollTop = 0;
+}
+
+function nmSwitchTab(t){
+  nmTab = t;
+  document.getElementById('nmTabPesan').classList.toggle('active', t === 'pesan');
+  document.getElementById('nmTabUpdate').classList.toggle('active', t === 'update');
+  document.getElementById('nmFoot').style.display = t === 'pesan' ? '' : 'none';
+  nmRender(true);
+  const u = nmUnread();
+  nmMarkRead();
+  // biarkan titik merah terlihat sebentar di render pertama, lalu hilang
+  nmRender(false);
+}
+function nmSetKategori(k){
+  nmKategori = k;
+  document.querySelectorAll('.nm-chip').forEach(c => c.classList.toggle('active', c.dataset.k === k));
+  const ph = { bug:'Ceritakan bug-nya: apa yang terjadi & langkahnya…', masukan:'Tulis masukkan untuk admin…', request:'Fitur apa yang kamu mau?' };
+  document.getElementById('nmText').placeholder = ph[k] || 'Tulis pesan…';
+}
+function nmSyncSend(){
+  const t = document.getElementById('nmText');
+  t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 110) + 'px';
+  document.getElementById('nmSend').disabled = !(t.value.trim() || nmImage);
+}
+function nmZoom(src){ document.getElementById('nmLightboxImg').src = src; document.getElementById('nmLightbox').classList.add('show'); }
+
+function nmPickImage(inp){
+  const file = inp.files && inp.files[0]; inp.value = '';
+  if(!file) return;
+  const img = new Image(), url = URL.createObjectURL(file);
+  img.onload = () => {
+    const max = 1000, sc = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    nmImage = c.toDataURL('image/jpeg', 0.7);
+    URL.revokeObjectURL(url);
+    document.getElementById('nmPreviewImg').src = nmImage;
+    document.getElementById('nmPreview').style.display = 'inline-block';
+    nmSyncSend();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('Gambar tidak bisa dibaca.'); };
+  img.src = url;
+}
+function nmClearImage(){ nmImage = null; document.getElementById('nmPreview').style.display = 'none'; nmSyncSend(); }
+
+async function nmPush(item){
+  const client = initSupabaseClient(); if(!client) throw new Error('Supabase belum siap');
+  const { error } = await sb.from(NM_TABLE).upsert(item, { onConflict: 'id' });
+  if(error) throw error;
+}
+async function nmSend(){
+  const ta = document.getElementById('nmText');
+  const pesan = ta.value.trim();
+  if(!pesan && !nmImage) return;
+  const petugas = ((document.getElementById('metaPetugas') || {}).value || '').trim();
+  const toko = ((document.getElementById('metaToko') || {}).value || '').trim();
+  const onOrder = document.getElementById('tabOrder') && document.getElementById('tabOrder').classList.contains('active');
+  const item = {
+    id: (crypto.randomUUID ? crypto.randomUUID() : 'm-' + Date.now() + '-' + Math.random().toString(16).slice(2)),
+    thread_key: nmKey(), sender: 'petugas', kategori: nmKategori,
+    pesan: pesan || '(foto)', gambar: nmImage || null,
+    petugas_nama: petugas, toko: toko, halaman: onOrder ? 'Barang Kosong' : 'Stok Opname',
+    layar: window.innerWidth + 'x' + window.innerHeight, user_agent: navigator.userAgent || '',
+    status: 'baru', created_at: new Date().toISOString()
+  };
+  ta.value = ''; nmClearImage(); nmSyncSend();
+  const q = nmPending(); q.push(item); nmLSset(NM_PENDING_KEY, q);
+  nmRender(true);
+  try{
+    await nmPush(item);
+    nmLSset(NM_PENDING_KEY, nmPending().filter(m => m.id !== item.id));
+    nmServer.push(item);
+  }catch(e){ console.error('Pesan belum terkirim (antre):', e); }
+  nmRender(true);
+}
+async function nmRetryPending(){
+  let q = nmPending(); if(!q.length) return;
+  for(const m of q){
+    try{ await nmPush(m); nmServer.push(m); q = q.filter(x => x.id !== m.id); nmLSset(NM_PENDING_KEY, q); }catch(e){ break; }
+  }
+  if(document.getElementById('nmOverlay').classList.contains('show')) nmRender(false);
+}
+
+let nmWatchedKey = null;
+function nmOnMsg(p){
+  const m = p.new; if(!m || nmServer.some(x => x.id === m.id)) return;
+  nmServer.push(m);
+  if(document.getElementById('nmOverlay').classList.contains('show') && nmTab === 'pesan'){ nmMarkRead(); nmRender(true); }
+  else nmRefreshBadge();
+}
+function nmWatch(){
+  const client = initSupabaseClient(); if(!client) return;
+  const key = nmKey();
+  if(nmWatching && nmWatchedKey === key) return;
+  if(nmChannel){ try{ sb.removeChannel(nmChannel); }catch(e){} nmChannel = null; }
+  nmWatching = true; nmWatchedKey = key;
+  try{
+    let ch = sb.channel('nm-' + key + '-' + Date.now());
+    nmKeys().forEach(k => {
+      ch = ch.on('postgres_changes', { event:'INSERT', schema:'public', table:NM_TABLE, filter:'thread_key=eq.' + k }, nmOnMsg);
+    });
+    nmChannel = ch.on('postgres_changes', { event:'INSERT', schema:'public', table:NM_UPD_TABLE }, p => {
+        const u = p.new; if(!u || nmUpdates.some(x => x.id === u.id) || u.aktif === false) return;
+        nmUpdates.unshift(u);
+        if(document.getElementById('nmOverlay').classList.contains('show') && nmTab === 'update'){ nmMarkRead(); nmRender(false); }
+        else nmRefreshBadge();
+      }).subscribe();
+  }catch(e){ console.error('Realtime pesan gagal:', e); }
+}
+
+async function openNotifModal(){
+  document.getElementById('nmOverlay').classList.add('show');
+  nmRender(true);
+  await nmFetch();
+  nmWatch();
+  const u = nmUnread();
+  nmSwitchTab(u.upd && !u.msg ? 'update' : 'pesan');
+  nmRetryPending();
+}
+function closeNotifModal(){ document.getElementById('nmOverlay').classList.remove('show'); }
+
+window.addEventListener('online', nmRetryPending);
+window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); nmWatch(); nmRetryPending(); }, 3000));
 
 </script>
 <div class="broadcast-overlay" id="broadcastOverlay">
