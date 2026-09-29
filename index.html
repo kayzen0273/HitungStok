@@ -8339,9 +8339,10 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     return 'https://www.google.com/search?q=' + encodeURIComponent(raw) + '&igu=1';
   }
 
-  function cashierLoad(url, pushHistory){
+  function cashierLoad(url, pushHistory, bust){
     var f = document.getElementById('cashierPopupFrame');
-    f.src = url;
+    // bust=true: tambahkan parameter waktu supaya browser selalu mengambil data terbaru
+    f.src = bust ? url + (url.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now() : url;
     document.getElementById('cashierAddrBar').value = url;
     if(pushHistory !== false){
       cashierHistory.push(url);
@@ -8365,7 +8366,8 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
       // Untuk situs lain (lintas-domain), browser tidak mengizinkan kita membaca
       // atau me-reload halaman yang sedang aktif di dalamnya. Kita tidak memaksa
       // lompat ke alamat lama — cukup beri tahu pengguna.
-      alert('Situs ini tidak mengizinkan reload dari jendela mini (dibatasi keamanan browser). Coba muat ulang lewat halaman itu sendiri, atau buka di tab baru.');
+      var cur = (document.getElementById('cashierAddrBar').value || '').trim();
+      if(cur) cashierLoad(cur, false, true);
     }
   }
 
@@ -8387,18 +8389,22 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   // Buka jendela browser mini untuk aplikasi tertentu. Kalau berpindah dari
   // aplikasi lain, mulai dari alamat awal aplikasi itu; kalau aplikasi yang
   // sama, lanjutkan halaman terakhir.
-  function cashierOpenApp(key, home, title){
+  function cashierOpenApp(key, home, title, freshOnOpen){
     if(cashierCurrentApp !== key){
       cashierCurrentApp = key;
       cashierHistory = [];
-      cashierLoad(home, true);
+      cashierLoad(home, true, freshOnOpen);
+    } else if(freshOnOpen){
+      // aplikasi sama dibuka lagi: muat ulang supaya datanya selalu real-time
+      cashierHistory = [];
+      cashierLoad(home, true, true);
     }
     var t = document.getElementById('cashierTitle');
     if(t) t.textContent = title;
     document.getElementById('cashierPopup').classList.add('show');
   }
   function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); }
-  function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran'); }
+  function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran', true); }
   function openGamePopup(){ cashierOpenApp('game', GAME_HOME, 'Game'); }
   function cashierOpenExternal(){
     var u = (document.getElementById('cashierAddrBar').value || '').trim();
