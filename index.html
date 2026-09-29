@@ -1785,7 +1785,7 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
       </button>
     </div>
     <nav class="mh-actions" aria-label="Menu cepat">
-      <a class="mh-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" title="Rekap Setoran" aria-label="Rekap Setoran"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="b1" d="M6 20v-6"/><path class="b2" d="M12 20V5"/><path class="b3" d="M18 20V10"/></svg></span><span>Rekap</span></a>
+      <button type="button" class="mh-btn" onclick="openRekapPopup()" title="Rekap Setoran" aria-label="Rekap Setoran"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="b1" d="M6 20v-6"/><path class="b2" d="M12 20V5"/><path class="b3" d="M18 20V10"/></svg></span><span>Rekap</span></button>
       <button type="button" class="mh-btn" onclick="openHistoryModal()"><span class="mh-ico"><svg class="ic-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path class="hm" d="M12 12V7.5"/><path class="hh" d="M12 12l3 2"/></svg></span><span>Riwayat</span></button>
       <button type="button" class="mh-btn" onclick="openCashierPopup()"><span class="mh-ico"><svg class="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse class="gl" cx="12" cy="12" rx="4.2" ry="9"/></svg></span><span>Browser</span></button>
       <button type="button" class="mh-btn" onclick="openJsNotesModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="cl" d="m9 8-4 4 4 4"/><path class="cr" d="m15 8 4 4-4 4"/><path d="m13.5 6-3 12"/></svg></span><span>Catatan JS</span></button>
@@ -8301,13 +8301,14 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     <div class="cashier-popup-head">
       <div class="cashier-drag-strip" id="cashierDragHandle">
         <div class="cashier-grip"><span></span><span></span><span></span></div>
-        <span class="cashier-title">Browser</span>
+        <span class="cashier-title" id="cashierTitle">Browser</span>
         <button class="cashier-popup-close" onclick="closeCashierPopup()">✕</button>
       </div>
       <div class="cashier-addr-row">
         <div class="cashier-popup-nav">
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
+          <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -8375,11 +8376,27 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     }
   }
 
-  function openCashierPopup(){
-    if(cashierHistory.length === 0){
-      cashierLoad(CASHIER_HOME, true);
+  var REKAP_HOME = 'https://rekapsetoranrafa.vercel.app/';
+  var cashierCurrentApp = '';
+
+  // Buka jendela browser mini untuk aplikasi tertentu. Kalau berpindah dari
+  // aplikasi lain, mulai dari alamat awal aplikasi itu; kalau aplikasi yang
+  // sama, lanjutkan halaman terakhir.
+  function cashierOpenApp(key, home, title){
+    if(cashierCurrentApp !== key){
+      cashierCurrentApp = key;
+      cashierHistory = [];
+      cashierLoad(home, true);
     }
+    var t = document.getElementById('cashierTitle');
+    if(t) t.textContent = title;
     document.getElementById('cashierPopup').classList.add('show');
+  }
+  function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); }
+  function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran'); }
+  function cashierOpenExternal(){
+    var u = (document.getElementById('cashierAddrBar').value || '').trim();
+    if(u) window.open(u, '_blank', 'noopener');
   }
   function closeCashierPopup(){
     document.getElementById('cashierPopup').classList.remove('show');
@@ -12349,4 +12366,3 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
 </body>
 </html>
-            
