@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
@@ -1205,21 +1206,492 @@
   }
   .toggle-switch input:checked + .toggle-slider{ background:var(--teal); }
   .toggle-switch input:checked + .toggle-slider:before{ transform:translateX(18px); }
+
+/* ===== Pengganti tema header ===== */
+.mh-bg{display:none;}
+.pill:not(.t-asli){display:none;}
+body:not([data-theme="asli"]) .pill.t-asli{display:none;}
+.mh-chip{display:none;}
+.mh-hrow{display:block;}
+body[data-theme="asli"] .mh-title h1::after{content:" — Pencatatan Barang";}
+body[data-theme="kardus"] .mh-bg.t-kardus{display:block;}
+body[data-theme="kardus"] .pill.t-kardus{display:flex;}
+body[data-theme="kucing"] .mh-bg.t-kucing{display:block;}
+body[data-theme="kucing"] .pill.t-kucing{display:flex;}
+body[data-theme="robot"] .mh-bg.t-robot{display:block;}
+body[data-theme="robot"] .pill.t-robot{display:flex;}
+body[data-theme="awan"] .mh-bg.t-awan{display:block;}
+body[data-theme="awan"] .pill.t-awan{display:flex;}
+body[data-theme="boba"] .mh-bg.t-boba{display:block;}
+body[data-theme="boba"] .pill.t-boba{display:flex;}
+
+body[data-theme="kardus"] .mh-hrow{display:flex; align-items:center; flex-wrap:wrap; gap:6px;}
+body[data-theme="kardus"] .mh-chip{margin-left:0;}
+body[data-theme="kucing"] .mh-hrow{display:flex; flex-direction:column; align-items:flex-start;}
+body[data-theme="kucing"] .mh-chip::before{content:"📦 ";}
+body[data-theme="awan"] .mh-chip::before{content:"☀ ";}
+body[data-theme="boba"] .mh-chip::before{content:"🧋 ";}
+body[data-theme="awan"]{--tb-top:40px;}
+body[data-theme="boba"]{--tb-top:34px;}
+
+body[data-theme="asli"] .mh-title{padding-right:44px;}
+body[data-theme="asli"] .masthead h1{font-size:15px;}
+
+/* Tombol ganti tema */
+.mh-theme-btn{
+  position:absolute; top:var(--tb-top,10px); right:10px; z-index:8; width:36px; height:36px; padding:0;
+  display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
+  background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.35);
+  -webkit-tap-highlight-color:transparent; animation:thWiggle 5s ease-in-out infinite;
+}
+.mh-theme-btn svg{width:19px; height:19px;}
+.mh-theme-btn:active{animation:none; transform:scale(.86) rotate(-14deg);}
+.mh-theme-btn:focus-visible{outline:2px solid #fff; outline-offset:2px;}
+@keyframes thWiggle{0%,86%,100%{transform:rotate(0);} 90%{transform:rotate(-16deg);} 94%{transform:rotate(12deg);} 97%{transform:rotate(-5deg);}}
+body[data-theme="kardus"] .mh-theme-btn{background:#fffdf6; color:#173b36; border:2.5px solid #173b36; box-shadow:0 3px 0 #173b36;}
+body[data-theme="kucing"] .mh-theme-btn{background:#fff; color:#d1467a; border:2.5px solid #fff; box-shadow:0 5px 12px -3px rgba(214,120,160,.65);}
+body[data-theme="robot"] .mh-theme-btn{background:#1d1350; color:#5ef2ff; border:2px solid #5ef2ff; box-shadow:0 0 12px rgba(94,242,255,.6);}
+body[data-theme="awan"] .mh-theme-btn{background:#fff; color:#2f6fc4; border:2.5px solid #fff; box-shadow:0 0 0 1.5px #bfe6ff, 0 5px 10px -3px rgba(47,111,196,.5);}
+body[data-theme="boba"] .mh-theme-btn{background:#fffaf2; color:#6b4226; border:2.5px solid #6b4226; box-shadow:0 3px 0 #4a2c1a;}
+
+/* Menu pilihan tema */
+.masthead:has(.th-menu.open){z-index:10000;}
+.th-backdrop{display:none; position:fixed; inset:0; z-index:6; background:rgba(15,30,27,.2);}
+.th-menu{
+  display:none; position:absolute; top:calc(var(--tb-top,10px) + 44px); right:10px; z-index:9; width:226px;
+  padding:8px; background:#fff; border-radius:18px; transform-origin:top right;
+  box-shadow:0 16px 36px rgba(15,30,27,.35), 0 0 0 1px rgba(23,59,54,.08);
+}
+.th-menu.open{display:block; animation:thPop .22s cubic-bezier(.34,1.56,.64,1);}
+@keyframes thPop{from{opacity:0; transform:scale(.85) translateY(-6px);} to{opacity:1; transform:none;}}
+.th-title{padding:4px 8px 6px; font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft);}
+.th-opt{
+  display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0; background:none;
+  border-radius:12px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); text-align:left; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.th-opt:hover, .th-opt:focus-visible, .th-opt[aria-checked="true"]{background:var(--mint);}
+.th-opt:focus-visible{outline:2px solid var(--teal); outline-offset:-2px;}
+.th-sw{width:34px; height:34px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:11px; font-size:18px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55), 0 2px 5px rgba(0,0,0,.2);}
+.th-name{flex:1;}
+.th-ck{display:none; width:18px; height:18px; align-items:center; justify-content:center; border-radius:50%; background:var(--teal); color:#fff; font-size:11px;}
+.th-opt[aria-checked="true"] .th-ck{display:flex;}
+@media (prefers-reduced-motion: reduce){ .mh-theme-btn, .th-menu.open{animation:none !important;} }
+
+/* --- tema kardus --- */
+body[data-theme="kardus"] .masthead{
+    background:
+      radial-gradient(circle at 93% 10%, rgba(255,214,120,.38) 0 34px, transparent 35px),
+      radial-gradient(circle at 4% 100%, rgba(255,255,255,.10) 0 44px, transparent 45px),
+      linear-gradient(160deg,#14846f,#0a453e);
+    border-radius:0 0 28px 28px; border-bottom:3px solid #173b36;
+    box-shadow:0 5px 0 #0a2f2a, 0 12px 20px rgba(10,69,62,.25);
+    padding:14px 12px 12px; gap:10px;
+  }
+body[data-theme="kardus"] .mh-bg{position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; z-index:0;}
+body[data-theme="kardus"] .mh-bg i{position:absolute; display:block; font-style:normal; color:rgba(255,255,255,.6); line-height:1;}
+body[data-theme="kardus"] .mh-bg .d1{top:9px; left:48%; font-size:13px; animation:kardus-mhTwinkle 2.6s ease-in-out infinite;}
+body[data-theme="kardus"] .mh-bg .d2{top:46px; right:74px; font-size:15px; font-weight:800; animation:kardus-mhTwinkle 3.2s ease-in-out -1s infinite;}
+body[data-theme="kardus"] .mh-bg .d5{top:10px; right:16px; font-size:15px; animation:kardus-mhTwinkle 2.2s ease-in-out -.5s infinite;}
+body[data-theme="kardus"] .mh-bg .d3,body[data-theme="kardus"] .mh-bg .d4{border:2px solid rgba(255,255,255,.4); border-radius:50%;}
+body[data-theme="kardus"] .mh-bg .d3{width:14px; height:14px; right:30px; bottom:62px; animation:kardus-mhRise 4s ease-in-out infinite alternate;}
+body[data-theme="kardus"] .mh-bg .d4{width:8px; height:8px; left:42%; bottom:72px; animation:kardus-mhRise 3.4s ease-in-out -1.4s infinite alternate;}
+@keyframes kardus-mhTwinkle{0%,100%{opacity:.35; transform:scale(.8) rotate(0);} 50%{opacity:1; transform:scale(1.2) rotate(20deg);}}
+@keyframes kardus-mhRise{from{transform:translateY(4px);} to{transform:translateY(-10px);}}
+body[data-theme="kardus"] .mh-top{position:relative; z-index:1; gap:12px;}
+body[data-theme="kardus"] .pill{
+    width:58px; height:58px; border-radius:50%;
+    background:radial-gradient(circle at 35% 28%, rgba(255,255,255,.4), rgba(255,255,255,.08));
+    border:2px dashed rgba(255,255,255,.45); box-shadow:none;
+  }
+body[data-theme="kardus"] .pill svg{width:46px; height:46px; overflow:visible; animation:kardus-mhBob 2.6s ease-in-out infinite;}
+@keyframes kardus-mhBob{0%,100%{transform:translateY(1px) rotate(-2deg);} 50%{transform:translateY(-3px) rotate(2deg);}}
+body[data-theme="kardus"] .pill .eye{transform-box:fill-box; transform-origin:50% 50%; animation:kardus-mhBlink 4.2s infinite;}
+@keyframes kardus-mhBlink{0%,92%,100%{transform:scaleY(1);} 95%{transform:scaleY(.1);}}
+body[data-theme="kardus"] .pill .arm{transform-box:view-box; transform-origin:54px 42px; animation:kardus-mhWave 3s ease-in-out infinite;}
+@keyframes kardus-mhWave{0%,55%,100%{transform:rotate(0);} 63%{transform:rotate(-24deg);} 71%{transform:rotate(8deg);} 79%{transform:rotate(-20deg);} 87%{transform:rotate(4deg);}}
+body[data-theme="kardus"] .masthead h1{
+    font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:21px; font-weight:800;
+    line-height:1.1; letter-spacing:0; text-shadow:0 2px 0 #0a2f2a;
+  }
+body[data-theme="kardus"] .mh-chip{
+    display:inline-block; vertical-align:middle; margin-left:4px; padding:2px 8px;
+    background:#ffd66b; color:#173b36; border:2px solid #173b36; border-radius:99px;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:9.5px; font-weight:800; letter-spacing:0; text-shadow:none;
+    box-shadow:0 2px 0 #173b36; transform:rotate(-3deg);
+  }
+body[data-theme="kardus"] .masthead p{margin-top:4px; font-size:11px; color:#d6efe8;}
+body[data-theme="kardus"] .masthead .mh-save{display:flex; align-items:center; gap:6px; color:#d6efe8;}
+body[data-theme="kardus"] .masthead .mh-save::before{
+    content:""; width:7px; height:7px; flex-shrink:0; border-radius:50%; background:#7cf0a8;
+    box-shadow:0 0 0 3px rgba(124,240,168,.25); animation:kardus-mhPulse 1.8s ease-in-out infinite;
+  }
+@keyframes kardus-mhPulse{0%,100%{box-shadow:0 0 0 2px rgba(124,240,168,.3);} 50%{box-shadow:0 0 0 5px rgba(124,240,168,.08);}}
+body[data-theme="kardus"] .mh-actions{
+    z-index:1; padding:10px 4px 8px; background:#fffdf6;
+    border:2.5px solid #173b36; border-radius:24px;
+    box-shadow:0 5px 0 #173b36, 0 14px 22px rgba(10,40,35,.18);
+  }
+body[data-theme="kardus"] .mh-btn{gap:7px; font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:800;}
+body[data-theme="kardus"] .mh-ico{
+    width:44px; height:44px; border-radius:16px; border:2.5px solid #173b36;
+    box-shadow:0 3px 0 #173b36, inset 0 2px 0 rgba(255,255,255,.4);
+  }
+body[data-theme="kardus"] .mh-btn:active .mh-ico{transform:translateY(3px); box-shadow:0 0 0 #173b36, inset 0 2px 0 rgba(255,255,255,.4);}
+body[data-theme="kardus"] .mh-btn .nm-badge{top:-9px; right:-9px; background:#ff5a4d; color:#fff; border:2px solid #173b36; box-shadow:none;}
+@media (prefers-reduced-motion: reduce){body[data-theme="kardus"] .pill svg,body[data-theme="kardus"] .pill .eye,body[data-theme="kardus"] .pill .arm,body[data-theme="kardus"] .mh-bg i,body[data-theme="kardus"] .masthead .mh-save::before{animation:none !important;}}
+
+/* --- tema kucing --- */
+body[data-theme="kucing"] .masthead{
+    background:
+      radial-gradient(circle at 90% 0%, rgba(255,255,255,.7) 0 40px, transparent 41px),
+      linear-gradient(160deg,#ffe4d4 0%,#ffd3e2 55%,#dcd0ff 100%);
+    border-radius:0 0 34px 34px; border-bottom:3px solid #fff;
+    box-shadow:0 10px 22px rgba(214,120,160,.28);
+    padding:14px 12px 12px; gap:10px;
+  }
+body[data-theme="kucing"] .mh-bg{position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; z-index:0;}
+body[data-theme="kucing"] .mh-bg i{position:absolute; display:block; font-style:normal; line-height:1;}
+body[data-theme="kucing"] .mh-bg .p1{top:8px; right:58px; font-size:15px; opacity:.45; transform:rotate(20deg); animation:kucing-mhHop 3.2s ease-in-out infinite;}
+body[data-theme="kucing"] .mh-bg .p2{top:34px; right:22px; font-size:13px; opacity:.35; transform:rotate(-15deg); animation:kucing-mhHop 3.2s ease-in-out -1.2s infinite;}
+body[data-theme="kucing"] .mh-bg .p3{top:12px; left:52%; font-size:13px; color:#ff8fb1; animation:kucing-mhSpin 6s linear infinite;}
+body[data-theme="kucing"] .mh-bg .p4{top:60px; right:96px; font-size:12px; color:#b79cff; animation:kucing-mhTwinkle 2.4s ease-in-out infinite;}
+body[data-theme="kucing"] .mh-bg .p5{top:70px; right:14px; font-size:11px; color:#ffb35c; animation:kucing-mhSpin 8s linear -2s infinite;}
+@keyframes kucing-mhHop{0%,100%{translate:0 0;} 50%{translate:0 -5px;}}
+@keyframes kucing-mhSpin{to{rotate:360deg;}}
+@keyframes kucing-mhTwinkle{0%,100%{opacity:.3; scale:.8;} 50%{opacity:1; scale:1.25;}}
+body[data-theme="kucing"] .mh-top{position:relative; z-index:1; gap:12px; align-items:center;}
+body[data-theme="kucing"] .pill{
+    width:60px; height:60px; border-radius:50%; background:#fff; border:3px solid #fff;
+    box-shadow:0 6px 14px -4px rgba(214,120,160,.55);
+  }
+body[data-theme="kucing"] .pill svg{width:50px; height:50px; overflow:visible; animation:kucing-mhBob 2.8s ease-in-out infinite;}
+@keyframes kucing-mhBob{0%,100%{transform:translateY(1px) rotate(-3deg);} 50%{transform:translateY(-2px) rotate(3deg);}}
+body[data-theme="kucing"] .pill .eye{transform-box:fill-box; transform-origin:50% 50%; animation:kucing-mhBlink 4.4s infinite;}
+@keyframes kucing-mhBlink{0%,92%,100%{transform:scaleY(1);} 95%{transform:scaleY(.1);}}
+body[data-theme="kucing"] .pill .ear{transform-box:fill-box; transform-origin:50% 100%; animation:kucing-mhEar 3.6s ease-in-out infinite;}
+body[data-theme="kucing"] .pill .er{animation-delay:-.25s;}
+@keyframes kucing-mhEar{0%,70%,100%{transform:rotate(0);} 78%{transform:rotate(-9deg);} 86%{transform:rotate(6deg);} 94%{transform:rotate(-3deg);}}
+body[data-theme="kucing"] .masthead h1{
+    font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:23px; font-weight:800;
+    line-height:1.05; letter-spacing:0; color:var(--ink);
+    background:linear-gradient(transparent 62%, rgba(255,255,255,.85) 62%); display:inline-block; padding:0 4px; margin-left:-4px;
+  }
+body[data-theme="kucing"] .mh-chip{
+    display:inline-block; margin-top:5px; padding:2px 9px; border-radius:99px;
+    background:#fff; color:#d1467a; border:2px solid #ff9fbe;
+    font-size:10px; font-weight:800; transform:rotate(-2deg);
+  }
+body[data-theme="kucing"] .masthead p{margin-top:5px; font-size:11px; color:#6b5a68;}
+body[data-theme="kucing"] .masthead .mh-save{display:flex; align-items:center; gap:6px; margin-top:2px; color:#6b5a68;}
+body[data-theme="kucing"] .masthead .mh-save::before{
+    content:""; width:8px; height:8px; flex-shrink:0; border-radius:50%; background:#3fcf7f;
+    box-shadow:0 0 0 3px rgba(63,207,127,.22); animation:kucing-mhPulse 1.8s ease-in-out infinite;
+  }
+@keyframes kucing-mhPulse{0%,100%{box-shadow:0 0 0 2px rgba(63,207,127,.3);} 50%{box-shadow:0 0 0 5px rgba(63,207,127,.08);}}
+body[data-theme="kucing"] .mh-actions{
+    z-index:1; padding:10px 4px 8px; background:rgba(255,255,255,.95);
+    border:2px solid #fff; border-radius:28px;
+    box-shadow:0 12px 26px rgba(214,120,160,.32), 0 0 0 1.5px #ffd3e2;
+  }
+body[data-theme="kucing"] .mh-btn{gap:7px; font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:800; color:#5a3f52;}
+body[data-theme="kucing"] .mh-ico{
+    width:46px; height:46px; border-radius:50%; border:3px solid #fff;
+    box-shadow:0 7px 12px -4px var(--c2), 0 0 0 1.5px var(--c1), inset 0 2px 0 rgba(255,255,255,.4);
+  }
+body[data-theme="kucing"] .mh-btn:active .mh-ico{transform:scale(.86);}
+body[data-theme="kucing"] .mh-btn .nm-badge{top:-6px; right:-8px; background:#ff5a8a; color:#fff; box-shadow:0 0 0 2px #fff;}
+@media (prefers-reduced-motion: reduce){body[data-theme="kucing"] .pill svg,body[data-theme="kucing"] .pill .eye,body[data-theme="kucing"] .pill .ear,body[data-theme="kucing"] .mh-bg i,body[data-theme="kucing"] .masthead .mh-save::before{animation:none !important;}}
+
+/* --- tema robot --- */
+body[data-theme="robot"] .masthead{
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 4px),
+      radial-gradient(circle at 88% 0%, rgba(255,79,184,.35) 0 60px, transparent 120px),
+      linear-gradient(170deg,#2c1676,#120a3d);
+    border-radius:0 0 24px 24px; border-bottom:3px solid #ff4fb8;
+    box-shadow:0 0 0 2px #0b0a2a, 0 8px 26px rgba(255,79,184,.45);
+    padding:14px 12px 12px; gap:10px;
+  }
+body[data-theme="robot"] .mh-bg{position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; z-index:0;}
+body[data-theme="robot"] .mh-bg i{position:absolute; display:block; width:4px; height:4px; background:#fff; animation:robot-mhStar 2.4s steps(2) infinite;}
+body[data-theme="robot"] .mh-bg .s1{top:10px; left:44%;}
+body[data-theme="robot"] .mh-bg .s2{top:26px; right:60px; background:#5ef2ff; animation-delay:-.6s;}
+body[data-theme="robot"] .mh-bg .s3{top:14px; right:16px; width:6px; height:6px; background:#ffd66b; animation-delay:-1.2s;}
+body[data-theme="robot"] .mh-bg .s4{top:58px; right:100px; background:#ff4fb8; animation-delay:-.3s;}
+body[data-theme="robot"] .mh-bg .s5{top:70px; left:38%; width:3px; height:3px; animation-delay:-1.8s;}
+body[data-theme="robot"] .mh-bg .s6{top:52px; right:22px; width:3px; height:3px; background:#5ef2ff; animation-delay:-1s;}
+@keyframes robot-mhStar{0%,100%{opacity:.25;} 50%{opacity:1;}}
+body[data-theme="robot"] .mh-top{position:relative; z-index:1; gap:12px; align-items:center;}
+body[data-theme="robot"] .pill{
+    width:60px; height:60px; border-radius:18px; background:#1d1350;
+    border:2px solid #5ef2ff; box-shadow:0 0 14px rgba(94,242,255,.55), inset 0 0 10px rgba(94,242,255,.25);
+  }
+body[data-theme="robot"] .pill svg{width:50px; height:50px; overflow:visible; animation:robot-mhBob 1.6s ease-in-out infinite;}
+@keyframes robot-mhBob{0%,100%{transform:translateY(1px);} 50%{transform:translateY(-3px);}}
+body[data-theme="robot"] .pill .eye{transform-box:fill-box; transform-origin:50% 50%; animation:robot-mhBlink 3.8s infinite;}
+@keyframes robot-mhBlink{0%,91%,100%{transform:scaleY(1);} 95%{transform:scaleY(.12);}}
+body[data-theme="robot"] .pill .ant{animation:robot-mhAnt 1.2s steps(2) infinite;}
+@keyframes robot-mhAnt{0%{fill:#ff4fb8;} 50%{fill:#ffd66b;}}
+body[data-theme="robot"] .pill .ear{animation:robot-mhEarLed 1.6s ease-in-out infinite;}
+@keyframes robot-mhEarLed{0%,100%{fill:#5ef2ff;} 50%{fill:#b8fbff;}}
+body[data-theme="robot"] .masthead h1{
+    font-family:'Press Start 2P','Plus Jakarta Sans',monospace; font-size:14.5px; font-weight:400;
+    line-height:1.2; letter-spacing:0; color:#fff;
+    text-shadow:2px 2px 0 #ff4fb8, 0 0 12px rgba(94,242,255,.9);
+  }
+body[data-theme="robot"] .mh-chip{
+    display:inline-block; margin-top:7px; padding:3px 8px; background:#ffd66b; color:#1a1048;
+    border:2px solid #0b0a2a; border-radius:4px; box-shadow:2px 2px 0 #ff4fb8;
+    font-family:'Silkscreen','Plus Jakarta Sans',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  }
+body[data-theme="robot"] .masthead p{margin-top:6px; font-size:11px; color:#cfc8ff;}
+body[data-theme="robot"] .masthead .mh-save{display:flex; align-items:center; gap:6px; margin-top:2px; color:#9ff6ff;}
+body[data-theme="robot"] .masthead .mh-save::before{
+    content:""; width:7px; height:7px; flex-shrink:0; background:#5ef2ff;
+    box-shadow:0 0 8px #5ef2ff; animation:robot-mhStar 1.2s steps(2) infinite;
+  }
+body[data-theme="robot"] .mh-actions{
+    z-index:1; padding:10px 4px 8px; background:#1a1248;
+    border:2px solid #5ef2ff; border-radius:22px;
+    box-shadow:0 0 0 2px #0b0a2a, 0 0 18px rgba(94,242,255,.5), 0 14px 24px rgba(0,0,0,.35);
+  }
+body[data-theme="robot"] .mh-btn{gap:7px; font-family:'Silkscreen','Plus Jakarta Sans',monospace; font-size:9px; font-weight:400; color:#e9e4ff; text-transform:uppercase;}
+body[data-theme="robot"] .mh-ico{
+    width:44px; height:44px; border-radius:14px; border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 3px 0 var(--c2), 0 0 14px var(--c1), inset 0 2px 0 rgba(255,255,255,.35);
+  }
+body[data-theme="robot"] .mh-btn:active .mh-ico{transform:translateY(3px); box-shadow:0 0 0 var(--c2), 0 0 8px var(--c1);}
+body[data-theme="robot"] .mh-btn .nm-badge{top:-8px; right:-8px; background:#ff3fa4; color:#fff; box-shadow:0 0 0 2px #0b0a2a, 0 0 10px #ff3fa4;}
+@media (prefers-reduced-motion: reduce){body[data-theme="robot"] .pill svg,body[data-theme="robot"] .pill .eye,body[data-theme="robot"] .pill .ant,body[data-theme="robot"] .pill .ear,body[data-theme="robot"] .mh-bg i,body[data-theme="robot"] .masthead .mh-save::before{animation:none !important;}}
+
+/* --- tema awan --- */
+body[data-theme="awan"] .masthead{
+    background:linear-gradient(180deg,#54c0ff 0%,#9edcff 62%,#dff4ff 100%);
+    border-radius:0 0 32px 32px; border-bottom:3px solid #fff;
+    box-shadow:0 10px 22px rgba(60,140,220,.35);
+    padding:14px 12px 12px; gap:10px;
+  }
+body[data-theme="awan"] .mh-bg{position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; z-index:0;}
+body[data-theme="awan"] .mh-bg b{position:absolute; display:block;}
+body[data-theme="awan"] .mh-bg .sun{width:34px; height:34px; top:-8px; right:-6px; border-radius:50%; background:#ffd23f;
+    box-shadow:0 0 0 6px rgba(255,210,63,.35), 0 0 0 14px rgba(255,210,63,.18); animation:awan-mhSun 3s ease-in-out infinite;}
+@keyframes awan-mhSun{0%,100%{transform:scale(1);} 50%{transform:scale(1.12);}}
+body[data-theme="awan"] .mh-bg .rb{width:84px; height:42px; top:8px; right:22px; opacity:.8;
+    background:radial-gradient(circle at 50% 100%, transparent 0 34%, #ff6b6b 34% 44%, #ffb84d 44% 54%, #ffe56b 54% 64%, #6fdc8c 64% 74%, #5bb5ff 74% 84%, transparent 84%);}
+body[data-theme="awan"] .mh-bg .cl{height:12px; border-radius:99px; background:rgba(255,255,255,.85); animation:awan-mhDrift linear infinite;}
+body[data-theme="awan"] .mh-bg .cl::before,body[data-theme="awan"] .mh-bg .cl::after{content:""; position:absolute; background:inherit; border-radius:50%;}
+body[data-theme="awan"] .mh-bg .cl::before{width:14px; height:14px; left:7px; top:-8px;}
+body[data-theme="awan"] .mh-bg .cl::after{width:10px; height:10px; left:19px; top:-5px;}
+body[data-theme="awan"] .mh-bg .c1{width:38px; top:44px; animation-duration:22s; animation-delay:-4s;}
+body[data-theme="awan"] .mh-bg .c2{width:28px; top:78px; opacity:.7; animation-duration:30s; animation-delay:-16s;}
+body[data-theme="awan"] .mh-bg .c3{width:32px; top:18px; opacity:.6; animation-duration:26s; animation-delay:-9s;}
+@keyframes awan-mhDrift{from{transform:translateX(-60px);} to{transform:translateX(440px);}}
+body[data-theme="awan"] .mh-top{position:relative; z-index:1; gap:12px; align-items:center;}
+body[data-theme="awan"] .pill{
+    width:62px; height:62px; border-radius:50%; background:rgba(255,255,255,.45);
+    border:2.5px solid #fff; box-shadow:0 6px 14px -4px rgba(47,111,196,.5);
+  }
+body[data-theme="awan"] .pill svg{width:54px; height:54px; overflow:visible; animation:awan-mhBob 3.2s ease-in-out infinite;}
+@keyframes awan-mhBob{0%,100%{transform:translateY(2px);} 50%{transform:translateY(-3px);}}
+body[data-theme="awan"] .pill .eye{transform-box:fill-box; transform-origin:50% 50%; animation:awan-mhBlink 4s infinite;}
+@keyframes awan-mhBlink{0%,92%,100%{transform:scaleY(1);} 95%{transform:scaleY(.1);}}
+body[data-theme="awan"] .pill .tw{transform-box:fill-box; transform-origin:50% 50%; animation:awan-mhTw 1.8s ease-in-out infinite;}
+@keyframes awan-mhTw{0%,100%{transform:scale(.7) rotate(0);} 50%{transform:scale(1.15) rotate(25deg);}}
+body[data-theme="awan"] .masthead h1{
+    font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:23px; font-weight:800;
+    line-height:1.05; letter-spacing:0; color:#fff;
+    text-shadow:0 3px 0 #2f6fc4, 0 0 0 #2f6fc4, 2px 0 0 #2f6fc4, -2px 0 0 #2f6fc4, 0 -2px 0 #2f6fc4;
+  }
+body[data-theme="awan"] .mh-chip{
+    display:inline-block; margin-top:7px; padding:2px 10px; border-radius:99px;
+    background:#ffd23f; color:#5b3b00; border:2px solid #fff; box-shadow:0 3px 0 #e8a900;
+    font-size:10px; font-weight:800; transform:rotate(-2deg);
+  }
+body[data-theme="awan"] .masthead p{margin-top:7px; font-size:11px; font-weight:600; color:#24508f;}
+body[data-theme="awan"] .masthead .mh-save{display:flex; align-items:center; gap:6px; margin-top:2px; color:#24508f;}
+body[data-theme="awan"] .masthead .mh-save::before{
+    content:""; width:8px; height:8px; flex-shrink:0; border-radius:50%; background:#2fd08a;
+    box-shadow:0 0 0 3px rgba(47,208,138,.28); animation:awan-mhPulse 1.8s ease-in-out infinite;
+  }
+@keyframes awan-mhPulse{0%,100%{box-shadow:0 0 0 2px rgba(47,208,138,.35);} 50%{box-shadow:0 0 0 5px rgba(47,208,138,.1);}}
+body[data-theme="awan"] .mh-actions{
+    z-index:1; padding:10px 4px 8px; background:#fff; border:3px solid #fff; border-radius:26px;
+    box-shadow:0 0 0 2px #bfe6ff, 0 12px 24px rgba(60,140,220,.35);
+  }
+body[data-theme="awan"] .mh-btn{gap:7px; font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:800; color:#24508f;}
+body[data-theme="awan"] .mh-ico{
+    width:46px; height:46px; border-radius:18px; border:3px solid #fff;
+    box-shadow:0 0 0 1.5px var(--c1), 0 7px 10px -3px var(--c2), inset 0 -4px 0 rgba(0,0,0,.12), inset 0 2px 0 rgba(255,255,255,.4);
+  }
+body[data-theme="awan"] .mh-ico::after{content:""; position:absolute; top:4px; left:7px; width:14px; height:7px; border-radius:50%;
+    background:rgba(255,255,255,.6); transform:rotate(-25deg); pointer-events:none;}
+body[data-theme="awan"] .mh-btn:active .mh-ico{transform:scale(.88, .8);}
+body[data-theme="awan"] .mh-btn .nm-badge{top:-7px; right:-8px; background:#ff5d5d; color:#fff; box-shadow:0 0 0 2px #fff;}
+@media (prefers-reduced-motion: reduce){body[data-theme="awan"] .pill svg,body[data-theme="awan"] .pill .eye,body[data-theme="awan"] .pill .tw,body[data-theme="awan"] .mh-bg b,body[data-theme="awan"] .masthead .mh-save::before{animation:none !important;}}
+
+/* --- tema boba --- */
+body[data-theme="boba"] .masthead{
+    background:
+      radial-gradient(circle at 1px 1px, rgba(107,66,38,.12) 1px, transparent 0) 0 0/14px 14px,
+      linear-gradient(170deg,#fff3e0,#f6d7b0);
+    border-radius:0 0 30px 30px; border-bottom:3px solid #6b4226;
+    box-shadow:0 5px 0 #4a2c1a, 0 12px 20px rgba(74,44,26,.22);
+    padding:28px 12px 12px; gap:10px;
+  }
+body[data-theme="boba"] .mh-bg{position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; z-index:0;}
+body[data-theme="boba"] .mh-bg .awn{position:absolute; top:0; left:0; right:0; height:14px; background:repeating-linear-gradient(90deg,#ff8fa3 0 22px,#fff 22px 44px);}
+body[data-theme="boba"] .mh-bg .awn::after{content:""; position:absolute; left:0; right:0; top:100%; height:11px;
+    background:radial-gradient(circle at 11px 0,#ff8fa3 10.5px,transparent 11px) 0 0/44px 11px repeat-x, radial-gradient(circle at 33px 0,#fff 10.5px,transparent 11px) 0 0/44px 11px repeat-x;}
+body[data-theme="boba"] .mh-bg i{position:absolute; display:block; font-style:normal; line-height:1;}
+body[data-theme="boba"] .mh-bg .d1,body[data-theme="boba"] .mh-bg .d2,body[data-theme="boba"] .mh-bg .d3{border-radius:50%; background:#6b4226; animation:boba-mhPearl 2.8s ease-in-out infinite;}
+body[data-theme="boba"] .mh-bg .d1{width:9px; height:9px; top:42px; right:20px;}
+body[data-theme="boba"] .mh-bg .d2{width:7px; height:7px; top:66px; right:54px; animation-delay:-.9s;}
+body[data-theme="boba"] .mh-bg .d3{width:8px; height:8px; top:86px; right:18px; animation-delay:-1.7s;}
+@keyframes boba-mhPearl{0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);}}
+body[data-theme="boba"] .mh-bg .h1{top:42px; right:76px; font-size:13px; color:#ff8fa3; animation:boba-mhBeat 1.6s ease-in-out infinite;}
+body[data-theme="boba"] .mh-bg .h2{top:80px; right:96px; font-size:10px; color:#ffb3c1; animation:boba-mhBeat 1.6s ease-in-out -.8s infinite;}
+@keyframes boba-mhBeat{0%,100%{transform:scale(.85);} 50%{transform:scale(1.25);}}
+body[data-theme="boba"] .mh-top{position:relative; z-index:1; gap:12px; align-items:center;}
+body[data-theme="boba"] .pill{
+    width:62px; height:62px; border-radius:50%; background:#fffaf0;
+    border:2.5px dashed #d9b48a; box-shadow:0 5px 12px -4px rgba(74,44,26,.4);
+  }
+body[data-theme="boba"] .pill svg{width:52px; height:52px; overflow:visible; animation:boba-mhBob 2.4s ease-in-out infinite;}
+@keyframes boba-mhBob{0%,100%{transform:translateY(1px) rotate(-2deg);} 50%{transform:translateY(-2px) rotate(2deg);}}
+body[data-theme="boba"] .pill .eye{transform-box:fill-box; transform-origin:50% 50%; animation:boba-mhBlink 4s infinite;}
+@keyframes boba-mhBlink{0%,92%,100%{transform:scaleY(1);} 95%{transform:scaleY(.1);}}
+body[data-theme="boba"] .pill .straw{transform-box:view-box; transform-origin:34px 21px; animation:boba-mhStraw 2.4s ease-in-out infinite;}
+@keyframes boba-mhStraw{0%,100%{transform:rotate(-4deg);} 50%{transform:rotate(5deg);}}
+body[data-theme="boba"] .pill .pl{transform-box:fill-box; transform-origin:50% 50%; animation:boba-mhPl 1.6s ease-in-out infinite;}
+body[data-theme="boba"] .pill .pl:nth-child(2n){animation-delay:-.5s;}
+body[data-theme="boba"] .pill .pl:nth-child(3n){animation-delay:-1s;}
+@keyframes boba-mhPl{0%,100%{transform:translateY(0);} 50%{transform:translateY(-1.6px);}}
+body[data-theme="boba"] .masthead h1{
+    font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:23px; font-weight:800;
+    line-height:1.05; letter-spacing:0; color:#5a3720; text-shadow:0 2px 0 #fff;
+  }
+body[data-theme="boba"] .mh-chip{
+    display:inline-block; margin-top:6px; padding:2px 10px; border-radius:99px;
+    background:#bfe5a6; color:#3c5a2a; border:2px solid #6b4226; box-shadow:0 2px 0 #6b4226;
+    font-size:10px; font-weight:800; transform:rotate(-2deg);
+  }
+body[data-theme="boba"] .masthead p{margin-top:6px; font-size:11px; font-weight:600; color:#8a6446;}
+body[data-theme="boba"] .masthead .mh-save{display:flex; align-items:center; gap:6px; margin-top:2px; color:#8a6446;}
+body[data-theme="boba"] .masthead .mh-save::before{
+    content:""; width:8px; height:8px; flex-shrink:0; border-radius:50%; background:#5fbf6e;
+    box-shadow:0 0 0 3px rgba(95,191,110,.25); animation:boba-mhPulse 1.8s ease-in-out infinite;
+  }
+@keyframes boba-mhPulse{0%,100%{box-shadow:0 0 0 2px rgba(95,191,110,.35);} 50%{box-shadow:0 0 0 5px rgba(95,191,110,.1);}}
+body[data-theme="boba"] .mh-actions{
+    z-index:1; padding:10px 4px 8px; background:#fffaf2;
+    border:2.5px solid #6b4226; border-radius:24px;
+    box-shadow:0 5px 0 #4a2c1a, 0 14px 22px rgba(74,44,26,.2);
+    outline:2px dashed #e6cba7; outline-offset:-7px;
+  }
+body[data-theme="boba"] .mh-btn{gap:7px; font-family:'Zen Maru Gothic','Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:800; color:#5a3720;}
+body[data-theme="boba"] .mh-ico{
+    width:46px; height:46px; border-radius:50%; border:2.5px solid #4a2c1a;
+    box-shadow:0 3px 0 #4a2c1a, inset 0 2px 0 rgba(255,255,255,.4);
+  }
+body[data-theme="boba"] .mh-ico::after{content:""; position:absolute; inset:3px; border-radius:50%; border:1.6px dashed rgba(255,255,255,.75); pointer-events:none;}
+body[data-theme="boba"] .mh-btn:active .mh-ico{transform:translateY(3px); box-shadow:0 0 0 #4a2c1a, inset 0 2px 0 rgba(255,255,255,.4);}
+body[data-theme="boba"] .mh-btn .nm-badge{top:-8px; right:-9px; background:#ff6b8a; color:#fff; border:2px solid #4a2c1a; box-shadow:none;}
+@media (prefers-reduced-motion: reduce){body[data-theme="boba"] .pill svg,body[data-theme="boba"] .pill .eye,body[data-theme="boba"] .pill .straw,body[data-theme="boba"] .pill .pl,body[data-theme="boba"] .mh-bg i,body[data-theme="boba"] .masthead .mh-save::before{animation:none !important;}}
 </style>
 </head>
-<body>
+<body data-theme="kardus">
+<script>try{var __t=localStorage.getItem('stokOpnameTheme');if(['asli','kardus','kucing','robot','awan','boba'].indexOf(__t)>-1)document.body.setAttribute('data-theme',__t);}catch(e){}</script>
 <div class="wrap">
 
   <div class="masthead">
+    <div class="mh-bg t-kardus" aria-hidden="true"><i class="d1">✦</i><i class="d2">+</i><i class="d3"></i><i class="d4"></i><i class="d5">✧</i></div>
+    <div class="mh-bg t-kucing" aria-hidden="true"><i class="p1">🐾</i><i class="p2">🐾</i><i class="p3">✿</i><i class="p4">✦</i><i class="p5">✿</i></div>
+    <div class="mh-bg t-robot" aria-hidden="true"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i class="s4"></i><i class="s5"></i><i class="s6"></i></div>
+    <div class="mh-bg t-awan" aria-hidden="true"><b class="sun"></b><b class="rb"></b><b class="cl c1"></b><b class="cl c2"></b><b class="cl c3"></b></div>
+    <div class="mh-bg t-boba" aria-hidden="true"><b class="awn"></b><i class="d1"></i><i class="d2"></i><i class="d3"></i><i class="h1">♥</i><i class="h2">♥</i></div>
     <div class="mh-top">
-      <div class="pill">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg>
-      </div>
+      <div class="pill t-asli"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6v4l4 10a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3l4-10V3Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="#fff" stroke-width="1.8"/></svg></div>
+      <div class="pill t-kardus"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path d="M32 14v-6" stroke="#173b36" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="32" cy="7" r="3.2" fill="#ff8a6b" stroke="#173b36" stroke-width="2.2"/>
+          <rect x="10" y="26" width="44" height="30" rx="10" fill="#f8dc9b" stroke="#173b36" stroke-width="3"/>
+          <rect x="7" y="14" width="50" height="14" rx="7" fill="#e6b04f" stroke="#173b36" stroke-width="3"/>
+          <rect x="27" y="14" width="10" height="14" fill="#fff" opacity=".6"/>
+          <g class="arm"><path d="M54 42q8-1 8-10" stroke="#173b36" stroke-width="3" stroke-linecap="round"/><circle cx="62" cy="31" r="3.4" fill="#f8dc9b" stroke="#173b36" stroke-width="2.2"/></g>
+          <g class="eye"><ellipse cx="24" cy="41" rx="3.2" ry="4.4" fill="#173b36"/><circle cx="25" cy="39.3" r="1.2" fill="#fff"/></g>
+          <g class="eye"><ellipse cx="40" cy="41" rx="3.2" ry="4.4" fill="#173b36"/><circle cx="41" cy="39.3" r="1.2" fill="#fff"/></g>
+          <circle cx="17" cy="48" r="3.6" fill="#f4a191" opacity=".85"/>
+          <circle cx="47" cy="48" r="3.6" fill="#f4a191" opacity=".85"/>
+          <path d="M28 47q4 4.5 8 0" stroke="#173b36" stroke-width="2.6" stroke-linecap="round"/>
+        </svg></div>
+      <div class="pill t-kucing"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <g class="ear el"><path d="M11 30 13 8 29 19Z" fill="#ffb86b" stroke="#173b36" stroke-width="3" stroke-linejoin="round"/><path d="M16 24 17 14 24 19Z" fill="#ff9fb5"/></g>
+          <g class="ear er"><path d="M53 30 51 8 35 19Z" fill="#ffb86b" stroke="#173b36" stroke-width="3" stroke-linejoin="round"/><path d="M48 24 47 14 40 19Z" fill="#ff9fb5"/></g>
+          <ellipse cx="32" cy="37" rx="23" ry="19" fill="#ffb86b" stroke="#173b36" stroke-width="3"/>
+          <path d="M32 19v6M26 20l1.5 5M38 20l-1.5 5" stroke="#e58a3a" stroke-width="2.6" stroke-linecap="round"/>
+          <g class="eye"><ellipse cx="23" cy="37" rx="3.2" ry="4.6" fill="#173b36"/><circle cx="24.2" cy="35.2" r="1.3" fill="#fff"/></g>
+          <g class="eye"><ellipse cx="41" cy="37" rx="3.2" ry="4.6" fill="#173b36"/><circle cx="42.2" cy="35.2" r="1.3" fill="#fff"/></g>
+          <circle cx="15.5" cy="44" r="3.6" fill="#ff8fa8" opacity=".8"/>
+          <circle cx="48.5" cy="44" r="3.6" fill="#ff8fa8" opacity=".8"/>
+          <path d="M29.5 42h5l-2.5 3Z" fill="#ff6f8f" stroke="#173b36" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M32 45v1.5q-2.5 3-5.5 1M32 46.5q2.5 3 5.5 1" stroke="#173b36" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M6 41l7 1.5M6 47l7-1M58 41l-7 1.5M58 47l-7-1" stroke="#173b36" stroke-width="1.8" stroke-linecap="round"/>
+        </svg></div>
+      <div class="pill t-robot"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path d="M32 17V10" stroke="#0b0a2a" stroke-width="3" stroke-linecap="round"/>
+          <circle class="ant" cx="32" cy="8" r="3.6" fill="#ff4fb8" stroke="#0b0a2a" stroke-width="2.2"/>
+          <rect class="ear" x="2.5" y="29" width="7" height="13" rx="3.5" fill="#5ef2ff" stroke="#0b0a2a" stroke-width="2.4"/>
+          <rect class="ear" x="54.5" y="29" width="7" height="13" rx="3.5" fill="#5ef2ff" stroke="#0b0a2a" stroke-width="2.4"/>
+          <rect x="8" y="16" width="48" height="38" rx="13" fill="#e4eaff" stroke="#0b0a2a" stroke-width="3"/>
+          <path d="M14 24q4-5 12-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <rect x="14" y="23" width="36" height="24" rx="9" fill="#15103d"/>
+          <rect class="eye" x="20.5" y="29" width="8" height="11" rx="4" fill="#5ef2ff"/>
+          <rect class="eye" x="35.5" y="29" width="8" height="11" rx="4" fill="#5ef2ff"/>
+          <circle cx="24.5" cy="32.5" r="1.6" fill="#fff"/><circle cx="39.5" cy="32.5" r="1.6" fill="#fff"/>
+          <ellipse cx="18" cy="42" rx="3" ry="2" fill="#ff4fb8" opacity=".75"/>
+          <ellipse cx="46" cy="42" rx="3" ry="2" fill="#ff4fb8" opacity=".75"/>
+          <path d="M28 42.5q4 4 8 0" stroke="#ffd66b" stroke-width="2.6" stroke-linecap="round"/>
+        </svg></div>
+      <div class="pill t-awan"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <g fill="#2f6fc4" stroke="#2f6fc4" stroke-width="6" stroke-linejoin="round"><circle cx="19" cy="40" r="11"/><circle cx="32" cy="31" r="14"/><circle cx="46" cy="39" r="12"/><rect x="19" y="40" width="27" height="11" rx="5.5"/></g>
+          <g fill="#fff"><circle cx="19" cy="40" r="11"/><circle cx="32" cy="31" r="14"/><circle cx="46" cy="39" r="12"/><rect x="19" y="40" width="27" height="11" rx="5.5"/></g>
+          <path d="M22 27q3-4 8-4" stroke="#dff2ff" stroke-width="3" stroke-linecap="round"/>
+          <g class="eye"><ellipse cx="26" cy="41" rx="2.8" ry="3.9" fill="#1c3d78"/><circle cx="27" cy="39.5" r="1.1" fill="#fff"/></g>
+          <g class="eye"><ellipse cx="39" cy="41" rx="2.8" ry="3.9" fill="#1c3d78"/><circle cx="40" cy="39.5" r="1.1" fill="#fff"/></g>
+          <ellipse cx="19.5" cy="46.5" rx="3.3" ry="2.2" fill="#ff9db5" opacity=".85"/>
+          <ellipse cx="45.5" cy="46.5" rx="3.3" ry="2.2" fill="#ff9db5" opacity=".85"/>
+          <path d="M29 46q3.5 4 7 0" stroke="#1c3d78" stroke-width="2.4" stroke-linecap="round"/>
+          <path class="tw" d="M55 8l1.8 4.2 4.2 1.8-4.2 1.8L55 20l-1.8-4.2-4.2-1.8 4.2-1.8Z" fill="#ffd23f" stroke="#e8a900" stroke-width="1"/>
+        </svg></div>
+      <div class="pill t-boba"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <g class="straw"><path d="M39 3 34 21" stroke="#4a2c1a" stroke-width="8" stroke-linecap="round"/><path d="M39 3 34 21" stroke="#ff8fa3" stroke-width="4" stroke-linecap="round"/></g>
+          <path d="M14 24H50L46.5 56Q46.2 58.5 44 58.5H20Q17.8 58.5 17.5 56Z" fill="#f3d2a8" stroke="#4a2c1a" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M20 29 22 45" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+          <g fill="#4a2c1a"><circle class="pl" cx="23.5" cy="53" r="3.1"/><circle class="pl" cx="30.5" cy="54" r="3.1"/><circle class="pl" cx="37.5" cy="54" r="3.1"/><circle class="pl" cx="43" cy="52" r="3"/><circle class="pl" cx="27" cy="49" r="3"/><circle class="pl" cx="35" cy="49.5" r="3"/></g>
+          <rect x="11" y="17" width="42" height="8" rx="4" fill="#fff" stroke="#4a2c1a" stroke-width="3"/>
+          <g class="eye"><ellipse cx="26" cy="35" rx="2.6" ry="3.6" fill="#4a2c1a"/><circle cx="26.9" cy="33.6" r="1" fill="#fff"/></g>
+          <g class="eye"><ellipse cx="38" cy="35" rx="2.6" ry="3.6" fill="#4a2c1a"/><circle cx="38.9" cy="33.6" r="1" fill="#fff"/></g>
+          <ellipse cx="21" cy="41" rx="3" ry="2" fill="#ff8fa3" opacity=".85"/><ellipse cx="43" cy="41" rx="3" ry="2" fill="#ff8fa3" opacity=".85"/>
+          <path d="M29 40q3 3.6 6 0" stroke="#4a2c1a" stroke-width="2.4" stroke-linecap="round"/>
+        </svg></div>
       <div class="mh-title">
-        <h1>Stok Opname — Pencatatan Barang</h1>
+        <div class="mh-hrow"><h1>Stok Opname</h1><div class="mh-chip">Pencatatan Barang</div></div>
         <p>Rafa 1 + Rafa 2 dicocokkan dengan stok aplikasi (web/apk)</p>
         <div id="saveStatus" class="mh-save">&nbsp;</div>
       </div>
+    </div>
+    <button type="button" class="mh-theme-btn" id="thBtn" aria-label="Ganti tema header" aria-haspopup="true" aria-expanded="false" title="Ganti tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5c0-4.4-4-7.1-9-7.1Z"/><circle cx="7.5" cy="11" r="1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1" fill="currentColor"/><circle cx="15.5" cy="7.5" r="1" fill="currentColor"/></svg></button>
+    <div class="th-backdrop" id="thBackdrop"></div>
+    <div class="th-menu" id="thMenu" role="radiogroup" aria-label="Pilih tema header">
+      <div class="th-title">Tema header</div>
+      <button type="button" class="th-opt" role="radio" data-t="asli" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#0d5c52,#0a453e)">🧪</span><span class="th-name">Klasik</span><span class="th-ck">✓</span></button>
+    <button type="button" class="th-opt" role="radio" data-t="kardus" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#14846f,#f8dc9b)">📦</span><span class="th-name">Kardus Ceria</span><span class="th-ck">✓</span></button>
+    <button type="button" class="th-opt" role="radio" data-t="kucing" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#ffd3e2,#dcd0ff)">🐱</span><span class="th-name">Kucing Pastel</span><span class="th-ck">✓</span></button>
+    <button type="button" class="th-opt" role="radio" data-t="robot" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#2c1676,#ff4fb8)">🤖</span><span class="th-name">Robot Neon</span><span class="th-ck">✓</span></button>
+    <button type="button" class="th-opt" role="radio" data-t="awan" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#54c0ff,#dff4ff)">☁️</span><span class="th-name">Langit Cerah</span><span class="th-ck">✓</span></button>
+    <button type="button" class="th-opt" role="radio" data-t="boba" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#f6d7b0,#ff8fa3)">🧋</span><span class="th-name">Kafe Boba</span><span class="th-ck">✓</span></button>
     </div>
     <nav class="mh-actions" aria-label="Menu cepat">
       <a class="mh-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" title="Rekap Setoran" aria-label="Rekap Setoran"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="b1" d="M6 20v-6"/><path class="b2" d="M12 20V5"/><path class="b3" d="M18 20V10"/></svg></span><span>Rekap</span></a>
@@ -1229,6 +1701,27 @@
       <button type="button" class="mh-btn nm-open-btn" id="nmOpenBtn" onclick="openNotifModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="bell"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></g></svg><span class="nm-badge" id="nmBadge" style="display:none;">0</span></span><span>Pesan</span></button>
     </nav>
   </div>
+<script>
+(function(){
+  var KEY='stokOpnameTheme', T=['asli','kardus','kucing','robot','awan','boba'];
+  var btn=document.getElementById('thBtn'), menu=document.getElementById('thMenu'), bd=document.getElementById('thBackdrop');
+  if(!btn||!menu||!bd) return;
+  function stored(){ try{ var v=localStorage.getItem(KEY); if(T.indexOf(v)>-1) return v; }catch(e){} return 'kardus'; }
+  function mark(t){ [].forEach.call(menu.querySelectorAll('.th-opt'), function(o){ o.setAttribute('aria-checked', o.getAttribute('data-t')===t ? 'true':'false'); }); }
+  function apply(t){ document.body.setAttribute('data-theme', t); mark(t); }
+  function toggle(v){ menu.classList.toggle('open', v); bd.style.display = v ? 'block':'none'; btn.setAttribute('aria-expanded', v ? 'true':'false'); }
+  btn.addEventListener('click', function(e){ e.stopPropagation(); toggle(!menu.classList.contains('open')); });
+  bd.addEventListener('click', function(){ toggle(false); });
+  menu.addEventListener('click', function(e){
+    var o=e.target.closest('.th-opt'); if(!o) return;
+    var t=o.getAttribute('data-t'); apply(t);
+    try{ localStorage.setItem(KEY, t); }catch(er){}
+    toggle(false);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') toggle(false); });
+  apply(stored());
+})();
+</script>
 
   <div class="page-tabs" id="pageTabs">
     <button type="button" class="page-tab active" id="tabOpname" onclick="switchAppPage('opname')">
