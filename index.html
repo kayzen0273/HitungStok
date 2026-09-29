@@ -1234,7 +1234,7 @@ body[data-theme="boba"] .mh-chip::before{content:"🧋 ";}
 body[data-theme="awan"]{--tb-top:40px;}
 body[data-theme="boba"]{--tb-top:34px;}
 
-body[data-theme="asli"] .mh-title{padding-right:44px;}
+body[data-theme="asli"] .mh-title{padding-right:92px;}
 body[data-theme="asli"] .masthead h1{font-size:15px;}
 
 /* Tombol ganti tema */
@@ -1278,6 +1278,30 @@ body[data-theme="boba"] .mh-theme-btn{background:#fffaf2; color:#6b4226; border:
 .th-ck{display:none; width:18px; height:18px; align-items:center; justify-content:center; border-radius:50%; background:var(--teal); color:#fff; font-size:11px;}
 .th-opt[aria-checked="true"] .th-ck{display:flex;}
 @media (prefers-reduced-motion: reduce){ .mh-theme-btn, .th-menu.open{animation:none !important;} }
+
+/* Tombol gear pengaturan + menu */
+.mh-gear-btn{right:54px; animation:none;}
+.mh-gear-btn svg{transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
+.mh-gear-btn[aria-expanded="true"] svg{transform:rotate(90deg);}
+.mh-gear-btn:active{transform:scale(.86);}
+.th-menu.st-menu{right:54px; width:250px;}
+.st-backdrop{display:none; position:fixed; inset:0; z-index:6; background:rgba(15,30,27,.2);}
+.st-row{
+  display:flex; align-items:center; gap:10px; width:100%; padding:8px; border:0; background:none;
+  border-radius:12px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); text-align:left; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.st-row:hover, .st-row:focus-visible{background:var(--mint);}
+.st-row:focus-visible{outline:2px solid var(--teal); outline-offset:-2px;}
+.st-name{flex:1; line-height:1.25;}
+.st-name small{display:block; font-size:10.5px; font-weight:600; color:var(--ink-soft);}
+.st-sw{position:relative; width:40px; height:24px; flex-shrink:0; border-radius:999px; background:#c9d3d0; transition:background .2s;}
+.st-sw::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s;}
+.st-row[aria-checked="true"] .st-sw{background:var(--teal);}
+.st-row[aria-checked="true"] .st-sw::after{transform:translateX(16px);}
+body.jpv-off #jpvHolder{display:none !important;}
+body.bba-off .bba-fab, body.bba-off .bba-hint, body.bba-off .bba-panel, body.bba-off .bba-modal-ov{display:none !important;}
+@media (prefers-reduced-motion: reduce){ .mh-gear-btn svg, .st-sw, .st-sw::after{transition:none !important;} }
 
 /* --- tema kardus --- */
 body[data-theme="kardus"] .masthead{
@@ -1693,6 +1717,21 @@ body[data-theme="boba"] .mh-btn .nm-badge{top:-8px; right:-9px; background:#ff6b
     <button type="button" class="th-opt" role="radio" data-t="awan" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#54c0ff,#dff4ff)">☁️</span><span class="th-name">Langit Cerah</span><span class="th-ck">✓</span></button>
     <button type="button" class="th-opt" role="radio" data-t="boba" aria-checked="false"><span class="th-sw" style="background:linear-gradient(150deg,#f6d7b0,#ff8fa3)">🧋</span><span class="th-name">Kafe Boba</span><span class="th-ck">✓</span></button>
     </div>
+    <button type="button" class="mh-theme-btn mh-gear-btn" id="stBtn" aria-label="Pengaturan" aria-haspopup="true" aria-expanded="false" title="Pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="st-backdrop" id="stBackdrop"></div>
+    <div class="th-menu st-menu" id="stMenu" role="group" aria-label="Pengaturan">
+      <div class="th-title">Pengaturan</div>
+      <button type="button" class="st-row" id="stJpRow" role="switch" aria-checked="true">
+        <span class="th-sw" style="background:linear-gradient(150deg,#cf5138,#8a2c1d); color:#f8f1de; font-family:serif; font-weight:800;">語</span>
+        <span class="st-name">Widget belajar Jepang<small id="stJpState">Aktif</small></span>
+        <span class="st-sw" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="st-row" id="stAiRow" role="switch" aria-checked="true">
+        <span class="th-sw" style="background:linear-gradient(150deg,#14846f,#0a453e);">🤖</span>
+        <span class="st-name">AI Agent<small id="stAiState">Aktif</small></span>
+        <span class="st-sw" aria-hidden="true"></span>
+      </button>
+    </div>
     <nav class="mh-actions" aria-label="Menu cepat">
       <a class="mh-btn" href="https://rekapsetoranrafa.vercel.app/" target="_blank" rel="noopener noreferrer" title="Rekap Setoran" aria-label="Rekap Setoran"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="b1" d="M6 20v-6"/><path class="b2" d="M12 20V5"/><path class="b3" d="M18 20V10"/></svg></span><span>Rekap</span></a>
       <button type="button" class="mh-btn" onclick="openHistoryModal()"><span class="mh-ico"><svg class="ic-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path class="hm" d="M12 12V7.5"/><path class="hh" d="M12 12l3 2"/></svg></span><span>Riwayat</span></button>
@@ -1720,6 +1759,58 @@ body[data-theme="boba"] .mh-btn .nm-badge{top:-8px; right:-9px; background:#ff6b
   });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') toggle(false); });
   apply(stored());
+})();
+</script>
+<script>
+(function(){
+  var KEY='jpvEnabled';
+  var btn=document.getElementById('stBtn'), menu=document.getElementById('stMenu'), bd=document.getElementById('stBackdrop'),
+      row=document.getElementById('stJpRow'), state=document.getElementById('stJpState');
+  if(!btn||!menu||!bd||!row) return;
+  function stored(){ try{ return localStorage.getItem(KEY)!=='0'; }catch(e){ return true; } }
+  function apply(on){
+    document.body.classList.toggle('jpv-off', !on);
+    row.setAttribute('aria-checked', on?'true':'false');
+    if(state) state.textContent = on ? 'Aktif' : 'Nonaktif';
+    if(!on){
+      try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+      var c=document.getElementById('jpvCard'); if(c) c.classList.remove('show');
+      var b=document.getElementById('jpvBubble'); if(b) b.classList.remove('hide');
+    }
+  }
+  function toggle(v){ menu.classList.toggle('open', v); bd.style.display=v?'block':'none'; btn.setAttribute('aria-expanded', v?'true':'false'); }
+  function closeTheme(){
+    var tm=document.getElementById('thMenu'), tb=document.getElementById('thBackdrop'), tbtn=document.getElementById('thBtn');
+    if(tm) tm.classList.remove('open'); if(tb) tb.style.display='none'; if(tbtn) tbtn.setAttribute('aria-expanded','false');
+  }
+  btn.addEventListener('click', function(e){ e.stopPropagation(); closeTheme(); toggle(!menu.classList.contains('open')); });
+  var thBtn=document.getElementById('thBtn');
+  if(thBtn) thBtn.addEventListener('click', function(){ toggle(false); });
+  bd.addEventListener('click', function(){ toggle(false); });
+  row.addEventListener('click', function(){
+    var on=row.getAttribute('aria-checked')!=='true';
+    apply(on);
+    try{ localStorage.setItem(KEY, on?'1':'0'); }catch(e){}
+  });
+
+  // --- AI Agent ---
+  var AIKEY='bbaEnabled', aiRow=document.getElementById('stAiRow'), aiState=document.getElementById('stAiState');
+  function aiStored(){ try{ return localStorage.getItem(AIKEY)!=='0'; }catch(e){ return true; } }
+  function aiApply(on){
+    document.body.classList.toggle('bba-off', !on);
+    if(aiRow) aiRow.setAttribute('aria-checked', on?'true':'false');
+    if(aiState) aiState.textContent = on ? 'Aktif' : 'Nonaktif';
+    if(!on){ [].forEach.call(document.querySelectorAll('.bba-panel.show,.bba-modal-ov.show,.bba-hint.show'), function(n){ n.classList.remove('show'); }); }
+  }
+  if(aiRow) aiRow.addEventListener('click', function(){
+    var on=aiRow.getAttribute('aria-checked')!=='true';
+    aiApply(on);
+    try{ localStorage.setItem(AIKEY, on?'1':'0'); }catch(e){}
+  });
+
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') toggle(false); });
+  apply(stored());
+  aiApply(aiStored());
 })();
 </script>
 
