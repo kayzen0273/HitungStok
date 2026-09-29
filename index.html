@@ -98,7 +98,7 @@
   .masthead{margin-bottom:56px;}
   .mh-actions{
     position:relative; margin-bottom:-44px;
-    display:grid; grid-template-columns:repeat(5, 1fr); gap:2px;
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:2px;
     padding:9px 4px 8px; background:#fff; border-radius:20px;
     border:1px solid var(--line);
     box-shadow:0 10px 26px rgba(10,40,35,0.2);
@@ -107,7 +107,7 @@
     --c1:#2fa08f; --c2:#0d5c52;
     display:flex; flex-direction:column; align-items:center; gap:6px;
     padding:2px 0 0; border:0; background:none; border-radius:12px;
-    color:var(--ink); font:inherit; font-size:10.5px; font-weight:700; line-height:1.1; white-space:nowrap;
+    min-width:0; color:var(--ink); font:inherit; font-size:10.5px; font-weight:700; line-height:1.1; white-space:nowrap;
     text-decoration:none; cursor:pointer; -webkit-tap-highlight-color:transparent;
     animation:mhPop .55s cubic-bezier(.34,1.56,.64,1) both;
   }
@@ -116,6 +116,7 @@
   .mh-btn:nth-child(3){--c1:#33a794; --c2:#0d5c52; animation-delay:.17s;}
   .mh-btn:nth-child(4){--c1:#9878d0; --c2:#6a4ba6; animation-delay:.23s;}
   .mh-btn:nth-child(5){--c1:#f08466; --c2:#c0503a; animation-delay:.29s;}
+  .mh-btn:nth-child(6){--c1:#4cc27a; --c2:#1f8a4c; animation-delay:.35s;}
   @keyframes mhPop{
     from{opacity:0; transform:translateY(16px) scale(.7);}
     to{opacity:1; transform:none;}
@@ -135,6 +136,7 @@
   .mh-btn:nth-child(3) .mh-ico{animation-delay:-1.4s;}
   .mh-btn:nth-child(4) .mh-ico{animation-delay:-2.1s;}
   .mh-btn:nth-child(5) .mh-ico{animation-delay:-2.8s;}
+  .mh-btn:nth-child(6) .mh-ico{animation-delay:-3.3s;}
   @keyframes mhFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);}}
   .mh-btn:active .mh-ico{animation:none;}
   /* kilau cahaya menyapu tile */
@@ -148,6 +150,7 @@
   .mh-btn:nth-child(3) .mh-ico::before{animation-delay:1s;}
   .mh-btn:nth-child(4) .mh-ico::before{animation-delay:1.5s;}
   .mh-btn:nth-child(5) .mh-ico::before{animation-delay:2s;}
+  .mh-btn:nth-child(6) .mh-ico::before{animation-delay:2.5s;}
   @keyframes mhShine{0%{background-position:160% 0;} 45%,100%{background-position:-60% 0;}}
 
   /* Rekap: batang grafik naik-turun seperti equalizer */
@@ -1790,6 +1793,7 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
       <button type="button" class="mh-btn" onclick="openCashierPopup()"><span class="mh-ico"><svg class="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse class="gl" cx="12" cy="12" rx="4.2" ry="9"/></svg></span><span>Browser</span></button>
       <button type="button" class="mh-btn" onclick="openJsNotesModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="cl" d="m9 8-4 4 4 4"/><path class="cr" d="m15 8 4 4-4 4"/><path d="m13.5 6-3 12"/></svg></span><span>Catatan JS</span></button>
       <button type="button" class="mh-btn nm-open-btn" id="nmOpenBtn" onclick="openNotifModal()"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="bell"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></g></svg><span class="nm-badge" id="nmBadge" style="display:none;">0</span></span><span>Pesan</span></button>
+      <button type="button" class="mh-btn" onclick="openGamePopup()" title="Game" aria-label="Game"><span class="mh-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r=".6" fill="currentColor"/><circle cx="17.8" cy="13.6" r=".6" fill="currentColor"/></svg></span><span>Game</span></button>
     </nav>
   </div>
 <script>
@@ -3271,7 +3275,6 @@ function generate(doCopy){
   preview.textContent = out.trim();
 
   if(doCopy){
-    try{ window.__lastWaText = out.trim(); localStorage.setItem('stok-opname-last-wa', out.trim()); }catch(e){}
     saveHistoryEntry({
       id: Date.now(),
       savedAt: new Date().toISOString(),
@@ -8310,7 +8313,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
           <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
-          <button class="cashier-nav-btn" id="cashierWaBtn" onclick="rekapSendLastWa(true)" title="Salin ulang laporan WhatsApp terakhir & kirim ke Rekap" style="display:none;width:auto;padding:0 8px;font-size:11px;">📋 WA</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -8318,7 +8320,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
       </div>
     </div>
     <div class="cashier-popup-body">
-      <iframe id="cashierPopupFrame" src="about:blank" loading="lazy" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+      <iframe id="cashierPopupFrame" src="about:blank" loading="lazy" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
     </div>
     <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
   </div>
@@ -8379,6 +8381,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   }
 
   var REKAP_HOME = 'https://rekapsetoranrafa.vercel.app/';
+  var GAME_HOME = 'game.html'; // file terpisah, satu folder dengan halaman ini
   var cashierCurrentApp = '';
 
   // Buka jendela browser mini untuk aplikasi tertentu. Kalau berpindah dari
@@ -8394,57 +8397,9 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     if(t) t.textContent = title;
     document.getElementById('cashierPopup').classList.add('show');
   }
-  function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); var b = document.getElementById('cashierWaBtn'); if(b) b.style.display = 'none'; }
-  // ---- Serah-terima laporan WhatsApp ke aplikasi Rekap (iframe lintas-domain) ----
-  // Iframe beda domain tidak bisa dibaca isinya dari sini, jadi teks dikirim
-  // lewat 3 jalur sekaligus: (1) clipboard ditulis ulang saat tombol diklik
-  // (ada gestur pengguna, jadi pasti diizinkan), (2) postMessage ke iframe,
-  // (3) tombol "📋 WA" di jendela ini untuk mengulang kapan saja.
-  function rekapGetLastWa(){
-    try{ if(window.__lastWaText) return window.__lastWaText; return localStorage.getItem('stok-opname-last-wa') || ''; }catch(e){ return window.__lastWaText || ''; }
-  }
-  function rekapToast(msg){
-    var t = document.getElementById('rekapWaToast');
-    if(!t){
-      t = document.createElement('div'); t.id = 'rekapWaToast';
-      t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#123;color:#fff;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;z-index:100000;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg; t.style.opacity = '1';
-    clearTimeout(t._h); t._h = setTimeout(function(){ t.style.opacity = '0'; }, 2600);
-  }
-  function rekapSendLastWa(showToast){
-    var text = rekapGetLastWa();
-    if(!text){ if(showToast) rekapToast('Belum ada laporan. Tekan "Salin ke WhatsApp" dulu.'); return; }
-    var done = function(){ if(showToast) rekapToast('Laporan WhatsApp tersalin ✓ tempel di Rekap'); };
-    var fail = function(){
-      var ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
-      document.body.appendChild(ta); ta.select();
-      var ok = false; try{ ok = document.execCommand('copy'); }catch(e){}
-      document.body.removeChild(ta);
-      if(showToast) rekapToast(ok ? 'Laporan WhatsApp tersalin ✓ tempel di Rekap' : 'Gagal menyalin, coba lagi');
-    };
-    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(fail); } else { fail(); }
-    var f = document.getElementById('cashierPopupFrame');
-    if(f && f.contentWindow){
-      try{
-        var msg = { type: 'stok-opname-wa', source: 'stok-opname', text: text, wa: text };
-        f.contentWindow.postMessage(msg, '*');
-      }catch(e){}
-    }
-  }
-  function openRekapPopup(){
-    cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran');
-    var b = document.getElementById('cashierWaBtn'); if(b) b.style.display = 'flex';
-    rekapSendLastWa(false);
-    var f = document.getElementById('cashierPopupFrame');
-    if(f && !f._rekapWaHooked){
-      f._rekapWaHooked = true;
-      f.addEventListener('load', function(){
-        if(cashierCurrentApp === 'rekap'){ rekapSendLastWa(false); setTimeout(function(){ rekapSendLastWa(false); }, 1200); }
-      });
-    }
-  }
+  function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); }
+  function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran'); }
+  function openGamePopup(){ cashierOpenApp('game', GAME_HOME, 'Game'); }
   function cashierOpenExternal(){
     var u = (document.getElementById('cashierAddrBar').value || '').trim();
     if(u) window.open(u, '_blank', 'noopener');
