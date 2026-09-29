@@ -1661,6 +1661,20 @@ body[data-theme]:not([data-theme="asli"]) .th-opt:hover, body[data-theme]:not([d
 body[data-theme]:not([data-theme="asli"]) .st-row[aria-checked="true"] .st-sw, body[data-theme]:not([data-theme="asli"]) .th-ck{background:var(--teal);}
 body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle-slider{background:var(--teal);}
 @media (prefers-reduced-motion: reduce){body[data-theme]:not([data-theme="asli"]) .card, body[data-theme]:not([data-theme="asli"]) .btn-main, body[data-theme]:not([data-theme="asli"]) .field input, body[data-theme]:not([data-theme="asli"]){transition:none !important;}}
+
+/* Wajib isi: toko & waktu sebelum salin WhatsApp */
+.field.field-missing input, .field.field-missing select{border-color:var(--minus) !important; box-shadow:0 0 0 3px rgba(192,80,58,.18) !important;}
+.field.field-missing{animation:fieldShake .4s;}
+.field.field-missing label{color:var(--minus);}
+@keyframes fieldShake{0%,100%{transform:none;} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);}}
+#metaMissingToast{position:fixed; left:50%; bottom:26px; z-index:10001; max-width:340px; width:calc(100% - 32px); padding:12px 16px; text-align:center;
+  background:var(--minus); color:#fff; font-size:13px; font-weight:700; border-radius:14px; box-shadow:0 10px 26px rgba(0,0,0,.28);
+  opacity:0; pointer-events:none; transform:translate(-50%,14px); transition:opacity .2s, transform .2s;}
+#metaMissingToast.show{opacity:1; transform:translate(-50%,0);}
+@media (prefers-reduced-motion: reduce){.field.field-missing{animation:none;} #metaMissingToast{transition:none;}}
+
+#metaWaktu, #metaToko{cursor:pointer;}
+.field-dropdown #metaWaktu{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; background-size:14px; padding-right:28px;}
 </style>
 </head>
 <body data-theme="kardus">
@@ -1939,10 +1953,11 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
           </div>
         </div>
       </div>
-      <div class="field"><label>Waktu</label>
-        <select id="metaWaktu" onchange="saveState()">
-          <option>pagi</option><option selected>siang</option><option>sore</option><option>malam</option>
-        </select>
+      <div class="field field-dropdown"><label>Waktu</label>
+        <input id="metaWaktu" placeholder="Pilih waktu" readonly onclick="openWaktuModal(event)">
+        <div class="field-dropdown-panel" id="waktuModal">
+          <div class="modal-list" id="waktuList" style="margin-bottom:0;"></div>
+        </div>
       </div>
       <div class="field"><label>Tanggal</label><input id="metaTgl" type="date" oninput="saveState()"></div>
       <div class="field field-dropdown">
@@ -2519,7 +2534,7 @@ const PAGE_SIZE = 50;
 // sedang aktif saat ini, supaya semua fungsi lama yang sudah pakai `rows`
 // tetap jalan tanpa perlu diubah satu-satu.
 const ACTIVE_SESI_KEY = 'stok-opname-active-sesi';
-let sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+let sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
 let activeSesiId = 1;
 let sesiIdCounter = 2;
 
@@ -2557,7 +2572,7 @@ function syncGlobalsIntoActiveSesi(){
 // tampil di layar.
 function loadActiveSesiIntoGlobals(){
   const idx = getActiveSesiIndex();
-  const s = sesiList[idx] || sesiList[0] || { rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' };
+  const s = sesiList[idx] || sesiList[0] || { rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' };
   rows = s.rows || [];
   idCounter = s.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
   hideToko = s.hideToko || { t1:false, t2:false };
@@ -2569,7 +2584,7 @@ function loadActiveSesiIntoGlobals(){
   const elWaktuLoad = document.getElementById('metaWaktu');
   if(elTokoLoad) elTokoLoad.value = (s.toko !== undefined && s.toko !== null) ? s.toko : '';
   if(elTglLoad) elTglLoad.value = s.tgl || todayISO();
-  if(elWaktuLoad) elWaktuLoad.value = s.waktu || 'siang';
+  if(elWaktuLoad) elWaktuLoad.value = s.waktu || '';
 }
 
 function resetViewStateForSesiSwitch(){
@@ -2603,7 +2618,7 @@ function addSesi(){
   const nama = name.trim() || suggested;
   syncGlobalsIntoActiveSesi();
   const newId = sesiIdCounter++;
-  sesiList.push({ id:newId, nama, rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:todayISO(), waktu:'siang' });
+  sesiList.push({ id:newId, nama, rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:todayISO(), waktu:'' });
   activeSesiId = newId;
   loadActiveSesiIntoGlobals();
   resetViewStateForSesiSwitch();
@@ -2831,6 +2846,7 @@ const STATUS_FILTER_LABELS = { all:'Filter: semua', minus:'Filter: minus', plus:
 
 function openStatusFilterModal(e){
   if(e) e.stopPropagation();
+  closeWaktuModal();
   closeTokoModal();
   closePetugasModal();
   refreshStatusFilterModalUI();
@@ -3154,9 +3170,34 @@ function breakdownText(t1, t2){
   return parts.length ? ` (${parts.join(' ')})` : '';
 }
 
+function requireMetaForCopy(){
+  const elToko = document.getElementById('metaToko');
+  const elWaktu = document.getElementById('metaWaktu');
+  const kurang = [];
+  if(!elToko.value.trim()) kurang.push({el:elToko, nama:'Nama Toko'});
+  if(!elWaktu.value) kurang.push({el:elWaktu, nama:'Waktu'});
+  if(!kurang.length) return true;
+  kurang.forEach(k => {
+    const f = k.el.closest('.field');
+    if(!f) return;
+    f.classList.remove('field-missing'); void f.offsetWidth; f.classList.add('field-missing');
+    const clear = () => f.classList.remove('field-missing');
+    k.el.addEventListener('change', clear, {once:true});
+    k.el.addEventListener('input', clear, {once:true});
+  });
+  let t = document.getElementById('metaMissingToast');
+  if(!t){ t = document.createElement('div'); t.id = 'metaMissingToast'; t.setAttribute('role','alert'); document.body.appendChild(t); }
+  t.textContent = 'Isi dulu ' + kurang.map(k => k.nama).join(' dan ') + ' sebelum salin ke WhatsApp';
+  t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3200);
+  kurang[0].el.closest('.card').scrollIntoView({behavior:'smooth', block:'center'});
+  return false;
+}
+
 function generate(doCopy){
-  const toko = document.getElementById('metaToko').value.trim() || 'toko';
-  const waktu = document.getElementById('metaWaktu').value;
+  if(doCopy && !requireMetaForCopy()) return;
+  const toko = document.getElementById('metaToko').value.trim() || '(pilih toko)';
+  const waktu = document.getElementById('metaWaktu').value || '(pilih waktu)';
   const tglRaw = document.getElementById('metaTgl').value;
   const tgl = formatTanggal(tglRaw);
   const petugas = document.getElementById('metaPetugas').value.trim() || '-';
@@ -4452,7 +4493,7 @@ function updateSessionUI(){
   const metaTgl = document.getElementById('metaTgl');
   const metaToko = document.getElementById('metaToko');
   const metaPetugas = document.getElementById('metaPetugas');
-  if(metaWaktu) metaWaktu.disabled = viewOnly;
+  if(metaWaktu) metaWaktu.style.pointerEvents = viewOnly ? 'none' : '';
   if(metaTgl) metaTgl.disabled = viewOnly;
   if(metaToko) metaToko.style.pointerEvents = viewOnly ? 'none' : '';
   if(metaPetugas) metaPetugas.style.pointerEvents = viewOnly ? 'none' : '';
@@ -4520,7 +4561,7 @@ function applyRemoteState(state){
       id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
       idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
       editingFromId: s.editingFromId || null,
-      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
+      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || ''
     }));
     const activeIdx = remoteSesiList.findIndex(s => s.id === activeSesiId);
     if(activeIdx !== -1 && (pendingEditIds.size > 0 || pendingDeleteIds.size > 0)){
@@ -4564,11 +4605,11 @@ function applyRemoteState(state){
     const idx = getActiveSesiIndex();
     sesiList[idx] = {
       id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId,
-      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang'
+      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || ''
     };
     if(state.meta){
       document.getElementById('metaToko').value = state.meta.toko || '';
-      document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+      document.getElementById('metaWaktu').value = state.meta.waktu || '';
       document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
     }
   }
@@ -5409,7 +5450,7 @@ function applyPetugasSessionState(state){
       id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
       idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
       editingFromId: s.editingFromId || null,
-      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
+      toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || ''
     }));
     activeSesiId = (state.activeSesiId && sesiList.some(s => s.id === state.activeSesiId)) ? state.activeSesiId : sesiList[0].id;
     sesiIdCounter = Math.max(sesiIdCounter, Math.max(0, ...sesiList.map(s => s.id)) + 1);
@@ -5423,11 +5464,11 @@ function applyPetugasSessionState(state){
     const idx = getActiveSesiIndex();
     sesiList[idx] = {
       id: activeSesiId, nama: sesiList[idx] ? sesiList[idx].nama : 'Sesi 1', rows, idCounter, hideToko, editingFromId,
-      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang'
+      toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || ''
     };
     if(state.meta){
       document.getElementById('metaToko').value = state.meta.toko || '';
-      document.getElementById('metaWaktu').value = state.meta.waktu || 'siang';
+      document.getElementById('metaWaktu').value = state.meta.waktu || '';
       document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
     }
   }
@@ -5476,12 +5517,12 @@ async function startPetugasSession(nama){
         applyPetugasSessionState(data.state);
         setSaveStatus('Tersambung ke sesi live ' + (ADMIN_TAKEOVER_NAMA || nama));
       } else {
-        sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+        sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
         activeSesiId = 1;
         sesiIdCounter = 2;
         loadActiveSesiIntoGlobals();
         document.getElementById('metaToko').value = '';
-        document.getElementById('metaWaktu').value = 'siang';
+        document.getElementById('metaWaktu').value = '';
         document.getElementById('metaTgl').value = todayISO();
         updateHideTokoUI();
         renderSesiTabs();
@@ -6491,12 +6532,12 @@ async function loadState(){
     // perangkat ini sama sekali. Semua data datang dari & tersinkron ke
     // sesi live milik petugas yang sedang diambil alih (lihat
     // startPetugasSession()). Nama petugas dikunci sesuai parameter URL.
-    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
     activeSesiId = 1;
     sesiIdCounter = 2;
     loadActiveSesiIntoGlobals();
     document.getElementById('metaToko').value = '';
-    document.getElementById('metaWaktu').value = 'siang';
+    document.getElementById('metaWaktu').value = '';
     document.getElementById('metaTgl').value = todayISO();
     document.getElementById('metaPetugas').value = ADMIN_TAKEOVER_NAMA;
     const petugasInput = document.getElementById('metaPetugas');
@@ -6530,11 +6571,11 @@ async function loadState(){
           id: s.id, nama: s.nama || 'Sesi', rows: s.rows || [],
           idCounter: s.idCounter || 0, hideToko: s.hideToko || { t1:false, t2:false },
           editingFromId: s.editingFromId || null,
-          toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || 'siang'
+          toko: s.toko || '', tgl: s.tgl || '', waktu: s.waktu || ''
         }));
       } else {
         // Data lama sebelum fitur multi-sesi ada -- jadikan "Sesi 1".
-        sesiList = [ { id:1, nama:'Sesi 1', rows: state.rows || [], idCounter: state.idCounter || 0, hideToko: state.hideToko || {t1:false,t2:false}, editingFromId: state.editingFromId || null, toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || 'siang' } ];
+        sesiList = [ { id:1, nama:'Sesi 1', rows: state.rows || [], idCounter: state.idCounter || 0, hideToko: state.hideToko || {t1:false,t2:false}, editingFromId: state.editingFromId || null, toko: (state.meta && state.meta.toko) || '', tgl: (state.meta && state.meta.tgl) || '', waktu: (state.meta && state.meta.waktu) || '' } ];
         usedLegacyFlatSesi = true;
       }
       sesiIdCounter = Math.max(2, ...sesiList.map(s => s.id + 1));
@@ -6549,8 +6590,8 @@ async function loadState(){
       // jadi cukup terapkan lagi ke input di sini supaya konsisten dengan default lama.
       if(state.meta){
         if(usedLegacyFlatSesi){
-          document.getElementById('metaToko').value = state.meta.toko || 'Rafa 1';
-          document.getElementById('metaWaktu').value = state.meta.waktu ?? 'siang';
+          document.getElementById('metaToko').value = state.meta.toko || '';
+          document.getElementById('metaWaktu').value = state.meta.waktu ?? '';
           document.getElementById('metaTgl').value = state.meta.tgl || todayISO();
         }
         document.getElementById('metaPetugas').value = state.meta.petugas ?? '';
@@ -6559,21 +6600,21 @@ async function loadState(){
       }
       setSaveStatus('Data tersimpan dimuat');
     } else {
-      sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+      sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
       activeSesiId = 1;
       sesiIdCounter = 2;
       loadActiveSesiIntoGlobals();
-      document.getElementById('metaToko').value = 'Rafa 1';
+      document.getElementById('metaToko').value = '';
       document.getElementById('metaTgl').value = todayISO();
       setSaveStatus('\u00A0');
     }
   } catch(err){
     // belum ada data tersimpan sebelumnya
-    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+    sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
     activeSesiId = 1;
     sesiIdCounter = 2;
     loadActiveSesiIntoGlobals();
-    document.getElementById('metaToko').value = 'Rafa 1';
+    document.getElementById('metaToko').value = '';
     document.getElementById('metaTgl').value = todayISO();
     setSaveStatus('\u00A0');
   }
@@ -6624,7 +6665,7 @@ async function resetAll(){
   idCounter = 0;
   hideToko = { t1:false, t2:false };
   editingFromId = null;
-  sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'siang' } ];
+  sesiList = [ { id:1, nama:'Sesi 1', rows:[], idCounter:0, hideToko:{t1:false,t2:false}, editingFromId:null, toko:'', tgl:'', waktu:'' } ];
   activeSesiId = 1;
   sesiIdCounter = 2;
   try{ localStorage.setItem(ACTIVE_SESI_KEY, '1'); }catch(e){}
@@ -6636,8 +6677,8 @@ async function resetAll(){
   hideRestoreBanner();
   // Reset benar-benar mengosongkan daftar barang sampai pengguna sendiri
   // menekan "Tambah barang".
-  document.getElementById('metaToko').value = 'Rafa 1';
-  document.getElementById('metaWaktu').value = 'siang';
+  document.getElementById('metaToko').value = '';
+  document.getElementById('metaWaktu').value = '';
   document.getElementById('metaTgl').value = todayISO();
   document.getElementById('metaPetugas').value = '';
   const searchBox = document.getElementById('searchBox');
@@ -6666,6 +6707,7 @@ function openTokoModal(e){
   if(isViewOnlyForMe()) return;
   closePetugasModal();
   closeStatusFilterModal();
+  closeWaktuModal();
   const listEl = document.getElementById('tokoList');
   if(TOKO_LIST.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada toko di daftar. Ketik nama secara manual di bawah.</div>';
@@ -6680,12 +6722,46 @@ function openTokoModal(e){
   document.getElementById('tokoModal').classList.add('show');
 }
 
+const WAKTU_CHOICES = [
+  { v:'pagi',  ico:'🌅' },
+  { v:'siang', ico:'☀️' }
+];
+
+function openWaktuModal(e){
+  if(e) e.stopPropagation();
+  if(isViewOnlyForMe()) return;
+  closeTokoModal();
+  closePetugasModal();
+  closeStatusFilterModal();
+  const cur = document.getElementById('metaWaktu').value;
+  document.getElementById('waktuList').innerHTML = WAKTU_CHOICES.map(w => `
+    <button type="button" class="modal-option${w.v === cur ? ' active' : ''}" onclick="selectWaktu('${w.v}')">
+      <span>${w.ico}</span><span style="flex:1;">${w.v.charAt(0).toUpperCase() + w.v.slice(1)}</span>${w.v === cur ? '<span class="dot"></span>' : ''}
+    </button>
+  `).join('');
+  document.getElementById('waktuModal').classList.add('show');
+}
+
+function closeWaktuModal(){
+  const el = document.getElementById('waktuModal');
+  if(el) el.classList.remove('show');
+}
+
+function selectWaktu(v){
+  document.getElementById('metaWaktu').value = v;
+  document.getElementById('metaWaktu').closest('.field').classList.remove('field-missing');
+  saveState();
+  closeWaktuModal();
+  updatePresence();
+}
+
 function closeTokoModal(){
   document.getElementById('tokoModal').classList.remove('show');
 }
 
 function selectToko(name){
   document.getElementById('metaToko').value = name;
+  document.getElementById('metaToko').closest('.field').classList.remove('field-missing');
   saveState();
   closeTokoModal();
   updatePresence();
@@ -6703,6 +6779,7 @@ function openPetugasModal(e){
   if(IS_ADMIN_TAKEOVER) return; // nama petugas terkunci selama mode Ambil Alih
   closeTokoModal();
   closeStatusFilterModal();
+  closeWaktuModal();
   const listEl = document.getElementById('petugasList');
   if(petugasRowsFull.length === 0){
     listEl.innerHTML = '<div class="modal-empty">Belum ada nama di daftar. Ketik nama secara manual di bawah.</div>';
@@ -7012,7 +7089,7 @@ async function loadHistoryEntry(id){
   rows = JSON.parse(JSON.stringify(entry.rows || []));
   idCounter = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
   document.getElementById('metaToko').value = entry.toko || '';
-  document.getElementById('metaWaktu').value = entry.waktu || 'siang';
+  document.getElementById('metaWaktu').value = entry.waktu || '';
   document.getElementById('metaTgl').value = entry.tgl || todayISO();
   document.getElementById('metaPetugas').value = entry.petugas || '';
   hideToko = entry.hideToko ? {...entry.hideToko} : { t1:false, t2:false };
@@ -7045,7 +7122,7 @@ async function restorePreviousActive(){
   idCounter = snap.idCounter || (rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0);
   if(snap.meta){
     document.getElementById('metaToko').value = snap.meta.toko || '';
-    document.getElementById('metaWaktu').value = snap.meta.waktu || 'siang';
+    document.getElementById('metaWaktu').value = snap.meta.waktu || '';
     document.getElementById('metaTgl').value = snap.meta.tgl || todayISO();
     document.getElementById('metaPetugas').value = snap.meta.petugas || '';
   }
@@ -8750,7 +8827,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var MODELS_URL     = API_ORIGIN + '/models';
   var MAX_TOOL_LOOPS = 8;
   var MAX_HISTORY    = 40;
-  var WAKTU_OPTIONS  = ['pagi', 'siang', 'sore', 'malam'];
+  var WAKTU_OPTIONS  = ['pagi', 'siang'];
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
@@ -8967,7 +9044,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       type: 'function',
       function: {
         name: 'set_meta',
-        description: 'Mengubah info update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan petugas. Hanya field yang dikirim yang diubah. Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
+        description: 'Mengubah info update di bagian atas halaman: nama toko, waktu (pagi/siang), tanggal, dan petugas. Hanya field yang dikirim yang diubah. Operasi TULIS — akan meminta konfirmasi pengguna kecuali mode auto-jalankan sedang aktif.',
         parameters: {
           type: 'object',
           properties: {
@@ -9538,7 +9615,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       '- web_apk: jumlah stok menurut sistem/aplikasi kasir, dipakai sebagai PEMBANDING (angka, boleh kosong).',
       '- Barang dianggap "sudah dicek" hanya kalau web_apk sudah diisi.',
       '- Status: "klop" kalau (rafa1+rafa2) sama dengan web_apk; "minus" kalau fisik LEBIH SEDIKIT dari web_apk; "plus" kalau fisik LEBIH BANYAK dari web_apk; "belum_dicek" kalau web_apk masih kosong.',
-      '- Ada juga info_update di bagian atas halaman: nama toko, waktu (pagi/siang/sore/malam), tanggal, dan nama petugas yang sedang mengisi.',
+      '- Ada juga info_update di bagian atas halaman: nama toko, waktu (pagi/siang), tanggal, dan nama petugas yang sedang mengisi.',
       '',
       'Aturan wajib:',
       '1. Jangan pernah mengarang id barang. Gunakan id hasil search_items/list_items/get_item, atau biarkan add_item membuatkan id baru secara otomatis.',
@@ -12272,3 +12349,4 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
 </body>
 </html>
+            
