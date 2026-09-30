@@ -662,52 +662,6 @@
   }
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
-
-  /* ===== Panel Script / Bookmarklet di dalam Browser ===== */
-  .cs-panel{
-    display:none; position:absolute; left:0; right:0; bottom:0; height:64%; z-index:6;
-    background:var(--card,#fff); border-top:2px solid var(--teal);
-    box-shadow:0 -8px 24px rgba(15,30,27,0.25); flex-direction:column;
-  }
-  .cs-panel.show{display:flex;}
-  .cs-head{
-    display:flex; align-items:center; justify-content:space-between; padding:6px 10px;
-    background:var(--mint,#e8f4f1); font-size:12px; color:var(--teal-deep,#0d5c52); flex-shrink:0;
-  }
-  .cs-head button{background:none; border:none; font-size:14px; font-weight:700; cursor:pointer; color:inherit;}
-  .cs-scroll{flex:1; min-height:0; overflow-y:auto; padding:8px 10px 14px; display:flex; flex-direction:column; gap:7px;}
-  .cs-code, .cs-name, .cs-search{
-    width:100%; box-sizing:border-box; border:1.5px solid var(--line,#d6e2de); border-radius:8px;
-    background:var(--paper,#fafcfb); color:var(--ink,#123); font-size:12px; padding:6px 8px;
-  }
-  .cs-code{font-family:'JetBrains Mono', monospace; font-size:11.5px; min-height:78px; resize:vertical; line-height:1.4;}
-  .cs-code:focus, .cs-name:focus, .cs-search:focus{outline:none; border-color:var(--teal);}
-  .cs-actions{display:flex; gap:6px; flex-wrap:wrap;}
-  .cs-btn{
-    border:1.5px solid var(--teal); background:#fff; color:var(--teal-deep,#0d5c52); border-radius:8px;
-    font-size:11.5px; font-weight:700; padding:6px 9px; cursor:pointer;
-  }
-  .cs-btn.primary{background:var(--teal); color:#fff;}
-  .cs-status{font-size:11px; line-height:1.4; border-radius:7px; padding:6px 8px; display:none; word-break:break-word;}
-  .cs-status.ok{display:block; background:#e3f5ea; color:#146c3a;}
-  .cs-status.err{display:block; background:#fdeaea; color:#a12a2a;}
-  .cs-item{
-    display:flex; align-items:center; gap:6px; border:1px solid var(--line,#d6e2de);
-    border-radius:8px; padding:5px 7px;
-  }
-  .cs-item-title{flex:1; min-width:0; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .cs-item button{
-    border:1px solid var(--line,#d6e2de); background:#fff; border-radius:6px; min-width:26px; height:26px;
-    font-size:12px; font-weight:700; cursor:pointer; color:var(--teal-deep,#0d5c52); flex-shrink:0;
-  }
-  .cs-item button.run{background:var(--teal); color:#fff; border-color:var(--teal);}
-  .cs-empty{font-size:11.5px; color:#7b8f89; text-align:center; padding:8px 0;}
-  .cs-item button.auto-on{background:#f4e9d8; color:var(--amber,#a5661a); border-color:var(--amber,#a5661a);}
-  .cs-proxy{border:1px dashed var(--line,#d6e2de); border-radius:8px; padding:5px 8px; font-size:11.5px;}
-  .cs-proxy summary{cursor:pointer; font-weight:700; color:var(--teal-deep,#0d5c52);}
-  .cs-proxy .cs-name{margin-top:6px;}
-  .cs-check{display:flex; align-items:center; gap:6px; margin-top:6px; font-weight:600;}
-  .cs-hint{font-size:10.5px; color:#7b8f89; line-height:1.4; margin-top:6px;}
   .history-overlay.show{display:flex;}
 
   /* ===== Catatan Kode JS — gaya code manager yang padat & profesional ===== */
@@ -783,6 +737,38 @@
   .jsnote-code::placeholder{color:#4f6a64;}
   .jsnote-code:focus{outline:none;}
   .jsnote-empty-hint{font-size:11px; color:var(--ink-soft); text-align:center; padding:4px 0 0;}
+  /* ---- Jalankan JS + konsol ---- */
+  .jsnote-item.open .jsnote-body{max-height:520px;}
+  .jsnote-icon-btn.run-icon{color:var(--klop);}
+  .jsnote-icon-btn.run-icon:hover{background:var(--klop-bg); color:var(--klop);}
+  .jsnote-icon-btn.running{opacity:.5; pointer-events:none;}
+  .jsnote-run-btn{
+    display:inline-flex; align-items:center; gap:5px; flex-shrink:0; border:none; cursor:pointer;
+    background:#3c8a5c; color:#fff; font:inherit; font-size:10.5px; font-weight:800;
+    padding:4px 10px; border-radius:7px; -webkit-tap-highlight-color:transparent;
+  }
+  .jsnote-run-btn svg{width:11px; height:11px;}
+  .jsnote-run-btn:hover{background:#2f7549;}
+  .jsnote-run-btn:disabled{opacity:.55; cursor:default;}
+  .jsnote-console{display:none; background:#111b19; border-top:1px solid #2a3d3a;}
+  .jsnote-console.show{display:block;}
+  .jsnote-console-head{
+    display:flex; align-items:center; justify-content:space-between; padding:4px 10px;
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#7fa89c; letter-spacing:.03em;
+  }
+  .jsnote-console-clear{border:none; background:transparent; color:#7fa89c; font:inherit; cursor:pointer; padding:2px 4px;}
+  .jsnote-console-clear:hover{color:#fff;}
+  .jsnote-console-out{
+    max-height:150px; overflow:auto; padding:2px 10px 8px;
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; line-height:1.5;
+  }
+  .jsnote-console-out .cl{white-space:pre-wrap; word-break:break-word; padding:1px 0; color:#d8ece5;}
+  .jsnote-console-out .cl.warn{color:#e6b04f;}
+  .jsnote-console-out .cl.error{color:#f08466;}
+  .jsnote-console-out .cl.result{color:#7fd1b0;}
+  .jsnote-console-out .cl.result::before{content:'\2190  '; opacity:.7;}
+  .jsnote-console-out .cl.info{color:#7fb6e6;}
+  .jsnote-console-out .cl.sys{color:#6f8c85; font-style:italic;}
   .jsnote-count-badge{
     font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--mint); border-radius:20px;
     padding:2px 8px; margin-left:6px;
@@ -8359,7 +8345,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
           <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
-          <button class="cashier-nav-btn" onclick="csToggle()" title="Script / Bookmarklet" style="font-size:11px; font-family:'JetBrains Mono',monospace;">&lt;/&gt;</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -8368,29 +8353,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     </div>
     <div class="cashier-popup-body">
       <iframe id="cashierPopupFrame" src="about:blank" loading="lazy" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
-      <div class="cs-panel" id="csPanel">
-        <div class="cs-head"><b>Script / Bookmarklet</b><button type="button" onclick="csToggle(false)">✕</button></div>
-        <div class="cs-scroll">
-          <textarea class="cs-code" id="csCode" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tempel JavaScript di sini, lalu tekan Jalankan..."></textarea>
-          <input class="cs-name" id="csName" type="text" placeholder="Nama script (isi kalau mau disimpan)">
-          <div class="cs-actions">
-            <button type="button" class="cs-btn primary" onclick="csRunEditor()">▶ Jalankan</button>
-            <button type="button" class="cs-btn" onclick="csSaveEditor()">Simpan</button>
-            <button type="button" class="cs-btn" onclick="csCopyBookmarklet(document.getElementById('csCode').value)">Salin bookmarklet</button>
-          </div>
-          <div class="cs-status" id="csStatus"></div>
-          <details class="cs-proxy" id="csProxyBox">
-            <summary id="csProxySummary">Mode Proxy (agar script bisa jalan di situs lain domain)</summary>
-            <label class="cs-check"><input type="checkbox" id="csProxyOn"> Aktifkan mode proxy</label>
-            <input class="cs-name" id="csProxyBase" type="text" placeholder="https://nama-proxy.vercel.app" autocapitalize="off" autocomplete="off">
-            <input class="cs-name" id="csProxyHost" type="text" placeholder="Host yang dilewatkan, mis. app.farmacare.id" autocapitalize="off" autocomplete="off">
-            <div class="cs-actions" style="margin-top:6px;"><button type="button" class="cs-btn primary" onclick="csSaveProxy()">Simpan &amp; muat ulang</button></div>
-            <div class="cs-hint">Butuh proxy hasil deploy folder <b>kasir-proxy</b>. Alamat dengan host di atas dimuat lewat proxy, sisanya tetap langsung. Tombol <b>A</b> pada script = jalankan otomatis tiap halaman selesai dimuat.</div>
-          </details>
-          <input class="cs-search" id="csSearch" type="text" placeholder="Cari script tersimpan..." oninput="csRenderList()">
-          <div id="csList"></div>
-        </div>
-      </div>
     </div>
     <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
   </div>
@@ -8412,8 +8374,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   function cashierLoad(url, pushHistory, bust){
     var f = document.getElementById('cashierPopupFrame');
     // bust=true: tambahkan parameter waktu supaya browser selalu mengambil data terbaru
-    csAgentReady = false;
-    f.src = csProxyMap(bust ? url + (url.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now() : url);
+    f.src = bust ? url + (url.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now() : url;
     document.getElementById('cashierAddrBar').value = url;
     if(pushHistory !== false){
       cashierHistory.push(url);
@@ -8484,235 +8445,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   function closeCashierPopup(){
     document.getElementById('cashierPopup').classList.remove('show');
   }
-
-  // ===== Script / Bookmarklet untuk halaman di dalam Browser =====
-  // Memakai daftar yang sama dengan "Catatan Kode JS" (getJsNotes/saveJsNotes).
-  function csEl(id){ return document.getElementById(id); }
-
-  function csStatus(msg, type){
-    var el = csEl('csStatus');
-    el.textContent = msg;
-    el.className = 'cs-status ' + (type || 'ok');
-  }
-
-  function csToggle(force){
-    var p = csEl('csPanel');
-    var show = (typeof force === 'boolean') ? force : !p.classList.contains('show');
-    p.classList.toggle('show', show);
-    if(show){ csLoadProxyForm(); csRenderList(); }
-  }
-
-  // Ambil window milik halaman di iframe. Hanya bisa kalau satu domain
-  // dengan aplikasi ini; untuk situs lain browser melempar SecurityError.
-  function csFrameWin(){
-    try{
-      var w = csEl('cashierPopupFrame').contentWindow;
-      void w.document.body; // memicu SecurityError kalau lintas-domain
-      return w;
-    }catch(e){ return null; }
-  }
-
-  // ---- Mode proxy: konfigurasi & pemetaan alamat ----
-  var CS_CFG_KEY = 'csProxyCfg_v1', CS_AUTO_KEY = 'csAutoIds_v1';
-  var csAgentReady = false, csPending = {}, csSeq = 0;
-
-  function csCfg(){
-    try{ var c = JSON.parse(localStorage.getItem(CS_CFG_KEY) || '{}'); return c && typeof c === 'object' ? c : {}; }
-    catch(e){ return {}; }
-  }
-  function csProxyActive(){ var c = csCfg(); return !!(c.on && c.base && c.host); }
-  function csProxyMap(url){
-    var c = csCfg();
-    if(!(c.on && c.base && c.host)) return url;
-    try{
-      var u = new URL(url);
-      if(u.hostname === c.host) return c.base.replace(/\/+$/, '') + u.pathname + u.search + u.hash;
-    }catch(e){}
-    return url;
-  }
-  function csLoadProxyForm(){
-    var c = csCfg();
-    csEl('csProxyOn').checked = !!c.on;
-    csEl('csProxyBase').value = c.base || '';
-    var host = c.host;
-    if(!host){ try{ host = new URL(CASHIER_HOME).hostname; }catch(e){ host = ''; } }
-    csEl('csProxyHost').value = host;
-    csEl('csProxySummary').textContent = 'Mode Proxy ' + (csProxyActive() ? '(aktif)' : '(mati)');
-  }
-  function csSaveProxy(){
-    var base = (csEl('csProxyBase').value || '').trim().replace(/\/+$/, '');
-    var host = (csEl('csProxyHost').value || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
-    var on = csEl('csProxyOn').checked;
-    if(on && (!/^https?:\/\/[^\s/]+/i.test(base) || !host)){
-      csStatus('Isi alamat proxy (https://...) dan host tujuan dulu.', 'err');
-      return;
-    }
-    try{ localStorage.setItem(CS_CFG_KEY, JSON.stringify({ on: on, base: base, host: host })); }catch(e){}
-    csLoadProxyForm();
-    var cur = (csEl('cashierAddrBar').value || '').trim() || CASHIER_HOME;
-    cashierLoad(cur, false);
-    csStatus(on ? 'Mode proxy aktif. Memuat ulang lewat proxy...' : 'Mode proxy dimatikan.', 'ok');
-  }
-
-  // ---- Jalankan otomatis (seperti userscript) ----
-  function csAutoIds(){
-    try{ var a = JSON.parse(localStorage.getItem(CS_AUTO_KEY) || '[]'); return Array.isArray(a) ? a.map(String) : []; }
-    catch(e){ return []; }
-  }
-  function csToggleAuto(id){
-    var ids = csAutoIds(), k = ids.indexOf(String(id));
-    if(k > -1) ids.splice(k, 1); else ids.push(String(id));
-    try{ localStorage.setItem(CS_AUTO_KEY, JSON.stringify(ids)); }catch(e){}
-    csRenderList();
-    csStatus(k > -1 ? 'Jalankan otomatis dimatikan.' : 'Akan dijalankan otomatis tiap halaman selesai dimuat (mode proxy).', 'ok');
-  }
-
-  // ---- Jembatan ke agent di halaman proxy ----
-  function csSendToAgent(code, cb){
-    var f = csEl('cashierPopupFrame'), id = ++csSeq;
-    csPending[id] = { cb: cb, t: setTimeout(function(){
-      delete csPending[id];
-      cb({ ok: false, error: 'Tidak ada respons dari halaman (mungkin masih memuat).' });
-    }, 5000) };
-    f.contentWindow.postMessage({ cs: 'run', id: id, code: code }, '*');
-  }
-
-  window.addEventListener('message', function(e){
-    var f = csEl('cashierPopupFrame');
-    if(!f || e.source !== f.contentWindow) return;
-    var d = e.data;
-    if(!d || d.cs !== 1) return;
-    if(d.type === 'ready'){
-      csAgentReady = true;
-      var c = csCfg();
-      if(c.host && typeof d.href === 'string' && d.href.charAt(0) === '/'){
-        var real = 'https://' + c.host + d.href;
-        var bar = csEl('cashierAddrBar');
-        if(bar) bar.value = real;
-        if(cashierHistory[cashierHistory.length - 1] !== real){
-          cashierHistory.push(real);
-          csEl('cashierBackBtn').disabled = cashierHistory.length <= 1;
-        }
-      }
-      if(d.first){
-        var ids = csAutoIds();
-        if(ids.length){
-          getJsNotes().forEach(function(n){
-            if(ids.indexOf(String(n.id)) > -1 && n.code && n.code.trim()){
-              csSendToAgent(n.code, function(r){
-                if(!r.ok) csStatus('Auto-run "' + (n.title || 'script') + '" error: ' + r.error, 'err');
-              });
-            }
-          });
-        }
-      }
-    } else if(d.type === 'result'){
-      var p = csPending[d.id];
-      if(p){ clearTimeout(p.t); delete csPending[d.id]; p.cb(d); }
-    }
-  });
-
-  function csShowResult(r){
-    if(r.ok) csStatus('Berhasil dijalankan' + (r.value ? ' → ' + r.value : '.'), 'ok');
-    else csStatus('Error: ' + r.error, 'err');
-  }
-
-  function csRun(code){
-    code = (code || '').trim();
-    if(!code){ csStatus('Kodenya masih kosong.', 'err'); return; }
-    var w = csFrameWin();
-    if(w){
-      try{
-        var r = w.eval(code);
-        csShowResult({ ok: true, value: r !== undefined ? String(r).slice(0, 140) : '' });
-      }catch(e){
-        csShowResult({ ok: false, error: (e && e.message ? e.message : String(e)) });
-      }
-      return;
-    }
-    if(csAgentReady){ csSendToAgent(code, csShowResult); return; }
-    csStatus(csProxyActive()
-      ? 'Agent di halaman belum aktif. Tunggu halaman selesai dimuat, atau muat ulang (⟳). Kalau alamat ini bukan host proxy, script tidak bisa dijalankan.'
-      : 'Halaman ini beda domain, jadi browser memblokir injeksi. Aktifkan "Mode Proxy" di bawah, atau pakai "Salin bookmarklet" lalu jalankan di tab sendiri (tombol ↗).', 'err');
-  }
-
-  function csRunEditor(){ csRun(csEl('csCode').value); }
-
-  function csBookmarklet(code){
-    return 'javascript:' + encodeURIComponent('(function(){' + code + '\n})();');
-  }
-
-  function csCopyText(text, okMsg){
-    var done = function(ok){ csStatus(ok ? okMsg : 'Gagal menyalin. Salin manual dari kotak kode.', ok ? 'ok' : 'err'); };
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(function(){ done(true); }).catch(function(){ done(false); });
-    } else {
-      try{
-        var ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done(true);
-      }catch(e){ done(false); }
-    }
-  }
-
-  function csCopyBookmarklet(code){
-    code = (code || '').trim();
-    if(!code){ csStatus('Kodenya masih kosong.', 'err'); return; }
-    csCopyText(csBookmarklet(code), 'Bookmarklet disalin. Simpan sebagai URL bookmark di browser kamu.');
-  }
-
-  function csSaveEditor(){
-    var code = csEl('csCode').value;
-    if(!code.trim()){ csStatus('Kodenya masih kosong.', 'err'); return; }
-    var notes = getJsNotes();
-    var title = (csEl('csName').value || '').trim() || ('Script ' + (notes.length + 1));
-    notes.unshift({ id: Date.now(), title: title, code: code });
-    saveJsNotes(notes);
-    if(typeof syncJsNotesToPetugasSession === 'function') syncJsNotesToPetugasSession(true);
-    var ov = csEl('jsNotesOverlay');
-    if(ov && ov.classList.contains('show') && typeof renderJsNotesList === 'function') renderJsNotesList();
-    csEl('csName').value = '';
-    csStatus('Tersimpan sebagai "' + title + '" (juga muncul di Catatan Kode JS).', 'ok');
-    csRenderList();
-  }
-
-  function csRenderList(){
-    var box = csEl('csList');
-    var q = (csEl('csSearch').value || '').trim().toLowerCase();
-    var notes = getJsNotes().filter(function(n){
-      return n.code && n.code.trim() && (!q || (n.title || '').toLowerCase().indexOf(q) > -1);
-    });
-    if(!notes.length){
-      box.innerHTML = '<div class="cs-empty">' + (q ? 'Tidak ada yang cocok.' : 'Belum ada script tersimpan.') + '</div>';
-      return;
-    }
-    var autoIds = csAutoIds();
-    box.innerHTML = notes.map(function(n){
-      return '<div class="cs-item" data-id="' + n.id + '">' +
-        '<span class="cs-item-title" title="' + escapeHtml(n.title || '') + '">' + escapeHtml(n.title || 'Tanpa nama') + '</span>' +
-        '<button type="button" class="run" data-act="run" title="Jalankan di halaman">▶</button>' +
-        '<button type="button" data-act="auto" class="' + (autoIds.indexOf(String(n.id)) > -1 ? 'auto-on' : '') + '" title="Jalankan otomatis tiap halaman dimuat (mode proxy)">A</button>' +
-        '<button type="button" data-act="bm" title="Salin bookmarklet">🔖</button>' +
-        '<button type="button" data-act="edit" title="Buka di editor">✎</button>' +
-      '</div>';
-    }).join('');
-  }
-
-  csEl('csList').addEventListener('click', function(e){
-    var btn = e.target.closest('button[data-act]');
-    if(!btn) return;
-    var id = btn.parentNode.getAttribute('data-id');
-    var note = getJsNotes().find(function(n){ return String(n.id) === id; });
-    if(!note) return;
-    var act = btn.getAttribute('data-act');
-    if(act === 'run') csRun(note.code);
-    else if(act === 'bm') csCopyBookmarklet(note.code);
-    else if(act === 'auto') csToggleAuto(note.id);
-    else if(act === 'edit'){ csEl('csCode').value = note.code; csEl('csName').value = ''; csEl('csCode').focus(); }
-  });
 
   (function(){
     var handle = document.getElementById('cashierResizeHandle');
@@ -10574,6 +10306,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   const ICO_CHEVRON = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICO_COPY = '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg>';
   const ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICO_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8Z"/></svg>';
   const ICO_TRASH = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function getJsNotes(){
@@ -10640,15 +10373,18 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
             </div>
             <div class="jsnote-row-actions">
               <span class="jsnote-save-dot" id="jsnote-saved-${note.id}" title="Tersimpan"></span>
+              <button type="button" class="jsnote-icon-btn run-icon" id="jsnote-runrow-${note.id}" title="Jalankan kode" onclick="event.stopPropagation(); runJsNote(${note.id})">${ICO_PLAY}</button>
               <button type="button" class="jsnote-icon-btn" id="jsnote-copybtn-${note.id}" title="Salin kode" onclick="event.stopPropagation(); copyJsNote(${note.id})">${ICO_COPY}</button>
               <button type="button" class="jsnote-icon-btn del-icon" title="Hapus" onclick="event.stopPropagation(); deleteJsNote(${note.id})">${ICO_TRASH}</button>
             </div>
           </div>
           <div class="jsnote-body">
-            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><span>UTF-8</span></div>
+            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><button type="button" class="jsnote-run-btn" id="jsnote-runbtn-${note.id}" title="Jalankan (Ctrl/Cmd + Enter)" onclick="runJsNote(${note.id})">${ICO_PLAY}Jalankan</button><span>UTF-8</span></div>
             <textarea class="jsnote-code" id="jsnote-code-${note.id}" spellcheck="false"
+                      onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){ event.preventDefault(); runJsNote(${note.id}); }"
                       oninput="updateJsNoteCode(${note.id}, this.value)"
                       placeholder="Tempel atau tulis kode JavaScript di sini...">${escapeHtml(note.code)}</textarea>
+            ${jsNoteConsoleHtml(note.id)}
           </div>
         </div>
       `;
@@ -10746,6 +10482,144 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(typeof petugasSessionSlug === 'undefined' || !petugasSessionSlug) return;
     if(typeof applyingPetugasSession !== 'undefined' && applyingPetugasSession) return;
     if(typeof pushPetugasSession === 'function') pushPetugasSession(immediate);
+  }
+
+  // ------------------------------------------------------
+  // Jalankan JavaScript dari catatan. Kode dijalankan langsung
+  // di halaman ini (bisa akses fungsi/variabel aplikasi & DOM),
+  // mendukung `await` dan `return`. Output console.log/info/
+  // warn/error, hasil return, dan error ditampilkan di konsol
+  // di bawah editor.
+  // ------------------------------------------------------
+  const jsNotesConsole = {};   // id -> [{type, text}]
+  const jsNotesRunning = {};   // id -> true saat sedang berjalan
+
+  function jsNoteFmt(v){
+    if(typeof v === 'string') return v;
+    if(v === undefined) return 'undefined';
+    if(typeof v === 'function') return v.toString();
+    if(typeof v === 'symbol' || typeof v === 'bigint') return String(v);
+    if(v instanceof Error) return (v.stack || (v.name + ': ' + v.message));
+    try{
+      const seen = new WeakSet();
+      const out = JSON.stringify(v, function(k, val){
+        if(typeof val === 'bigint') return val.toString();
+        if(typeof val === 'function') return '[Function]';
+        if(val && typeof val === 'object'){
+          if(seen.has(val)) return '[Circular]';
+          seen.add(val);
+        }
+        return val;
+      }, 2);
+      return out === undefined ? String(v) : out;
+    }catch(e){ return String(v); }
+  }
+
+  function jsNoteConsoleHtml(id){
+    const lines = jsNotesConsole[id];
+    const has = lines && lines.length;
+    const body = has ? lines.map(function(l){
+      return '<div class="cl ' + l.type + '">' + escapeHtml(l.text) + '</div>';
+    }).join('') : '';
+    return '<div class="jsnote-console' + (has ? ' show' : '') + '" id="jsnote-console-' + id + '">' +
+      '<div class="jsnote-console-head"><span>KONSOL</span>' +
+      '<button type="button" class="jsnote-console-clear" onclick="clearJsNoteConsole(' + id + ')">Bersihkan</button></div>' +
+      '<div class="jsnote-console-out" id="jsnote-console-out-' + id + '">' + body + '</div></div>';
+  }
+
+  function refreshJsNoteConsole(id){
+    const wrap = document.getElementById('jsnote-console-' + id);
+    if(!wrap) return;
+    const lines = jsNotesConsole[id] || [];
+    wrap.classList.toggle('show', lines.length > 0);
+    const out = document.getElementById('jsnote-console-out-' + id);
+    if(out){
+      out.innerHTML = lines.map(function(l){
+        return '<div class="cl ' + l.type + '">' + escapeHtml(l.text) + '</div>';
+      }).join('');
+      out.scrollTop = out.scrollHeight;
+    }
+  }
+
+  function clearJsNoteConsole(id){
+    jsNotesConsole[id] = [];
+    refreshJsNoteConsole(id);
+  }
+
+  async function runJsNote(id){
+    if(jsNotesRunning[id]) return;
+    const notes = getJsNotes();
+    const note = notes.find(function(n){ return n.id === id; });
+    if(!note) return;
+
+    // Pastikan catatan terbuka supaya konsol kelihatan
+    if(jsNotesOpenId !== id){
+      jsNotesOpenId = id;
+      renderJsNotesList();
+    }
+    // Pakai isi editor terbaru (autosave bisa belum sempat jalan)
+    const ta = document.getElementById('jsnote-code-' + id);
+    const code = ta ? ta.value : (note.code || '');
+    if(ta && note.code !== code){
+      note.code = code; saveJsNotes(notes); syncJsNotesToPetugasSession();
+    }
+
+    const lines = jsNotesConsole[id] = [];
+    const push = function(type, text){ lines.push({type: type, text: text}); };
+    if(!code.trim()){
+      push('warn', 'Kode masih kosong.');
+      refreshJsNoteConsole(id);
+      return;
+    }
+
+    jsNotesRunning[id] = true;
+    const runBtn = document.getElementById('jsnote-runbtn-' + id);
+    const rowBtn = document.getElementById('jsnote-runrow-' + id);
+    if(runBtn) runBtn.disabled = true;
+    if(rowBtn) rowBtn.classList.add('running');
+    push('sys', '\u25B6 Menjalankan "' + (note.title || 'Javascript') + '"...');
+    refreshJsNoteConsole(id);
+
+    // Tangkap console selama kode berjalan
+    const orig = {};
+    const methods = ['log','info','warn','error','debug','table'];
+    methods.forEach(function(m){
+      orig[m] = console[m];
+      console[m] = function(){
+        const args = Array.prototype.slice.call(arguments);
+        const type = (m === 'warn') ? 'warn' : (m === 'error') ? 'error' : (m === 'info') ? 'info' : 'log';
+        push(type, args.map(jsNoteFmt).join(' '));
+        try{ orig[m].apply(console, args); }catch(e){}
+      };
+    });
+    const onErr = function(ev){ push('error', 'Uncaught: ' + (ev.message || jsNoteFmt(ev.error))); };
+    const onRej = function(ev){ push('error', 'Unhandled promise rejection: ' + jsNoteFmt(ev.reason)); };
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+
+    const t0 = performance.now();
+    try{
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const fn = new AsyncFunction(code);
+      const result = await fn();
+      if(result !== undefined) push('result', jsNoteFmt(result));
+      push('sys', '\u2713 Selesai (' + Math.round(performance.now() - t0) + ' ms)');
+    }catch(e){
+      push('error', jsNoteFmt(e));
+      push('sys', '\u2717 Gagal (' + Math.round(performance.now() - t0) + ' ms)');
+    }finally{
+      // beri jeda singkat agar error async cepat ikut tertangkap
+      await new Promise(function(r){ setTimeout(r, 60); });
+      methods.forEach(function(m){ console[m] = orig[m]; });
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
+      jsNotesRunning[id] = false;
+      const rb = document.getElementById('jsnote-runbtn-' + id);
+      const rr = document.getElementById('jsnote-runrow-' + id);
+      if(rb) rb.disabled = false;
+      if(rr) rr.classList.remove('running');
+      refreshJsNoteConsole(id);
+    }
   }
 
   function copyJsNote(id){
