@@ -1679,6 +1679,26 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
 #metaWaktu, #metaToko{cursor:pointer;}
 .field-dropdown #metaWaktu{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; background-size:14px; padding-right:28px;}
 </style>
+
+<style id="bbLbStyle">
+  .bblb-card{border-color:#a9c9c0;}
+  .bblb-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px;}
+  .bblb-head h2{margin:0;}
+  .bblb-live{font-size:10px; font-weight:700; color:var(--ink-soft); display:flex; align-items:center; gap:5px;}
+  .bblb-live i{width:7px; height:7px; border-radius:50%; background:#b8c4c0; display:inline-block;}
+  .bblb-live.on i{background:#2fb36b; box-shadow:0 0 0 3px rgba(47,179,107,.2);}
+  .bblb-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  .bblb-row{display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--mint); border:1px solid var(--line); border-radius:11px; font-size:13px;}
+  .bblb-row.me{border-color:var(--teal); box-shadow:0 0 0 1px var(--teal) inset; font-weight:700;}
+  .bblb-rank{width:26px; text-align:center; font-weight:800; font-size:14px; color:var(--ink-soft);}
+  .bblb-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink);}
+  .bblb-score{font-weight:800; font-variant-numeric:tabular-nums; color:var(--teal-deep);}
+  .bblb-empty{font-size:12px; color:var(--ink-soft); padding:6px 2px;}
+  .bblb-foot{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px;}
+  .bblb-foot small{font-size:11px; color:var(--ink-soft);}
+  .bblb-play{border:2px solid var(--ink); background:var(--teal); color:#fff; font:inherit; font-size:12px; font-weight:800; padding:7px 14px; border-radius:11px; box-shadow:0 2px 0 var(--ink); cursor:pointer;}
+  .bblb-play:active{transform:translateY(2px); box-shadow:none;}
+</style>
 </head>
 <body data-theme="kardus">
 <script>try{var __t=localStorage.getItem('stokOpnameTheme');if(['asli','kardus','kucing','robot','awan','boba'].indexOf(__t)>-1)document.body.setAttribute('data-theme',__t);}catch(e){}</script>
@@ -1892,6 +1912,18 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   </div>
 
   <div class="stock-import-toast" id="stockImportToast"></div>
+
+  <div class="card bblb-card" id="bblbCard">
+    <div class="bblb-head">
+      <h2>🏆 Leaderboard Block Blast</h2>
+      <span class="bblb-live" id="bblbLive"><i></i><span id="bblbLiveTxt">Menghubungkan…</span></span>
+    </div>
+    <ol class="bblb-list" id="bblbList"><li class="bblb-empty">Memuat papan skor…</li></ol>
+    <div class="bblb-foot">
+      <small id="bblbMine"></small>
+      <button type="button" class="bblb-play" onclick="startGame('blockblast')">Main Block Blast</button>
+    </div>
+  </div>
 
   <div class="card sync-card">
     <h2>Sinkronisasi Tim (Realtime)</h2>
@@ -12416,5 +12448,165 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 })();
 </script>
 
+
+<script>
+/* ====== Leaderboard Block Blast (Supabase Realtime, tampil di semua layar) ====== */
+(function(){
+  var TABLE = 'blockblast_leaderboard';
+  var TOP_N = 10;
+  var rows = [];
+  var chan = null;
+  var lastSent = {};   // nama -> skor terakhir yang berhasil dikirim (cegah kirim ulang)
+
+  function $(id){ return document.getElementById(id); }
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function client(){ try{ return (typeof initSupabaseClient === 'function') ? initSupabaseClient() : null; }catch(e){ return null; } }
+
+  function myName(){
+    var n = '';
+    try{ var el = $('metaPetugas'); if(el) n = (el.value || '').trim(); }catch(e){}
+    if(!n){ try{ n = (findPetugasNameById(getMyPetugasId()) || '').trim(); }catch(e){} }
+    return n;
+  }
+
+  function setLive(on, txt){
+    var l = $('bblbLive'), t = $('bblbLiveTxt');
+    if(l) l.classList.toggle('on', !!on);
+    if(t) t.textContent = txt;
+  }
+
+  function render(){
+    var ul = $('bblbList'); if(!ul) return;
+    var sorted = rows.slice().sort(function(a,b){ return (b.best_score - a.best_score) || String(a.updated_at).localeCompare(String(b.updated_at)); });
+    var me = myName().toLowerCase();
+    if(!sorted.length){
+      ul.innerHTML = '<li class="bblb-empty">Belum ada skor. Jadi yang pertama main Block Blast! 🎮</li>';
+    } else {
+      var medals = ['🥇','🥈','🥉'];
+      ul.innerHTML = sorted.slice(0, TOP_N).map(function(r, i){
+        var isMe = me && String(r.player_name).toLowerCase() === me;
+        return '<li class="bblb-row' + (isMe ? ' me' : '') + '"><span class="bblb-rank">' + (medals[i] || (i+1)) + '</span>'
+          + '<span class="bblb-name">' + esc(r.player_name) + (isMe ? ' (kamu)' : '') + '</span>'
+          + '<span class="bblb-score">' + Number(r.best_score).toLocaleString('id-ID') + '</span></li>';
+      }).join('');
+    }
+    var mineEl = $('bblbMine');
+    if(mineEl){
+      var idx = sorted.findIndex(function(r){ return me && String(r.player_name).toLowerCase() === me; });
+      mineEl.textContent = idx >= 0 ? ('Peringkat kamu: #' + (idx+1) + ' · ' + Number(sorted[idx].best_score).toLocaleString('id-ID')) : '';
+    }
+    sendBest();
+  }
+
+  // Kirim rekor pribadi user (berdasarkan nama petugas) ke game supaya "TERBAIK" per user, bukan per HP
+  function sendBest(){
+    var f = $('cashierPopupFrame');
+    if(!f || !f.contentWindow) return;
+    var n = myName(), me = n.toLowerCase();
+    var r = me ? rows.find(function(x){ return String(x.player_name).toLowerCase() === me; }) : null;
+    try{ f.contentWindow.postMessage({type:'blockblast-best', name:n, best: r ? Number(r.best_score) : 0}, '*'); }catch(e){}
+  }
+
+  function upsertLocal(row){
+    if(!row || !row.player_name) return;
+    var i = rows.findIndex(function(r){ return r.player_name === row.player_name; });
+    if(i >= 0) rows[i] = row; else rows.push(row);
+  }
+
+  async function load(){
+    var c = client(); if(!c){ setLive(false, 'Offline'); return; }
+    try{
+      var res = await c.from(TABLE).select('*').order('best_score', {ascending:false}).limit(50);
+      if(res.error) throw res.error;
+      rows = res.data || [];
+      render();
+    }catch(e){
+      console.error('Gagal memuat leaderboard Block Blast:', e);
+      var ul = $('bblbList');
+      if(ul) ul.innerHTML = '<li class="bblb-empty">Leaderboard belum siap (tabel Supabase belum dibuat).</li>';
+      setLive(false, 'Belum siap');
+    }
+  }
+
+  function subscribe(){
+    var c = client(); if(!c) return;
+    if(chan){ try{ c.removeChannel(chan); }catch(e){} chan = null; }
+    chan = c.channel('bblb-' + TABLE)
+      .on('postgres_changes', {event:'*', schema:'public', table:TABLE}, function(payload){
+        if(payload.eventType === 'DELETE'){
+          var old = payload.old || {};
+          rows = rows.filter(function(r){ return r.player_name !== old.player_name && r.id !== old.id; });
+        } else { upsertLocal(payload.new); }
+        render();
+      })
+      .subscribe(function(status){
+        if(status === 'SUBSCRIBED') setLive(true, 'Live');
+        else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setLive(false, 'Terputus');
+      });
+  }
+
+  // Kirim skor: hanya tersimpan kalau LEBIH TINGGI dari skor terbaik pemain itu.
+  async function submit(score, nameOverride){
+    score = Math.floor(Number(score));
+    if(!isFinite(score) || score <= 0) return false;
+    var name = (nameOverride || myName() || '').trim();
+    if(!name){
+      name = (prompt('Masukkan namamu untuk leaderboard Block Blast:') || '').trim();
+      if(!name) return false;
+    }
+    if((lastSent[name] || 0) >= score) return false;
+    var c = client(); if(!c) return false;
+    try{
+      var cur = rows.find(function(r){ return r.player_name === name; });
+      if(cur && cur.best_score >= score){ lastSent[name] = cur.best_score; return false; }
+      // cek ke server dulu supaya rekor dari perangkat lain tidak tertimpa skor yang lebih kecil
+      var chk = await c.from(TABLE).select('*').eq('player_name', name).maybeSingle();
+      if(!chk.error && chk.data){
+        upsertLocal(chk.data);
+        if(chk.data.best_score >= score){ lastSent[name] = chk.data.best_score; render(); return false; }
+      }
+      var res = await c.from(TABLE).upsert(
+        {player_name:name, best_score:score, updated_at:new Date().toISOString()},
+        {onConflict:'player_name'}
+      ).select().maybeSingle();
+      if(res.error) throw res.error;
+      lastSent[name] = score;
+      upsertLocal(res.data || {player_name:name, best_score:score, updated_at:new Date().toISOString()});
+      render();
+      return true;
+    }catch(e){
+      console.error('Gagal mengirim skor Block Blast:', e);
+      return false;
+    }
+  }
+  window.submitBlockBlastScore = submit;
+  var _startGame = window.startGame;
+  if(typeof _startGame === 'function'){
+    window.startGame = function(which){
+      var r = _startGame.apply(this, arguments);
+      if(which === 'blockblast') setTimeout(sendBest, 150);
+      return r;
+    };
+  }
+
+  // Game (iframe blockblast.html) bisa kirim skor lewat postMessage
+  window.addEventListener('message', function(ev){
+    var d = ev.data;
+    if(!d) return;
+    var f = $('cashierPopupFrame');
+    if(f && ev.source !== f.contentWindow) return;
+    if(d.type === 'blockblast-hello'){ sendBest(); return; }
+    if(d.type !== 'blockblast-score') return;
+    submit(d.score, d.name);
+  });
+
+  function init(){
+    load().then(subscribe);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) load(); });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(init, 300); });
+  else setTimeout(init, 300);
+})();
+</script>
 </body>
 </html>
