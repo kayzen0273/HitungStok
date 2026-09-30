@@ -8574,15 +8574,19 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
 <style>
   .gpick{position:fixed; inset:0; z-index:9998; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,30,27,.55);}
   .gpick.show{display:flex;}
-  .gpick-box{width:100%; max-width:340px; background:var(--card,#fff); color:var(--ink,#173b36); border:2px solid var(--ink,#173b36); border-radius:20px; padding:16px; box-shadow:0 6px 0 var(--ink,#173b36);}
+  .gpick-box{width:100%; max-width:360px; background:var(--card,#fff); color:var(--ink,#173b36); border:2px solid var(--ink,#173b36); border-radius:20px; padding:16px; box-shadow:0 6px 0 var(--ink,#173b36);}
   .gpick-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-weight:800; font-size:16px;}
   .gpick-x{border:0; background:none; font:inherit; font-size:18px; font-weight:800; color:inherit; cursor:pointer; padding:2px 6px;}
-  .gpick-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .gpick-item{display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px 12px; font:inherit; font-size:13px; font-weight:800; color:inherit; background:var(--mint,#e4f2ec); border:2px solid var(--ink,#173b36); border-radius:14px; box-shadow:0 3px 0 var(--ink,#173b36); cursor:pointer;}
+  .gpick-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .gpick-item{display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 4px 10px; font:inherit; font-size:12px; font-weight:800; color:inherit; background:var(--mint,#e4f2ec); border:2px solid var(--ink,#173b36); border-radius:14px; box-shadow:0 3px 0 var(--ink,#173b36); cursor:pointer;}
   .gpick-item:active{transform:translateY(3px); box-shadow:none;}
   .gpick-ico{display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; box-shadow:inset 0 2px 0 rgba(255,255,255,.35);}
   .gpick-item:nth-child(1) .gpick-ico{background:linear-gradient(150deg,#f08466,#c0503a);}
   .gpick-item:nth-child(2) .gpick-ico{background:linear-gradient(150deg,#9878d0,#6a4ba6);}
+  .gpick-item:nth-child(3) .gpick-ico{background:linear-gradient(150deg,#4cc2b0,#1c7f8c);}
+  .gp-planet{transform-origin:32px 32px; animation:gpSpin 6s linear infinite;}
+  .gp-mail{transform-origin:46px 20px; animation:gpPulse 1.6s ease-in-out infinite;}
+  @keyframes gpSpin{from{transform:rotate(0);}to{transform:rotate(360deg);}}
   .gpick-ico svg{width:52px; height:52px; overflow:visible;}
   .gpick-ico{width:68px; height:68px; border-radius:20px; box-shadow:inset 0 2px 0 rgba(255,255,255,.35), 0 5px 10px -4px rgba(23,59,54,.5);}
   .gp-car{animation:gpBob 1.1s ease-in-out infinite; transform-origin:center;}
@@ -8593,7 +8597,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   @keyframes gpDash{from{transform:translateX(4px); opacity:0;}50%{opacity:.7;}to{transform:translateX(-4px); opacity:0;}}
   @keyframes gpPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
   @keyframes gpSpark{0%,100%{transform:scale(.6) rotate(0); opacity:.7;}50%{transform:scale(1.15) rotate(45deg); opacity:1;}}
-  @media (prefers-reduced-motion:reduce){.gp-car,.gp-lines,.gp-blk,.gp-spark{animation:none;}}
+  @media (prefers-reduced-motion:reduce){.gp-car,.gp-lines,.gp-blk,.gp-spark,.gp-planet,.gp-mail{animation:none;}}
 </style>
 <div class="gpick" id="gamePicker" onclick="if(event.target===this)closeGamePicker()">
   <div class="gpick-box" role="dialog" aria-label="Pilih game">
@@ -8601,6 +8605,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     <div class="gpick-grid">
       <button type="button" class="gpick-item" onclick="startGame('game')"><span class="gpick-ico"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g class="gp-lines" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".7"><path d="M3 27h10"/><path d="M6 33h8"/><path d="M2 39h11"/></g><g class="gp-car"><path d="M15 41v-6.5c0-1.6 1-2.9 2.5-3.3l7-1.9 5-7.3c.8-1.2 2-1.8 3.4-1.8h11c1.4 0 2.7.7 3.5 1.9l4.6 7 5.3 1.4c1.6.4 2.7 1.8 2.7 3.5V41c0 1.1-.9 2-2 2H17c-1.1 0-2-.9-2-2z" fill="#fff"/><path d="M31.5 24.5h11.6l3.6 5.5H27.8z" fill="#173b36" opacity=".78"/><path d="M39 24.5h4l3.6 5.5h-4z" fill="#fff" opacity=".25"/><rect x="53" y="34" width="5" height="3.4" rx="1.4" fill="#ffd66b"/><rect x="14.5" y="34.5" width="3" height="3" rx="1.2" fill="#ff5a4d"/><circle cx="26" cy="43" r="6.5" fill="#173b36" stroke="#fff" stroke-width="2"/><circle cx="26" cy="43" r="2.2" fill="#fff"/><circle cx="48" cy="43" r="6.5" fill="#173b36" stroke="#fff" stroke-width="2"/><circle cx="48" cy="43" r="2.2" fill="#fff"/></g></svg></span>Carzen</button>
       <button type="button" class="gpick-item" onclick="startGame('blockblast')"><span class="gpick-ico"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g class="gp-blk"><rect x="9" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="25" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="41" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="25" y="28" width="14" height="14" rx="3.5" fill="#fff"/><rect x="9" y="44" width="14" height="14" rx="3.5" fill="#fff" opacity=".45"/><rect x="41" y="44" width="14" height="14" rx="3.5" fill="#ffd66b"/></g><path class="gp-spark" d="M49 27l2 5.2 5.2 2-5.2 2-2 5.2-2-5.2-5.2-2 5.2-2z" fill="#ffd66b"/></svg></span>Block Blast</button>
+      <button type="button" class="gpick-item" onclick="startGame('messenger')"><span class="gpick-ico"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g class="gp-planet"><circle cx="30" cy="36" r="17" fill="#fff"/><path d="M18 30c6-3 11 1 16-2s9-1 13 3" stroke="#1c7f8c" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M16 42c7 3 12-2 18 1s8 0 11-2" stroke="#1c7f8c" stroke-width="3" stroke-linecap="round" opacity=".55"/></g><g class="gp-mail"><rect x="38" y="11" width="18" height="13" rx="3" fill="#ffd66b"/><path d="M39 13l8 6 8-6" stroke="#173b36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span>Adventure Games</button>
     </div>
   </div>
 </div>
@@ -8616,7 +8621,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
         <div class="cashier-popup-nav">
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
-          <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -8647,7 +8651,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     var f = document.getElementById('cashierPopupFrame');
     // bust=true: tambahkan parameter waktu supaya browser selalu mengambil data terbaru
     f.src = bust ? url + (url.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now() : url;
-    document.getElementById('cashierAddrBar').value = url;
+    document.getElementById('cashierAddrBar').value = addrDisplay(url);
     if(pushHistory !== false){
       cashierHistory.push(url);
     }
@@ -8657,7 +8661,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   function cashierNavigate(e){
     e.preventDefault();
     var input = document.getElementById('cashierAddrBar');
-    cashierLoad(cashierUrlFromInput(input.value), true);
+    cashierLoad(cashierUrlFromInput(addrReal(input.value)), true);
     return false;
   }
 
@@ -8670,7 +8674,7 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
       // Untuk situs lain (lintas-domain), browser tidak mengizinkan kita membaca
       // atau me-reload halaman yang sedang aktif di dalamnya. Kita tidak memaksa
       // lompat ke alamat lama — cukup beri tahu pengguna.
-      var cur = (document.getElementById('cashierAddrBar').value || '').trim();
+      var cur = addrReal(document.getElementById('cashierAddrBar').value);
       if(cur) cashierLoad(cur, false, true);
     }
   }
@@ -8709,16 +8713,29 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   }
   function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); }
   function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran', true); }
+  var MESSENGER_HOME = 'https://messenger.abeto.co/';
+  // Alamat yang ditampilkan di bilah alamat (hanya tampilan); muatan iframe tetap alamat asli
+  var ADDR_ALIAS = { 'https://messenger.abeto.co/': 'https://adventuregames.com/' };
+  function addrDisplay(u){ return ADDR_ALIAS[u] || u; }
+  function addrReal(u){
+    u = (u||'').trim();
+    var norm = function(x){ return x.replace(/^https?:[/][/]/i,'').replace(/[/]$/,''); };
+    for(var k in ADDR_ALIAS){
+      if(norm(u) === norm(ADDR_ALIAS[k])) return k;
+    }
+    return u;
+  }
   var BLOCKBLAST_HOME = 'blockblast.html'; // file terpisah, satu folder dengan halaman ini
   function openGamePopup(){ document.getElementById('gamePicker').classList.add('show'); }
   function closeGamePicker(){ document.getElementById('gamePicker').classList.remove('show'); }
   function startGame(which){
     closeGamePicker();
-    if(which === 'blockblast') cashierOpenApp('blockblast', BLOCKBLAST_HOME, 'Block Blast');
+    if(which === 'messenger') cashierOpenApp('messenger', MESSENGER_HOME, 'Adventure Games');
+    else if(which === 'blockblast') cashierOpenApp('blockblast', BLOCKBLAST_HOME, 'Block Blast');
     else cashierOpenApp('game', GAME_HOME, 'Game');
   }
   function cashierOpenExternal(){
-    var u = (document.getElementById('cashierAddrBar').value || '').trim();
+    var u = addrReal(document.getElementById('cashierAddrBar').value);
     if(u) window.open(u, '_blank', 'noopener');
   }
   function closeCashierPopup(){
