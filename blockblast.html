@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Block Blast</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#173b36;--paper:#f7f1e1;--card:#fffdf6;--line:#cfc5a4;--well:#e9dfc2;--amber:#e6b04f;--teal:#0f7563;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;}
+body{
+  background:var(--paper);background-image:radial-gradient(circle at 1px 1px,rgba(23,59,54,.07) 1px,transparent 0);background-size:22px 22px;
+  font-family:'Zen Maru Gothic','Plus Jakarta Sans',system-ui,sans-serif;color:var(--ink);
+  display:flex;justify-content:center;align-items:flex-start;overflow:hidden;user-select:none;-webkit-user-select:none;
+}
+.stage{--bw:clamp(240px,min(100vw - 24px,380px,100dvh - 290px),380px);width:var(--bw);padding:14px 0 12px;display:flex;flex-direction:column;gap:12px;}
+.top{display:flex;gap:8px;align-items:stretch;}
+.title{flex:1;font-size:19px;font-weight:800;line-height:1.05;display:flex;flex-direction:column;justify-content:center;}
+.title small{font-size:11px;font-weight:700;color:#6d6a55;}
+.stat{min-width:74px;padding:6px 10px;background:var(--card);border:2px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);text-align:center;}
+.stat b{display:block;font-size:10.5px;font-weight:800;color:#6d6a55;letter-spacing:.04em;text-transform:uppercase;}
+.stat span{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
+.stat.best{background:var(--amber);}
+.stat.best b{color:var(--ink);}
+.boardwrap{position:relative;}
+#board{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:3px;padding:6px;background:var(--line);border:2px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);touch-action:none;}
+.cell{background:var(--well);border-radius:6px;box-shadow:inset 0 2px 0 rgba(23,59,54,.08);transition:background .08s;}
+.cell.f{box-shadow:inset 0 -3px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.4);}
+.cell.pv{background:var(--pv);opacity:.55;}
+.cell.clr{animation:clr .26s ease-in forwards;}
+@keyframes clr{0%{filter:brightness(1.6);transform:scale(1);}100%{transform:scale(.2);opacity:0;}}
+#toast{position:absolute;left:0;right:0;top:38%;text-align:center;font-size:26px;font-weight:800;color:var(--ink);text-shadow:0 2px 0 #fff,0 0 12px #fff;pointer-events:none;opacity:0;}
+#toast.show{animation:toast .9s ease-out;}
+@keyframes toast{0%{opacity:0;transform:translateY(12px) scale(.8);}20%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(-34px);}}
+#tray{display:flex;gap:8px;}
+.slot{flex:1;height:calc(var(--bw) * .3);min-height:84px;display:flex;align-items:center;justify-content:center;background:var(--card);border:2px solid var(--ink);border-radius:14px;box-shadow:0 3px 0 var(--ink);touch-action:none;cursor:grab;}
+.pc{display:grid;}
+.pc .b{border-radius:4px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.4);}
+.ghost{position:fixed;left:0;top:0;z-index:99;pointer-events:none;filter:drop-shadow(0 8px 6px rgba(23,59,54,.3));}
+.actions{display:flex;justify-content:center;}
+.btn{font:inherit;font-size:14px;font-weight:800;padding:9px 20px;background:var(--amber);color:var(--ink);border:2px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);cursor:pointer;}
+.btn:active{transform:translateY(3px);box-shadow:none;}
+#over{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(247,241,225,.92);border-radius:16px;text-align:center;}
+#over.show{display:flex;}
+#over h2{margin:0;font-size:26px;font-weight:800;}
+#over p{margin:0 0 6px;font-size:14px;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="top">
+    <div class="title">Block Blast<small>Susun &amp; ledakkan baris</small></div>
+    <div class="stat"><b>Skor</b><span id="score">0</span></div>
+    <div class="stat best"><b>Terbaik</b><span id="best">0</span></div>
+  </div>
+  <div class="boardwrap">
+    <div id="board"></div>
+    <div id="toast"></div>
+    <div id="over"><h2>Game Selesai</h2><p id="overTxt"></p><button class="btn" id="again">Main Lagi</button></div>
+  </div>
+  <div id="tray"></div>
+  <div class="actions"><button class="btn" id="restart">Ulang</button></div>
+</div>
+<script>
+(function(){
+  var N = 8, GAP = 3, LIFT = 70;
+  var COLORS = ['#e6b04f','#5a9bd8','#33a794','#9878d0','#f08466','#4cc27a'];
+  var BASES = [['1'],['11'],['111'],['1111'],['11111'],['11','11'],['111','111','111'],['111','111'],
+    ['10','11'],['100','100','111'],['10','10','11'],['01','01','11'],['111','010'],['011','110'],['110','011']];
+  var SHAPES = [], seen = {};
+  function rot(m){var r=[],h=m.length,w=m[0].length;for(var x=0;x<w;x++){var row=[];for(var y=h-1;y>=0;y--)row.push(m[y][x]);r.push(row);}return r;}
+  BASES.forEach(function(b,bi){
+    var m = b.map(function(r){return r.split('').map(Number);});
+    for(var k=0;k<4;k++){
+      var key = m.map(function(r){return r.join('');}).join('|');
+      if(!seen[key]){seen[key]=1;SHAPES.push({m:m,c:bi%6});}
+      m = rot(m);
+    }
+  });
+
+  var $ = function(id){return document.getElementById(id);};
+  var boardEl=$('board'), trayEl=$('tray'), cells=[];
+  for(var i=0;i<N*N;i++){var d=document.createElement('div');d.className='cell';boardEl.appendChild(d);cells.push(d);}
+
+  var grid, pieces, score, best=0, streak, over, busy, drag=null;
+  try{best = +localStorage.getItem('blockBlastBest')||0;}catch(e){}
+
+  function fits(m,r,c){
+    for(var y=0;y<m.length;y++)for(var x=0;x<m[0].length;x++){
+      if(!m[y][x])continue;
+      var rr=r+y, cc=c+x;
+      if(rr<0||cc<0||rr>=N||cc>=N||grid[rr*N+cc])return false;
+    }
+    return true;
+  }
+  function canAny(p){for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(fits(p.m,r,c))return true;return false;}
+  function rnd(){return SHAPES[Math.floor(Math.random()*SHAPES.length)];}
+  function newPieces(){
+    var t=0, set;
+    do{set=[rnd(),rnd(),rnd()];t++;}while(t<30 && !set.some(canAny));
+    pieces = set;
+  }
+
+  function pieceEl(p,size,gap){
+    var el=document.createElement('div');el.className='pc';
+    el.style.gridTemplateColumns='repeat('+p.m[0].length+','+size+'px)';el.style.gap=gap+'px';
+    p.m.forEach(function(row){row.forEach(function(v){
+      var d=document.createElement('div');d.style.width=d.style.height=size+'px';
+      if(v){d.className='b';d.style.background=COLORS[p.c];}
+      el.appendChild(d);
+    });});
+    return el;
+  }
+  function renderBoard(){
+    for(var i=0;i<N*N;i++){
+      var v=grid[i], c=cells[i];
+      c.className='cell'+(v?' f':'');
+      c.style.background=v?COLORS[v-1]:'';
+    }
+  }
+  function renderTray(){
+    trayEl.innerHTML='';
+    pieces.forEach(function(p,i){
+      var s=document.createElement('div');s.className='slot';
+      if(p){s.appendChild(pieceEl(p,18,2));s.addEventListener('pointerdown',function(e){startDrag(e,i,s);});}
+      trayEl.appendChild(s);
+    });
+  }
+  function updateScore(){$('score').textContent=score;$('best').textContent=best;}
+  function toast(t){var e=$('toast');e.textContent=t;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');}
+
+  function clearPv(){cells.forEach(function(c){c.classList.remove('pv');});}
+  function startDrag(e,i,slot){
+    if(over||busy||drag)return;
+    e.preventDefault();
+    var p=pieces[i];
+    var o=cells[0].getBoundingClientRect(), pitch=cells[1].getBoundingClientRect().left-o.left;
+    var g=pieceEl(p,pitch-GAP,GAP);g.classList.add('ghost');document.body.appendChild(g);
+    slot.style.opacity=.3;
+    drag={i:i,p:p,g:g,slot:slot,pitch:pitch,r:-99,c:-99};
+    moveDrag(e);
+    window.addEventListener('pointermove',moveDrag);
+    window.addEventListener('pointerup',endDrag);
+    window.addEventListener('pointercancel',endDrag);
+  }
+  function moveDrag(e){
+    if(!drag)return;
+    var p=drag.p, w=p.m[0].length*drag.pitch-GAP, h=p.m.length*drag.pitch-GAP;
+    var x=e.clientX-w/2, y=e.clientY-h/2-LIFT;
+    drag.g.style.transform='translate('+x+'px,'+y+'px)';
+    var o=cells[0].getBoundingClientRect();
+    drag.c=Math.round((x-o.left)/drag.pitch);
+    drag.r=Math.round((y-o.top)/drag.pitch);
+    clearPv();
+    if(fits(p.m,drag.r,drag.c)){
+      p.m.forEach(function(row,yy){row.forEach(function(v,xx){
+        if(v){var c=cells[(drag.r+yy)*N+drag.c+xx];c.classList.add('pv');c.style.setProperty('--pv',COLORS[p.c]);}
+      });});
+    }
+  }
+  function endDrag(){
+    if(!drag)return;
+    window.removeEventListener('pointermove',moveDrag);
+    window.removeEventListener('pointerup',endDrag);
+    window.removeEventListener('pointercancel',endDrag);
+    var d=drag;drag=null;
+    d.g.remove();d.slot.style.opacity='';clearPv();
+    if(fits(d.p.m,d.r,d.c))place(d.i,d.r,d.c);
+  }
+
+  function place(i,r,c){
+    var p=pieces[i], n=0;
+    p.m.forEach(function(row,y){row.forEach(function(v,x){if(v){grid[(r+y)*N+c+x]=p.c+1;n++;}});});
+    pieces[i]=null;
+    var clr={}, lines=0, y, x, full;
+    for(y=0;y<N;y++){full=true;for(x=0;x<N;x++)if(!grid[y*N+x])full=false;if(full){lines++;for(x=0;x<N;x++)clr[y*N+x]=1;}}
+    for(x=0;x<N;x++){full=true;for(y=0;y<N;y++)if(!grid[y*N+x])full=false;if(full){lines++;for(y=0;y<N;y++)clr[y*N+x]=1;}}
+    var gain=n;
+    if(lines){streak++;gain+=lines*lines*10+(streak-1)*5;}else streak=0;
+    score+=gain;
+    if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
+    renderBoard();renderTray();updateScore();
+    if(lines){
+      toast((lines>1?'Combo x'+lines+'! ':'')+'+'+gain);
+      busy=true;
+      Object.keys(clr).forEach(function(k){cells[k].classList.add('clr');});
+      setTimeout(function(){Object.keys(clr).forEach(function(k){grid[k]=0;});renderBoard();busy=false;after();},270);
+    }else after();
+  }
+  function after(){
+    if(pieces.every(function(p){return !p;}))newPieces();
+    renderTray();
+    if(!pieces.some(function(p){return p&&canAny(p);}))endGame();
+  }
+  function endGame(){
+    over=true;
+    $('overTxt').textContent='Skor '+score+(score>=best&&score>0?' — rekor baru!':'  ·  Terbaik '+best);
+    $('over').classList.add('show');
+  }
+  function start(){
+    grid=new Array(N*N).fill(0);score=0;streak=0;over=false;busy=false;
+    $('over').classList.remove('show');
+    newPieces();renderBoard();renderTray();updateScore();
+  }
+  $('restart').onclick=start;$('again').onclick=start;
+  start();
+})();
+</script>
+</body>
+</html>
