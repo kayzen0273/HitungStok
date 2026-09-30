@@ -19,14 +19,16 @@ body{
 h1{margin:0;font-size:25px;font-weight:400;line-height:1;text-transform:uppercase;text-shadow:0 3px 0 #0006;}
 h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-clip:text;background-clip:text;color:transparent;margin-left:6px;filter:drop-shadow(0 2px 0 #7a2b0088);}
 .ib{width:38px;height:38px;display:grid;place-items:center;padding:0;border:0;border-bottom:4px solid #0a0620;border-radius:12px;background:linear-gradient(180deg,#5b47d0,#3e2ba8);color:#fff;cursor:pointer;}
-.ib:active{transform:translateY(3px);border-bottom-width:1px;}
+.grp{display:flex;gap:6px;}
+.ib:disabled{opacity:.35;cursor:default;}
+.ib:active:not(:disabled){transform:translateY(3px);border-bottom-width:1px;}
 .ib svg{width:20px;height:20px;}
 #snd .x{display:none;}#snd.off .x{display:block;}#snd.off .w{opacity:.35;}
 .scores{display:flex;gap:8px;}
 .sc{flex:1;padding:6px 12px 5px;border-radius:14px;background:#0f0a2ccc;border:2px solid var(--edge);box-shadow:inset 0 0 18px #6a4dff33;}
 .sc small{display:flex;align-items:center;gap:4px;font-size:11px;color:#a99cff;letter-spacing:.12em;}
 .sc b{display:block;font-weight:400;font-size:28px;line-height:1.05;font-variant-numeric:tabular-nums;}
-.sc.best{flex:.8;}.sc.best small{color:#ffd54a;}.sc.best b{color:#ffe066;}
+.sc.lv{flex:.55;}.sc.lv small{color:#7df0ad;}.sc.lv b{color:#8ff0b6;}.sc.best{flex:.8;}.sc.best small{color:#ffd54a;}.sc.best b{color:#ffe066;}
 .sc svg{width:13px;height:13px;}
 .sc b.bump{animation:bump .25s ease-out;}
 @keyframes bump{50%{transform:scale(1.18);color:#ffe066;}}
@@ -72,9 +74,10 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   <div class="top">
     <button class="ib" id="snd" aria-label="Suara"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="w" d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor"/><path class="w" d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/><path class="x" d="M3 3l18 18" stroke="#ff8a8a"/></svg></button>
     <h1>Block<span>Blast</span></h1>
-    <button class="ib" id="restart" aria-label="Ulang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
+    <div class="grp"><button class="ib" id="undo" aria-label="Batalkan" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button><button class="ib" id="restart" aria-label="Ulang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button></div>
   </div>
   <div class="scores">
+    <div class="sc lv"><small>LEVEL</small><b id="lvl">1</b></div>
     <div class="sc"><small>SKOR</small><b id="score">0</b></div>
     <div class="sc best"><small><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/></svg>TERBAIK</small><b id="best">0</b></div>
   </div>
@@ -93,20 +96,21 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   var COLORS=[['#ff8a98','#ff4d66'],['#ffc078','#ff8f2e'],['#fff08a','#ffcf1f'],['#7df0ad','#25c76a'],['#8fdcff','#2aa7f5'],['#d3a6ff','#9b54ff']];
   function bg(c){return 'linear-gradient(160deg,'+COLORS[c][0]+','+COLORS[c][1]+')';}
   var BASES=[['1'],['11'],['111'],['1111'],['11111'],['11','11'],['111','111','111'],['111','111'],
-    ['10','11'],['100','100','111'],['10','10','11'],['01','01','11'],['111','010'],['011','110'],['110','011']];
+    ['10','11'],['10','10','11'],['01','01','11'],['111','010'],['011','110'],['110','011']];
+  var WEIGHT=[1,3,3,1,.2,3,.3,1,3,1,1,1,.1,.1];
   var SHAPES=[], seen={};
   function rot(m){var r=[],h=m.length,w=m[0].length;for(var x=0;x<w;x++){var row=[];for(var y=h-1;y>=0;y--)row.push(m[y][x]);r.push(row);}return r;}
   BASES.forEach(function(b,bi){
     var m=b.map(function(r){return r.split('').map(Number);});
     for(var k=0;k<4;k++){var key=m.map(function(r){return r.join('');}).join('|');
-      if(!seen[key]){seen[key]=1;SHAPES.push({m:m,c:bi%6});} m=rot(m);}
+      if(!seen[key]){seen[key]=1;SHAPES.push({m:m,c:bi%6,w:WEIGHT[bi]});} m=rot(m);}
   });
 
   var $=function(id){return document.getElementById(id);};
   var boardEl=$('board'), trayEl=$('tray'), fx=$('fx'), cells=[];
   for(var i=0;i<N*N;i++){var d=document.createElement('div');d.className='cell'+(((i>>3)+i)%2?' alt':'');boardEl.appendChild(d);cells.push(d);}
 
-  var grid,pieces,score,best=0,streak,over,busy,drag=null,muted=false,AC=null;
+  var level=1,last=null,grid,pieces,score,best=0,streak,over,busy,drag=null,muted=false,AC=null;
   try{best=+localStorage.getItem('blockBlastBest')||0;muted=localStorage.getItem('blockBlastMute')==='1';}catch(e){}
 
   // ---- suara sederhana ----
@@ -122,15 +126,177 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   $('snd').onclick=function(){initAudio();muted=!muted;try{localStorage.setItem('blockBlastMute',muted?'1':'0');}catch(e){}syncSnd();tone(660,0,.12);};
   window.addEventListener('pointerdown',initAudio,{once:true});
 
-  function fits(m,r,c){
+  function fits(m,r,c,g){g=g||grid;
     for(var y=0;y<m.length;y++)for(var x=0;x<m[0].length;x++){
       if(!m[y][x])continue;var rr=r+y,cc=c+x;
-      if(rr<0||cc<0||rr>=N||cc>=N||grid[rr*N+cc])return false;
+      if(rr<0||cc<0||rr>=N||cc>=N||g[rr*N+cc])return false;
     }return true;
   }
   function canAny(p){for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(fits(p.m,r,c))return true;return false;}
-  function rnd(){return SHAPES[Math.floor(Math.random()*SHAPES.length)];}
-  function newPieces(){var t=0,s;do{s=[rnd(),rnd(),rnd()];t++;}while(t<30&&!s.some(canAny));pieces=s;}
+  var TOTALW=SHAPES.reduce(function(a,b){return a+b.w;},0);
+  function rnd(){var t=Math.random()*TOTALW;for(var i=0;i<SHAPES.length;i++){t-=SHAPES[i].w;if(t<=0)return SHAPES[i];}return SHAPES[0];}
+  // apakah balok ini bisa melengkapi minimal satu baris/kolom?
+  function canClear(p){
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+      if(!fits(p.m,r,c))continue;var tmp=grid.slice();
+      p.m.forEach(function(row,y){row.forEach(function(v,x){if(v)tmp[(r+y)*N+c+x]=1;});});
+      if(fullLines(tmp).n)return true;
+    }return false;
+  }
+  // apakah ketiga balok bisa dipasang berurutan (urutan bebas) di papan g?
+  function solvable(set,g){
+    if(!set.length)return true;
+    for(var i=0;i<set.length;i++){
+      var p=set[i],rest=set.filter(function(_,j){return j!==i;});
+      for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+        if(!fits(p.m,r,c,g))continue;
+        var g2=g.slice();
+        p.m.forEach(function(row,y){row.forEach(function(v,x){if(v)g2[(r+y)*N+c+x]=1;});});
+        if(solvable(rest,g2))return true;
+      }
+    }
+    return false;
+  }
+  // seberapa banyak baris/kolom yang bisa diratakan balok ini (terbaik dari semua posisi)
+  var CLEAR_CHANCE=.95;
+  // Nilai kecocokan tiap bentuk terhadap balok yang SUDAH ada di papan:
+  // baris/kolom yang bisa diratakan (bobot besar) + seberapa rapat menempel ke balok lain / dinding.
+  function scoreShapes(){
+    var out=[];
+    SHAPES.forEach(function(p){
+      var best=-1,bestClr=0;
+      for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+        if(!fits(p.m,r,c))continue;
+        var tmp=grid.slice(),touch=0,H=p.m.length,W=p.m[0].length,y,x;
+        for(y=0;y<H;y++)for(x=0;x<W;x++)if(p.m[y][x])tmp[(r+y)*N+c+x]=1;
+        for(y=0;y<H;y++)for(x=0;x<W;x++){
+          if(!p.m[y][x])continue;
+          [[-1,0],[1,0],[0,-1],[0,1]].forEach(function(d){
+            var yy=y+d[0],xx=x+d[1];
+            if(yy>=0&&yy<H&&xx>=0&&xx<W&&p.m[yy][xx])return;
+            var rr=r+yy,cc=c+xx;
+            if(rr<0||cc<0||rr>=N||cc>=N)touch+=.5;else if(grid[rr*N+cc])touch+=1;
+          });
+        }
+        var n=fullLines(tmp).n,sc=n*40+touch;
+        if(sc>best){best=sc;}
+        if(n>bestClr)bestClr=n;
+      }
+      if(best>=0)out.push({p:p,sc:best,clr:bestClr});
+    });
+    return out;
+  }
+  // Cari celah tertutup kecil (<=5 kotak) yang bentuknya persis sama dengan salah satu balok
+  function gapPieces(){
+    var seenC={},out=[],key=function(m){return m.map(function(r){return r.join('');}).join('|');};
+    for(var i=0;i<N*N;i++){
+      if(grid[i]||seenC[i])continue;
+      var st=[i],cellsG=[];seenC[i]=1;
+      while(st.length){var k=st.pop();cellsG.push(k);var y=k/N|0,x=k%N;
+        [[y-1,x],[y+1,x],[y,x-1],[y,x+1]].forEach(function(d){
+          if(d[0]<0||d[1]<0||d[0]>=N||d[1]>=N)return;var q=d[0]*N+d[1];
+          if(!grid[q]&&!seenC[q]){seenC[q]=1;st.push(q);}});
+      }
+      if(cellsG.length>5)continue;
+      var ys=cellsG.map(function(k){return k/N|0;}),xs=cellsG.map(function(k){return k%N;}),
+          y0=Math.min.apply(null,ys),x0=Math.min.apply(null,xs),h=Math.max.apply(null,ys)-y0+1,w=Math.max.apply(null,xs)-x0+1,
+          m=[];
+      for(var a=0;a<h;a++){m.push([]);for(var b=0;b<w;b++)m[a].push(0);}
+      cellsG.forEach(function(k){m[(k/N|0)-y0][k%N-x0]=1;});
+      var kk=key(m);
+      for(var j=0;j<SHAPES.length;j++)if(key(SHAPES[j].m)===kk){out.push(SHAPES[j]);break;}
+    }
+    return out;
+  }
+  // Kotak kosong "kantong": minimal 3 sisinya tertutup blok/dinding. Cari balok kecil (<=3 kotak) yang bisa menutupinya.
+  function pocketPieces(){
+    var out=[];
+    for(var i=0;i<N*N;i++){
+      if(grid[i])continue;var y=i/N|0,x=i%N,bl=0;
+      [[y-1,x],[y+1,x],[y,x-1],[y,x+1]].forEach(function(d){
+        if(d[0]<0||d[1]<0||d[0]>=N||d[1]>=N||grid[d[0]*N+d[1]])bl++;});
+      if(bl<3)continue;
+      SHAPES.forEach(function(p){
+        var n=0,ok=false;p.m.forEach(function(r){r.forEach(function(v){n+=v;});});
+        if(n>3||out.indexOf(p)>=0)return;
+        for(var a=0;a<p.m.length&&!ok;a++)for(var b=0;b<p.m[0].length&&!ok;b++)
+          if(p.m[a][b]&&fits(p.m,y-a,x-b))ok=true;
+        if(ok)out.push(p);
+      });
+    }
+    return out;
+  }
+  function inject(s){
+    var g=gapPieces(),p=pocketPieces(),idx=[0,1,2].sort(function(){return Math.random()-.5;}),n=0;
+    if(g.length)s[idx[n++]]=g[Math.floor(Math.random()*g.length)];
+    if(p.length&&n<2)s[idx[n++]]=p[Math.floor(Math.random()*p.length)];
+  }
+  // Mode "menyesuaikan papan": balok dipilih yang paling pas dengan celah yang ada
+  // ---- Perencana: susun 3 balok lurus yang PASTI bisa melengkapi baris/kolom, sehingga papan terus menyusut ----
+  function mkey(m){return m.map(function(r){return r.join('');}).join('|');}
+  function straight(len,h){
+    var k=h?new Array(len+1).join('1'):new Array(len+1).join('1').split('').join('|');
+    for(var j=0;j<SHAPES.length;j++)if(mkey(SHAPES[j].m)===k)return SHAPES[j];
+    return SHAPES[0];
+  }
+  function planTray(){
+    var g=grid.slice(),out=[],ori=-1;
+    function lines(o){
+      var arr=[];
+      for(var i=0;i<N;i++){
+        var f=0,runs=[],cur=0;
+        for(var j=0;j<N;j++){
+          var v=o?g[j*N+i]:g[i*N+j];
+          if(v){f++;if(cur){runs.push(cur);cur=0;}}else cur++;
+        }
+        if(cur)runs.push(cur);
+        var pcs=[];runs.forEach(function(L){while(L>5){pcs.push(5);L-=5;}if(L)pcs.push(L);});
+        if(f>0&&pcs.length)arr.push({o:o,i:i,f:f,pcs:pcs});
+      }
+      return arr;
+    }
+    for(var guard=0;guard<3&&out.length<3;guard++){
+      var slots=3-out.length,cand=[];
+      (ori<0?[0,1]:[ori]).forEach(function(o){cand=cand.concat(lines(o));});
+      var fit=cand.filter(function(l){return l.pcs.length<=slots;}),pick=null,pool;
+      if(fit.length){
+        var mx=Math.max.apply(null,fit.map(function(l){return l.f;}));
+        pool=fit.filter(function(l){return l.f===mx;});
+      }else if(out.length===0&&cand.length){
+        var mn=Math.min.apply(null,cand.map(function(l){return l.pcs.length;}));
+        pool=cand.filter(function(l){return l.pcs.length===mn;});
+      }else break;
+      pick=pool[Math.floor(Math.random()*pool.length)];ori=pick.o;
+      pick.pcs.slice(0,slots).forEach(function(L){out.push(straight(L,pick.o===0));});
+      for(var q=0;q<N;q++){if(pick.o)g[q*N+pick.i]=0;else g[pick.i*N+q]=0;}
+    }
+    if(!out.length)return null;
+    while(out.length<3){
+      var p=null,t=0;
+      while(t++<40){p=rnd();if(canAny(p))break;p=null;}
+      out.push(p||SHAPES[0]);
+    }
+    return out.sort(function(){return Math.random()-.5;});
+  }
+  function newPieces(){
+    var pp=level<=3?.99:Math.max(.55,.99-.06*(level-3));
+    if(Math.random()<pp){var pl=planTray();if(pl){pieces=pl;return;}}
+    var filled=grid.reduce(function(a,v){return a+(v?1:0);},0);
+    var all=scoreShapes().sort(function(a,b){return b.sc-a.sc;});
+    var top=all.slice(0,10);
+    var clearPool=all.filter(function(o){return o.clr>0;}).slice(0,7);
+    function pickTop(){var k=Math.floor(Math.pow(Math.random(),1.6)*top.length);return top[k].p;}
+    var t=0,s,ok,need=Math.random()<CLEAR_CHANCE; // 95% giliran: minimal satu balok bisa meratakan satu baris
+    do{
+      var fresh=filled<6; // papan hampir kosong: cukup balok kecil acak
+      var h=(need&&clearPool.length)?clearPool[Math.floor(Math.random()*clearPool.length)].p:(fresh?rnd():pickTop());
+      s=[h,fresh?rnd():pickTop(),fresh?rnd():pickTop()];
+      s.sort(function(){return Math.random()-.5;});inject(s);t++;
+      ok=solvable(s,grid) && (!need || !clearPool.length || (t>15 ? s.some(canClear) : s.filter(canClear).length>=2));
+    }while(t<100&&!ok);
+    if(!ok){t=0;do{s=[rnd(),rnd(),rnd()];t++;}while(t<40&&!s.every(canAny));inject(s);}
+    pieces=s;
+  }
   // cari baris/kolom penuh pada grid g; kembalikan {idx:{}, n:jumlah garis}
   function fullLines(g){
     var set={},n=0,y,x,f;
@@ -162,7 +328,7 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
     });
   }
   function bumpEl(e){e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}
-  function updateScore(anim){$('score').textContent=score;$('best').textContent=best;if(anim)bumpEl($('score'));}
+  function updateScore(anim){$('score').textContent=score;$('lvl').textContent=level;$('best').textContent=best;if(anim)bumpEl($('score'));}
   function toast(big,small){var e=$('toast');e.innerHTML=big+(small?'<small>'+small+'</small>':'');e.classList.remove('show');void e.offsetWidth;e.classList.add('show');}
 
   function burst(keys,colors){
@@ -218,7 +384,9 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   }
 
   var PRAISE=['','Bagus!','Keren!','Luar Biasa!','GILA!!'];
+  function setUndo(){$('undo').disabled=!last||busy;}
   function place(i,r,c){
+    last={g:grid.slice(),p:pieces.slice(),s:score,st:streak};
     var p=pieces[i],n=0;
     p.m.forEach(function(row,y){row.forEach(function(v,x){if(v){grid[(r+y)*N+c+x]=p.c+1;n++;}});});
     pieces[i]=null;
@@ -226,22 +394,19 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
     if(lines){streak++;gain+=lines*lines*10+(streak-1)*5;}else streak=0;
     score+=gain;
     if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
-    renderBoard();renderTray();updateScore(true);
+    renderBoard();renderTray();updateScore(true);setUndo();
     if(!lines){tone(300,0,.09);after();return;}
     var keys=Object.keys(fl.set),colors=grid.slice();
     toast(PRAISE[Math.min(lines,4)],'+'+gain+(streak>1?'  ·  x'+streak:''));
-    busy=true;
+    busy=true;setUndo();
     keys.forEach(function(k){cells[k].classList.add('clr');});
     burst(keys,colors);
     for(var t=0;t<Math.min(lines+2,6);t++)tone(440*Math.pow(1.122,t*2),t*.06,.18,'triangle',.13);
     buzz(lines>1?[30,30,60]:30);
     if(lines>1){boardEl.classList.remove('shake');void boardEl.offsetWidth;boardEl.classList.add('shake');}
     setTimeout(function(){
-      keys.forEach(function(k){grid[k]=0;});renderBoard();busy=false;
-      if(grid.every(function(v){return !v;})){
-        score+=100;if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
-        updateScore(true);toast('BERSIH!','+100');tone(880,0,.3,'sine',.16);tone(1320,.12,.3,'sine',.14);
-      }
+      keys.forEach(function(k){grid[k]=0;});renderBoard();busy=false;setUndo();
+      if(grid.every(function(v){return !v;})){levelUp();return;}
       after();
     },300);
   }
@@ -253,16 +418,57 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   function endGame(){
     over=true;var rec=score>0&&score>=best;
     $('overScore').textContent=score;$('rec').classList.toggle('show',rec);
-    $('overTxt').textContent='Terbaik: '+best;
+    $('overTxt').textContent='Level '+level+'  ·  Terbaik: '+best;
     tone(330,0,.25,'sawtooth',.08);tone(247,.2,.25,'sawtooth',.08);tone(196,.4,.45,'sawtooth',.08);
-    setTimeout(function(){$('over').classList.add('show');},350);
+    setTimeout(function(){if(over)$('over').classList.add('show');},350);
+  }
+  function undo(){
+    if(!last||busy||drag)return;
+    grid=last.g;pieces=last.p;score=last.s;streak=last.st;last=null;over=false;
+    $('over').classList.remove('show');
+    renderBoard();renderTray();updateScore();setUndo();tone(400,0,.08);
+  }
+  function fillLevel(){
+    grid=new Array(N*N).fill(0);
+    var rc=function(){return 1+Math.floor(Math.random()*6);};
+    var k=Math.min(1+((level-1)>>1),3),w=Math.min(2+((level-1)>>1),4),
+        r0=Math.floor(Math.random()*(N-k+1)),c0=Math.floor(Math.random()*(N-w+1)),used={};
+    for(var y=0;y<k;y++){used[r0+y]=1;var col=rc();
+      for(var x=0;x<N;x++)if(x<c0||x>=c0+w)grid[(r0+y)*N+x]=Math.random()<.7?col:rc();}
+    var extra=Math.max(0,Math.min(level-3,3));
+    while(extra>0){var r=Math.floor(Math.random()*N);if(used[r])continue;used[r]=1;extra--;
+      var hole=Math.floor(Math.random()*N),cl=rc();
+      for(var x2=0;x2<N;x2++)if(x2!==hole)grid[r*N+x2]=cl;}
+  }
+  function confetti(){
+    var w=fx.getBoundingClientRect();
+    for(var i=0;i<90;i++){
+      var p=document.createElement('i'),s=6+Math.random()*7,c=COLORS[i%6][i%2];
+      p.style.cssText='width:'+s+'px;height:'+(s*1.4)+'px;left:'+(Math.random()*w.width)+'px;top:-10px;background:'+c;
+      fx.appendChild(p);
+      var a=p.animate([{transform:'translate(0,0) rotate(0)',opacity:1},{transform:'translate('+((Math.random()-.5)*120)+'px,'+(w.height+120)+'px) rotate('+(Math.random()*900)+'deg)',opacity:.9}],{duration:1300+Math.random()*1100,delay:Math.random()*500,easing:'cubic-bezier(.3,.5,.6,1)',fill:'forwards'});
+      a.onfinish=function(){this.effect.target.remove();};
+    }
+  }
+  function levelUp(){
+    busy=true;setUndo();var bonus=100*level;score+=bonus;
+    if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
+    updateScore(true);confetti();buzz([40,40,80]);
+    toast('BERSIH!','+'+bonus+'  ·  Level '+(level+1));
+    [523,659,784,1047,1319].forEach(function(f,i){tone(f,i*.09,.3,'triangle',.14);});
+    boardEl.classList.remove('shake');void boardEl.offsetWidth;boardEl.classList.add('shake');
+    setTimeout(function(){
+      level++;last=null;fillLevel();newPieces();renderBoard();renderTray();updateScore(true);
+      bumpEl($('lvl'));busy=false;setUndo();
+      if(!pieces.some(function(p){return p&&canAny(p);}))endGame();
+    },1500);
   }
   function start(){
-    grid=new Array(N*N).fill(0);score=0;streak=0;over=false;busy=false;
+    level=1;last=null;fillLevel();score=0;streak=0;over=false;busy=false;
     $('over').classList.remove('show');
-    newPieces();renderBoard();renderTray();updateScore();
+    newPieces();renderBoard();renderTray();updateScore();setUndo();
   }
-  $('restart').onclick=start;$('again').onclick=start;
+  $('undo').onclick=undo;$('restart').onclick=start;$('again').onclick=start;
   syncSnd();start();
 })();
 </script>
