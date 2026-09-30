@@ -1302,6 +1302,25 @@ body[data-theme="boba"] .mh-theme-btn{background:#fffaf2; color:#6b4226; border:
 .st-sw::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s;}
 .st-row[aria-checked="true"] .st-sw{background:var(--teal);}
 .st-row[aria-checked="true"] .st-sw::after{transform:translateX(16px);}
+/* ===== Foto profil, ganti sandi, avatar leaderboard ===== */
+.pf-av{width:84px; height:84px; border-radius:50%; background:var(--mint); border:2px solid var(--teal); display:flex; align-items:center; justify-content:center; font-size:34px; font-weight:800; color:var(--teal-deep); overflow:hidden; margin:0 auto; flex-shrink:0;}
+.pf-av img{width:100%; height:100%; object-fit:cover; display:block;}
+.pf-btns{display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;}
+.pf-btn{border:2px solid var(--ink); background:var(--teal); color:#fff; font:inherit; font-size:12px; font-weight:800; padding:7px 14px; border-radius:11px; box-shadow:0 2px 0 var(--ink); cursor:pointer;}
+.pf-btn.alt{background:#fff; color:var(--ink);}
+.pf-btn:disabled{opacity:.6;}
+.pf-btn:active{transform:translateY(2px); box-shadow:none;}
+.pf-msg{font-size:12px; font-weight:600; line-height:1.5; margin-top:10px; display:none;}
+.pf-msg.err{color:var(--minus);} .pf-msg.ok{color:var(--teal-deep);}
+.pf-close{margin-top:12px; background:none; border:none; color:var(--ink-soft); font-size:12px; font-weight:600; cursor:pointer; padding:4px 0;}
+.bblb-av{width:30px; height:30px; border-radius:50%; flex-shrink:0; border:1.5px solid var(--teal); background:#fff; padding:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font:inherit; font-size:13px; font-weight:800; color:var(--teal-deep);}
+.bblb-av img{width:100%; height:100%; object-fit:cover; display:block;}
+button.bblb-av{cursor:zoom-in;}
+button.bblb-av:active{transform:scale(.92);}
+.pf-lightbox{display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.82); flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px;}
+.pf-lightbox.show{display:flex;}
+.pf-lightbox img{max-width:min(92vw,420px); max-height:70vh; border-radius:18px; border:3px solid #fff; object-fit:contain; background:#111;}
+.pf-lightbox span{color:#fff; font-weight:800; font-size:16px;}
 body.jpv-off #jpvHolder{display:none !important;}
 body.bba-off .bba-fab, body.bba-off .bba-hint, body.bba-off .bba-panel, body.bba-off .bba-modal-ov{display:none !important;}
 @media (prefers-reduced-motion: reduce){ .mh-gear-btn svg, .st-sw, .st-sw::after{transition:none !important;} }
@@ -1805,6 +1824,14 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
         <span class="th-sw" style="background:linear-gradient(150deg,#14846f,#0a453e);">🤖</span>
         <span class="st-name">AI Agent<small id="stAiState">Aktif</small></span>
         <span class="st-sw" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="st-row" onclick="pfOpenProfile()">
+        <span class="th-sw" style="background:linear-gradient(150deg,#54c0ff,#0d5c52);">📷</span>
+        <span class="st-name">Foto profil<small>Tampil di leaderboard</small></span>
+      </button>
+      <button type="button" class="st-row" onclick="pfOpenPassword()">
+        <span class="th-sw" style="background:linear-gradient(150deg,#f6b26b,#b45f06);">🔑</span>
+        <span class="st-name">Ganti sandi<small>Password akun petugas</small></span>
       </button>
     </div>
     <nav class="mh-actions" aria-label="Menu cepat">
@@ -2536,6 +2563,155 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     </div>
   </div>
 </div>
+
+<!-- Foto profil -->
+<div class="history-overlay" id="pfProfileOverlay" style="z-index:410;" onclick="if(event.target===this)pfClose()">
+  <div class="history-modal" style="max-width:340px;">
+    <div class="history-modal-head"><h3>📷 Foto Profil</h3></div>
+    <div class="history-modal-body" style="text-align:center;">
+      <div class="pf-av" id="pfPreview">?</div>
+      <div id="pfName" style="font-weight:800; margin-top:8px;"></div>
+      <div class="footnote" style="margin-top:4px;">Foto akan tampil di leaderboard dan bisa diklik untuk diperbesar.</div>
+      <input type="file" id="pfFile" accept="image/*" style="display:none">
+      <div class="pf-btns">
+        <button type="button" class="pf-btn alt" onclick="document.getElementById('pfFile').click()">Pilih foto</button>
+        <button type="button" class="pf-btn" id="pfSaveBtn" onclick="pfSaveAvatar()" disabled>Simpan</button>
+        <button type="button" class="pf-btn alt" id="pfDelBtn" onclick="pfRemoveAvatar()">Hapus</button>
+      </div>
+      <div class="pf-msg" id="pfMsg"></div>
+      <button type="button" class="pf-close" onclick="pfClose()">Tutup</button>
+    </div>
+  </div>
+</div>
+<!-- Ganti sandi -->
+<div class="history-overlay" id="pfPassOverlay" style="z-index:410;" onclick="if(event.target===this)pfClose()">
+  <div class="history-modal" style="max-width:340px;">
+    <div class="history-modal-head"><h3>🔑 Ganti Sandi</h3></div>
+    <div class="history-modal-body">
+      <div class="footnote" id="pfPassWho" style="margin-top:0;"></div>
+      <div class="field" style="margin-top:10px;"><input type="password" id="pfOldPw" placeholder="Sandi lama" autocomplete="off"></div>
+      <div class="field" style="margin-top:8px;"><input type="password" id="pfNewPw" placeholder="Sandi baru (min. 4 karakter)" autocomplete="off"></div>
+      <div class="field" style="margin-top:8px;"><input type="password" id="pfNewPw2" placeholder="Ulangi sandi baru" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();pfSavePassword();}"></div>
+      <div class="pf-msg" id="pfPassMsg"></div>
+      <div class="pf-btns"><button type="button" class="pf-btn" id="pfPassBtn" onclick="pfSavePassword()">Simpan sandi</button></div>
+      <div style="text-align:center;"><button type="button" class="pf-close" onclick="pfClose()">Batal</button></div>
+    </div>
+  </div>
+</div>
+<div class="pf-lightbox" id="pfLightbox" onclick="this.classList.remove('show')"><img id="pfLbImg" alt="Foto profil"><span id="pfLbName"></span></div>
+
+<script>
+(function(){
+  var pending = null; // dataURL foto baru yang belum disimpan
+  function $(i){ return document.getElementById(i); }
+  function msg(id, t, ok){ var e=$(id); if(!e) return; e.textContent=t||''; e.className='pf-msg '+(ok?'ok':'err'); e.style.display=t?'block':'none'; }
+  function me(){
+    var id = null; try{ id = getMyPetugasId(); }catch(e){}
+    var row = id ? petugasRowsFull.find(function(r){ return String(r.id)===String(id); }) : null;
+    return row || null;
+  }
+  function needLogin(){ alert('Kamu belum masuk sebagai petugas. Pilih nama & masukkan password dulu.'); }
+  function closeMenu(){ var b=$('stBackdrop'); if(b) b.click(); }
+  window.pfClose = function(){ $('pfProfileOverlay').classList.remove('show'); $('pfPassOverlay').classList.remove('show'); };
+  function paint(url, name){
+    var p=$('pfPreview'); p.innerHTML='';
+    if(url){ var im=document.createElement('img'); im.src=url; im.alt=''; p.appendChild(im); }
+    else p.textContent=(name||'?').trim().charAt(0).toUpperCase()||'?';
+  }
+  window.pfOpenProfile = function(){
+    closeMenu(); var r=me(); if(!r){ needLogin(); return; }
+    pending=null; $('pfSaveBtn').disabled=true; $('pfDelBtn').style.display=r.avatar?'':'none';
+    $('pfName').textContent=r.nama||''; paint(r.avatar, r.nama); msg('pfMsg','');
+    $('pfProfileOverlay').classList.add('show');
+  };
+  window.pfOpenPassword = function(){
+    closeMenu(); var r=me(); if(!r){ needLogin(); return; }
+    $('pfPassWho').textContent='Akun: '+(r.nama||'');
+    ['pfOldPw','pfNewPw','pfNewPw2'].forEach(function(i){ $(i).value=''; });
+    $('pfOldPw').style.display = r.password_hash ? '' : 'none';
+    msg('pfPassMsg',''); $('pfPassOverlay').classList.add('show');
+  };
+  // Perkecil foto jadi 160x160 (crop tengah) supaya ringan disimpan & dimuat.
+  function shrink(file){
+    return new Promise(function(res, rej){
+      var fr=new FileReader();
+      fr.onerror=function(){ rej(new Error('Gagal membaca file')); };
+      fr.onload=function(){
+        var im=new Image();
+        im.onerror=function(){ rej(new Error('File bukan gambar yang valid')); };
+        im.onload=function(){
+          var S=160, c=document.createElement('canvas'); c.width=c.height=S;
+          var m=Math.min(im.width,im.height), sx=(im.width-m)/2, sy=(im.height-m)/2;
+          c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,S,S);
+          res(c.toDataURL('image/jpeg',0.8));
+        };
+        im.src=fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  document.addEventListener('change', function(e){
+    if(!e.target || e.target.id!=='pfFile') return;
+    var f=e.target.files && e.target.files[0]; e.target.value=''; if(!f) return;
+    shrink(f).then(function(u){ pending=u; paint(u,''); $('pfSaveBtn').disabled=false; msg('pfMsg',''); })
+      .catch(function(er){ msg('pfMsg', er.message); });
+  });
+  async function saveAvatar(val){
+    var r=me(); if(!r){ needLogin(); return; }
+    var c=initSupabaseClient(); if(!c){ msg('pfMsg','Tidak ada koneksi ke server.'); return; }
+    $('pfSaveBtn').disabled=true;
+    var res=await sb.from(PETUGAS_TABLE).update({avatar:val}).eq('id', r.id);
+    if(res.error){
+      console.error(res.error);
+      msg('pfMsg', /avatar/i.test(res.error.message||'') ? 'Kolom "avatar" belum ada di Supabase. Jalankan SQL: alter table stok_opname_petugas add column avatar text;' : 'Gagal menyimpan. Cek koneksi lalu coba lagi.');
+      $('pfSaveBtn').disabled=!pending; return;
+    }
+    r.avatar=val; pending=null; $('pfDelBtn').style.display=val?'':'none';
+    paint(val, r.nama); msg('pfMsg', val?'Foto profil tersimpan.':'Foto profil dihapus.', true);
+    try{ if(window.bblbRefresh) window.bblbRefresh(); }catch(e){}
+  }
+  window.pfSaveAvatar = function(){ if(pending) saveAvatar(pending); };
+  window.pfRemoveAvatar = function(){ if(confirm('Hapus foto profil?')) saveAvatar(null); };
+
+  window.pfSavePassword = async function(){
+    var r=me(); if(!r){ needLogin(); return; }
+    var o=$('pfOldPw').value, n=$('pfNewPw').value, n2=$('pfNewPw2').value, btn=$('pfPassBtn');
+    if(!n || n.length<4){ msg('pfPassMsg','Sandi baru minimal 4 karakter.'); return; }
+    if(n!==n2){ msg('pfPassMsg','Konfirmasi sandi tidak cocok.'); return; }
+    var c=initSupabaseClient(); if(!c){ msg('pfPassMsg','Tidak ada koneksi ke server.'); return; }
+    btn.disabled=true;
+    try{
+      var q=await sb.from(PETUGAS_TABLE).select('id,password_hash').eq('id', r.id).maybeSingle();
+      if(q.error) throw q.error;
+      var cur=q.data && q.data.password_hash;
+      if(cur){
+        if(!o){ msg('pfPassMsg','Masukkan sandi lama.'); return; }
+        if(await hashPetugasPassword(o)!==cur){ msg('pfPassMsg','Sandi lama salah.'); return; }
+      }
+      var h=await hashPetugasPassword(n);
+      var u=await sb.from(PETUGAS_TABLE).update({password_hash:h}).eq('id', r.id);
+      if(u.error) throw u.error;
+      r.password_hash=h;
+      ['pfOldPw','pfNewPw','pfNewPw2'].forEach(function(i){ $(i).value=''; });
+      msg('pfPassMsg','Sandi berhasil diganti.', true);
+    }catch(e){ console.error(e); msg('pfPassMsg','Gagal mengganti sandi. Cek koneksi lalu coba lagi.'); }
+    finally{ btn.disabled=false; }
+  };
+
+  // Foto di leaderboard: cari berdasarkan nama petugas
+  window.pfGetAvatar = function(name){
+    var n=String(name||'').trim().toLowerCase(); if(!n) return '';
+    var r=(typeof petugasRowsFull!=='undefined'?petugasRowsFull:[]).find(function(x){ return (x.nama||'').trim().toLowerCase()===n; });
+    return (r && r.avatar) || '';
+  };
+  document.addEventListener('click', function(e){
+    var b=e.target.closest && e.target.closest('.bblb-av[data-name]'); if(!b) return;
+    var u=window.pfGetAvatar(b.getAttribute('data-name')); if(!u) return;
+    $('pfLbImg').src=u; $('pfLbName').textContent=b.getAttribute('data-name'); $('pfLightbox').classList.add('show');
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ $('pfLightbox').classList.remove('show'); window.pfClose(); } });
+})();
+</script>
 
 <script>
 // Daftar nama toko yang muncul di dropdown pilihan Nama Toko.
@@ -4918,6 +5094,7 @@ async function loadPetugasListFromServer(){
     if(data){
       petugasRowsFull = data;
       petugasList = data.map(r => r.nama).filter(Boolean);
+      try{ if(window.bblbRefresh) window.bblbRefresh(); }catch(e){}
     }
   } catch(e){
     console.error('Gagal memuat daftar nama petugas dari server, pakai daftar cadangan:', e);
@@ -12502,6 +12679,13 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(t) t.textContent = txt;
   }
 
+  function avatarHtml(name){
+    var u = ''; try{ u = window.pfGetAvatar ? window.pfGetAvatar(name) : ''; }catch(e){}
+    if(u) return '<button type="button" class="bblb-av" data-name="' + esc(name) + '" title="Lihat foto ' + esc(name) + '" aria-label="Lihat foto ' + esc(name) + '"><img src="' + esc(u) + '" alt=""></button>';
+    return '<span class="bblb-av">' + esc(String(name || '?').trim().charAt(0).toUpperCase() || '?') + '</span>';
+  }
+  window.bblbRefresh = function(){ try{ render(); }catch(e){} };
+
   function render(){
     var ul = $('bblbList'); if(!ul) return;
     var sorted = rows.slice().sort(function(a,b){ return (b.best_score - a.best_score) || String(a.updated_at).localeCompare(String(b.updated_at)); });
@@ -12512,7 +12696,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       var medals = ['🥇','🥈','🥉'];
       ul.innerHTML = sorted.slice(0, TOP_N).map(function(r, i){
         var isMe = me && String(r.player_name).toLowerCase() === me;
-        return '<li class="bblb-row' + (isMe ? ' me' : '') + '"><span class="bblb-rank">' + (medals[i] || (i+1)) + '</span>'
+        return '<li class="bblb-row' + (isMe ? ' me' : '') + '"><span class="bblb-rank">' + (medals[i] || (i+1)) + '</span>' + avatarHtml(r.player_name)
           + '<span class="bblb-name">' + esc(r.player_name) + (isMe ? ' (kamu)' : '') + '</span>'
           + '<span class="bblb-score">' + Number(r.best_score).toLocaleString('id-ID') + '</span></li>';
       }).join('');
