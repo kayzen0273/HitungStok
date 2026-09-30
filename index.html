@@ -1321,6 +1321,54 @@ button.bblb-av:active{transform:scale(.92);}
 .pf-lightbox.show{display:flex;}
 .pf-lightbox img{max-width:min(92vw,420px); max-height:70vh; border-radius:18px; border:3px solid #fff; object-fit:contain; background:#111;}
 .pf-lightbox span{color:#fff; font-weight:800; font-size:16px;}
+/* efek avatar per peringkat: #1 raja (mahkota+bintang mengorbit+kilap), #2 petir (ring putus-putus+getar), #3 api (bara naik+api) */
+.bblb-avw{position:relative; width:38px; height:38px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+.bblb-avw .bblb-av{position:relative; z-index:1; width:30px; height:30px;}
+.bblb-avw .fx{position:absolute; z-index:3; pointer-events:none; font-style:normal;}
+.bblb-avw.rk1::before,.bblb-avw.rk2::before,.bblb-avw.rk3::before{content:""; position:absolute; inset:0; border-radius:50%;}
+.bblb-avw.rk1 .bblb-av,.bblb-avw.rk2 .bblb-av,.bblb-avw.rk3 .bblb-av{width:32px; height:32px; border-width:2px;}
+/* #1 */
+.bblb-avw.rk1::before{border:2px solid #f2b705;}
+.bblb-avw.rk1 .bblb-av{border-color:#f2b705;}
+.bblb-avw.rk1 .bblb-av::after{content:""; position:absolute; top:0; left:-70%; width:45%; height:100%; background:linear-gradient(105deg,transparent,rgba(255,255,255,.85),transparent); animation:pfShine 2.8s ease-in-out infinite;}
+.bblb-avw.rk1::after{content:"👑"; position:absolute; top:-12px; left:50%; font-size:15px; z-index:4; transform:translateX(-50%) rotate(-8deg); animation:pfBob 1.6s ease-in-out infinite; filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));}
+.bblb-avw.rk1 .fx{top:50%; left:50%; width:10px; height:10px; margin:-5px 0 0 -5px; font-size:10px; line-height:10px; text-align:center; color:#ffb800; animation:pfOrbit 3s linear infinite;}
+.bblb-avw.rk1 .fx::before{content:"\2726";}
+.bblb-avw.rk1 .fx:nth-of-type(2){animation-delay:-1s;}
+.bblb-avw.rk1 .fx:nth-of-type(3){animation-delay:-2s;}
+/* #2 */
+.bblb-avw.rk2::before{border:2px dashed #5b9dff; animation:pfSpinRev 6s linear infinite;}
+.bblb-avw.rk2 .bblb-av{border-color:#5b9dff; animation:pfZap 2.6s steps(1,end) infinite;}
+.bblb-avw.rk2::after{content:"\26A1"; position:absolute; top:-7px; right:-5px; font-size:13px; z-index:4; animation:pfFlick 1.3s steps(1,end) infinite;}
+.bblb-avw.rk2 .fx{display:none;}
+/* #3 */
+.bblb-avw.rk3::before{border:2px solid #ff8a3d; border-radius:46% 54% 50% 50% / 52% 48% 54% 46%; animation:pfMorph 2.4s ease-in-out infinite;}
+.bblb-avw.rk3 .bblb-av{border-color:#ff8a3d;}
+.bblb-avw.rk3::after{content:"🔥"; position:absolute; bottom:-8px; right:-6px; font-size:14px; z-index:4; transform-origin:50% 90%; animation:pfFlame .7s ease-in-out infinite alternate;}
+.bblb-avw.rk3 .fx{bottom:4px; width:4px; height:4px; border-radius:50%; background:#ffa53a; opacity:0; animation:pfEmber 1.8s ease-in infinite;}
+.bblb-avw.rk3 .fx:nth-of-type(1){left:22%;}
+.bblb-avw.rk3 .fx:nth-of-type(2){left:48%; animation-delay:-.6s;}
+.bblb-avw.rk3 .fx:nth-of-type(3){left:70%; animation-delay:-1.2s;}
+.bblb-row.rk1{background:linear-gradient(90deg,rgba(255,216,74,.28),var(--mint) 60%);}
+.bblb-row.rk2{background:linear-gradient(90deg,rgba(91,157,255,.2),var(--mint) 60%);}
+.bblb-row.rk3{background:linear-gradient(90deg,rgba(255,138,61,.2),var(--mint) 60%);}
+@keyframes pfSpin{to{transform:rotate(360deg);}}
+@keyframes pfSpinRev{to{transform:rotate(-360deg);}}
+@keyframes pfBob{0%,100%{transform:translateX(-50%) translateY(0) rotate(-8deg);}50%{transform:translateX(-50%) translateY(-3px) rotate(6deg);}}
+@keyframes pfOrbit{from{transform:rotate(0deg) translateX(21px) rotate(0deg);}to{transform:rotate(360deg) translateX(21px) rotate(-360deg);}}
+@keyframes pfShine{0%,55%{left:-70%;}100%{left:130%;}}
+@keyframes pfZap{0%,86%,100%{transform:translate(0,0);}88%{transform:translate(-2px,1px);}90%{transform:translate(2px,-1px);}92%{transform:translate(-1px,-1px);}94%{transform:translate(1px,1px);}96%{transform:translate(0,0);}}
+@keyframes pfFlick{0%,100%{opacity:1;}30%{opacity:.15;}45%{opacity:1;}70%{opacity:.3;}80%{opacity:1;}}
+@keyframes pfMorph{0%,100%{border-radius:46% 54% 50% 50% / 52% 48% 54% 46%; transform:rotate(0);}50%{border-radius:54% 46% 48% 52% / 46% 54% 46% 54%; transform:rotate(12deg) scale(1.05);}}
+@keyframes pfFlame{from{transform:scale(.85) rotate(-10deg);}to{transform:scale(1.15) rotate(10deg);}}
+@keyframes pfEmber{0%{transform:translateY(0) scale(1); opacity:0;}15%{opacity:1;}100%{transform:translateY(-32px) scale(.2); opacity:0;}}
+.pf-lightbox.rk1 img{border:4px solid #f2b705; outline:3px solid #fff3b0; outline-offset:3px;}
+.pf-lightbox.rk2 img{border:4px dashed #5b9dff;}
+.pf-lightbox.rk3 img{border:4px solid #ff8a3d; border-radius:30px 18px 26px 20px;}
+.pf-lightbox.rk1 #pfLbName::before{content:"\1F451  ";}
+.pf-lightbox.rk2 #pfLbName::before{content:"\26A1  ";}
+.pf-lightbox.rk3 #pfLbName::before{content:"\1F525  ";}
+@media (prefers-reduced-motion: reduce){ .bblb-avw *,.bblb-avw::before,.bblb-avw::after{animation:none !important;} }
 body.jpv-off #jpvHolder{display:none !important;}
 body.bba-off .bba-fab, body.bba-off .bba-hint, body.bba-off .bba-panel, body.bba-off .bba-modal-ov{display:none !important;}
 @media (prefers-reduced-motion: reduce){ .mh-gear-btn svg, .st-sw, .st-sw::after{transition:none !important;} }
@@ -2707,7 +2755,7 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   document.addEventListener('click', function(e){
     var b=e.target.closest && e.target.closest('.bblb-av[data-name]'); if(!b) return;
     var u=window.pfGetAvatar(b.getAttribute('data-name')); if(!u) return;
-    $('pfLbImg').src=u; $('pfLbName').textContent=b.getAttribute('data-name'); $('pfLightbox').classList.add('show');
+    $('pfLbImg').src=u; $('pfLightbox').className='pf-lightbox'+(b.getAttribute('data-rank')<=3?' rk'+b.getAttribute('data-rank'):''); $('pfLbName').textContent=b.getAttribute('data-name'); $('pfLightbox').classList.add('show');
   });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ $('pfLightbox').classList.remove('show'); window.pfClose(); } });
 })();
@@ -12679,10 +12727,12 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(t) t.textContent = txt;
   }
 
-  function avatarHtml(name){
+  function avatarHtml(name, rank){
+    var rk = (rank >= 0 && rank < 3) ? ' rk' + (rank + 1) : '';
+    var fx = rk ? '<i class="fx"></i><i class="fx"></i><i class="fx"></i>' : '';
     var u = ''; try{ u = window.pfGetAvatar ? window.pfGetAvatar(name) : ''; }catch(e){}
-    if(u) return '<button type="button" class="bblb-av" data-name="' + esc(name) + '" title="Lihat foto ' + esc(name) + '" aria-label="Lihat foto ' + esc(name) + '"><img src="' + esc(u) + '" alt=""></button>';
-    return '<span class="bblb-av">' + esc(String(name || '?').trim().charAt(0).toUpperCase() || '?') + '</span>';
+    if(u) return '<span class="bblb-avw' + rk + '"><button type="button" class="bblb-av" data-name="' + esc(name) + '" data-rank="' + (rank + 1) + '" title="Lihat foto ' + esc(name) + '" aria-label="Lihat foto ' + esc(name) + '"><img src="' + esc(u) + '" alt=""></button>' + fx + '</span>';
+    return '<span class="bblb-avw' + rk + '"><span class="bblb-av">' + esc(String(name || '?').trim().charAt(0).toUpperCase() || '?') + '</span>' + fx + '</span>';
   }
   window.bblbRefresh = function(){ try{ render(); }catch(e){} };
 
@@ -12696,7 +12746,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       var medals = ['🥇','🥈','🥉'];
       ul.innerHTML = sorted.slice(0, TOP_N).map(function(r, i){
         var isMe = me && String(r.player_name).toLowerCase() === me;
-        return '<li class="bblb-row' + (isMe ? ' me' : '') + '"><span class="bblb-rank">' + (medals[i] || (i+1)) + '</span>' + avatarHtml(r.player_name)
+        return '<li class="bblb-row' + (isMe ? ' me' : '') + (i < 3 ? ' rk' + (i + 1) : '') + '"><span class="bblb-rank">' + (medals[i] || (i+1)) + '</span>' + avatarHtml(r.player_name, i)
           + '<span class="bblb-name">' + esc(r.player_name) + (isMe ? ' (kamu)' : '') + '</span>'
           + '<span class="bblb-score">' + Number(r.best_score).toLocaleString('id-ID') + '</span></li>';
       }).join('');
