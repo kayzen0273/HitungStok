@@ -748,6 +748,8 @@
     padding:4px 10px; border-radius:7px; -webkit-tap-highlight-color:transparent;
   }
   .jsnote-run-btn svg{width:11px; height:11px;}
+  .jsnote-run-btn.browser{background:#2f6fae;}
+  .jsnote-run-btn.browser:hover{background:#245a8f;}
   .jsnote-run-btn:hover{background:#2f7549;}
   .jsnote-run-btn:disabled{opacity:.55; cursor:default;}
   .jsnote-console{display:none; background:#111b19; border-top:1px solid #2a3d3a;}
@@ -10379,9 +10381,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
             </div>
           </div>
           <div class="jsnote-body">
-            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><button type="button" class="jsnote-run-btn" id="jsnote-runbtn-${note.id}" title="Jalankan (Ctrl/Cmd + Enter)" onclick="runJsNote(${note.id})">${ICO_PLAY}Jalankan</button><span>UTF-8</span></div>
+            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><button type="button" class="jsnote-run-btn" id="jsnote-runbtn-${note.id}" title="Jalankan di halaman ini (Ctrl/Cmd + Enter)" onclick="runJsNote(${note.id}, 'page')">${ICO_PLAY}Halaman</button><button type="button" class="jsnote-run-btn browser" id="jsnote-runfrm-${note.id}" title="Jalankan di dalam iframe Browser (Ctrl/Cmd + Shift + Enter)" onclick="runJsNote(${note.id}, 'frame')">${ICO_PLAY}Browser</button><span>UTF-8</span></div>
             <textarea class="jsnote-code" id="jsnote-code-${note.id}" spellcheck="false"
-                      onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){ event.preventDefault(); runJsNote(${note.id}); }"
+                      onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){ event.preventDefault(); runJsNote(${note.id}, event.shiftKey ? 'frame' : 'page'); }"
                       oninput="updateJsNoteCode(${note.id}, this.value)"
                       placeholder="Tempel atau tulis kode JavaScript di sini...">${escapeHtml(note.code)}</textarea>
             ${jsNoteConsoleHtml(note.id)}
@@ -10499,7 +10501,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(v === undefined) return 'undefined';
     if(typeof v === 'function') return v.toString();
     if(typeof v === 'symbol' || typeof v === 'bigint') return String(v);
-    if(v instanceof Error) return (v.stack || (v.name + ': ' + v.message));
+    if(v instanceof Error || Object.prototype.toString.call(v) === '[object Error]') return (v.stack || (v.name + ': ' + v.message));
     try{
       const seen = new WeakSet();
       const out = JSON.stringify(v, function(k, val){
@@ -10523,7 +10525,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }).join('') : '';
     return '<div class="jsnote-console' + (has ? ' show' : '') + '" id="jsnote-console-' + id + '">' +
       '<div class="jsnote-console-head"><span>KONSOL</span>' +
-      '<button type="button" class="jsnote-console-clear" onclick="clearJsNoteConsole(' + id + ')">Bersihkan</button></div>' +
+      '<span><button type="button" class="jsnote-console-clear" id="jsnote-bm-' + id + '" title="Salin sebagai bookmarklet untuk dipakai di tab browser biasa" onclick="copyJsBookmarklet(' + id + ')">Salin bookmarklet</button>' +
+      '<button type="button" class="jsnote-console-clear" onclick="clearJsNoteConsole(' + id + ')">Bersihkan</button></span></div>' +
       '<div class="jsnote-console-out" id="jsnote-console-out-' + id + '">' + body + '</div></div>';
   }
 
@@ -10546,7 +10549,41 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     refreshJsNoteConsole(id);
   }
 
-  async function runJsNote(id){
+  // Ambil window iframe Browser bila bisa diakses (sama-origin). Untuk situs
+  // lain (mis. farmacare.id, Google) browser memblokir akses ini demi keamanan.
+  function getBrowserFrameWindow(){
+    const f = document.getElementById('cashierPopupFrame');
+    if(!f || !f.contentWindow) return {err: 'Iframe Browser tidak ditemukan.'};
+    try{
+      const w = f.contentWindow;
+      void w.document.body;          // melempar SecurityError kalau lintas-domain
+      void w.eval;
+      return {win: w};
+    }catch(e){
+      let host = '';
+      try{ host = new URL(document.getElementById('cashierAddrBar').value).hostname; }catch(_){}
+      return {err: 'Diblokir browser: halaman' + (host ? ' ' + host : '') + ' di iframe berasal dari domain lain, jadi JavaScript dari luar tidak boleh dijalankan di dalamnya (Same-Origin Policy). Ini aturan keamanan browser dan tidak bisa dilewati dari kode halaman. Alternatif: tombol "Salin bookmarklet" lalu pakai di tab biasa (tombol \u2197 di Browser).'};
+    }
+  }
+
+  function copyJsBookmarklet(id){
+    const ta = document.getElementById('jsnote-code-' + id);
+    const note = getJsNotes().find(function(n){ return n.id === id; });
+    const code = ta ? ta.value : (note ? note.code : '');
+    if(!code.trim()) return;
+    const wrapped = '(async()=>{try{' + code + '\n}catch(e){alert("Error: "+e.message)}})();void 0';
+    const bm = 'javascript:' + encodeURIComponent(wrapped);
+    const btn = document.getElementById('jsnote-bm-' + id);
+    const done = function(ok){ if(btn){ const t = btn.textContent; btn.textContent = ok ? 'Tersalin \u2713' : 'Gagal'; setTimeout(function(){ btn.textContent = 'Salin bookmarklet'; }, 1400); } };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(bm).then(function(){ done(true); }).catch(function(){ done(false); });
+    } else {
+      try{ const t = document.createElement('textarea'); t.value = bm; t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); done(true); }catch(e){ done(false); }
+    }
+  }
+
+  async function runJsNote(id, target){
+    target = target === 'frame' ? 'frame' : 'page';
     if(jsNotesRunning[id]) return;
     const notes = getJsNotes();
     const note = notes.find(function(n){ return n.id === id; });
@@ -10572,34 +10609,46 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       return;
     }
 
+    let win = window;
+    if(target === 'frame'){
+      const r = getBrowserFrameWindow();
+      if(!r.win){
+        push('sys', '\u25B6 Target: iframe Browser');
+        push('error', r.err);
+        refreshJsNoteConsole(id);
+        return;
+      }
+      win = r.win;
+    }
+
     jsNotesRunning[id] = true;
     const runBtn = document.getElementById('jsnote-runbtn-' + id);
     const rowBtn = document.getElementById('jsnote-runrow-' + id);
     if(runBtn) runBtn.disabled = true;
     if(rowBtn) rowBtn.classList.add('running');
-    push('sys', '\u25B6 Menjalankan "' + (note.title || 'Javascript') + '"...');
+    push('sys', '\u25B6 Menjalankan "' + (note.title || 'Javascript') + '" di ' + (target === 'frame' ? 'iframe Browser' : 'halaman ini') + '...');
     refreshJsNoteConsole(id);
 
     // Tangkap console selama kode berjalan
     const orig = {};
     const methods = ['log','info','warn','error','debug','table'];
     methods.forEach(function(m){
-      orig[m] = console[m];
-      console[m] = function(){
+      orig[m] = win.console[m];
+      win.console[m] = function(){
         const args = Array.prototype.slice.call(arguments);
         const type = (m === 'warn') ? 'warn' : (m === 'error') ? 'error' : (m === 'info') ? 'info' : 'log';
         push(type, args.map(jsNoteFmt).join(' '));
-        try{ orig[m].apply(console, args); }catch(e){}
+        try{ orig[m].apply(win.console, args); }catch(e){}
       };
     });
     const onErr = function(ev){ push('error', 'Uncaught: ' + (ev.message || jsNoteFmt(ev.error))); };
     const onRej = function(ev){ push('error', 'Unhandled promise rejection: ' + jsNoteFmt(ev.reason)); };
-    window.addEventListener('error', onErr);
-    window.addEventListener('unhandledrejection', onRej);
+    win.addEventListener('error', onErr);
+    win.addEventListener('unhandledrejection', onRej);
 
     const t0 = performance.now();
     try{
-      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const AsyncFunction = win.eval('(async function(){}).constructor');
       const fn = new AsyncFunction(code);
       const result = await fn();
       if(result !== undefined) push('result', jsNoteFmt(result));
@@ -10610,9 +10659,11 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }finally{
       // beri jeda singkat agar error async cepat ikut tertangkap
       await new Promise(function(r){ setTimeout(r, 60); });
-      methods.forEach(function(m){ console[m] = orig[m]; });
-      window.removeEventListener('error', onErr);
-      window.removeEventListener('unhandledrejection', onRej);
+      try{
+        methods.forEach(function(m){ win.console[m] = orig[m]; });
+        win.removeEventListener('error', onErr);
+        win.removeEventListener('unhandledrejection', onRej);
+      }catch(e){ /* frame sudah pindah halaman */ }
       jsNotesRunning[id] = false;
       const rb = document.getElementById('jsnote-runbtn-' + id);
       const rr = document.getElementById('jsnote-runrow-' + id);
