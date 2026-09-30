@@ -662,6 +662,31 @@
   }
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
+  /* ===== Konsol JavaScript untuk iframe ===== */
+  .cashier-nav-btn.active{background:#f5b942; color:#123;}
+  .cashier-js-panel{display:none; flex-direction:column; gap:5px; padding:6px 8px 8px; background:#0f1a17; border-top:1px solid rgba(255,255,255,0.12);}
+  .cashier-js-panel.show{display:flex;}
+  .cashier-js-code{
+    width:100%; box-sizing:border-box; min-height:54px; max-height:120px; resize:vertical;
+    background:#16221f; color:#d7f5e8; border:1px solid rgba(255,255,255,0.15); border-radius:8px;
+    padding:7px 9px; font-family:'JetBrains Mono', monospace; font-size:11.5px; line-height:1.4; outline:none;
+  }
+  .cashier-js-code:focus{border-color:#f5b942;}
+  .cashier-js-bar{display:flex; align-items:center; gap:6px;}
+  .cashier-js-run, .cashier-js-clear{
+    border:none; border-radius:7px; padding:5px 12px; font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+  .cashier-js-run{background:#f5b942; color:#123;}
+  .cashier-js-clear{background:rgba(255,255,255,0.16); color:#fff;}
+  .cashier-js-hint{font-size:10px; color:rgba(255,255,255,0.55); margin-left:auto;}
+  .cashier-js-out{
+    max-height:90px; overflow:auto; margin:0; padding:6px 9px; border-radius:8px; background:#0a1210;
+    font-family:'JetBrains Mono', monospace; font-size:11px; line-height:1.4; white-space:pre-wrap; word-break:break-word;
+    color:#9fe3c2;
+  }
+  .cashier-js-out:empty{display:none;}
+  .cashier-js-out .err{color:#ff8f8f;}
+  .cashier-js-out .log{color:#cfe6dd;}
   .history-overlay.show{display:flex;}
 
   /* ===== Catatan Kode JS — gaya code manager yang padat & profesional ===== */
@@ -737,40 +762,6 @@
   .jsnote-code::placeholder{color:#4f6a64;}
   .jsnote-code:focus{outline:none;}
   .jsnote-empty-hint{font-size:11px; color:var(--ink-soft); text-align:center; padding:4px 0 0;}
-  /* ---- Jalankan JS + konsol ---- */
-  .jsnote-item.open .jsnote-body{max-height:520px;}
-  .jsnote-icon-btn.run-icon{color:var(--klop);}
-  .jsnote-icon-btn.run-icon:hover{background:var(--klop-bg); color:var(--klop);}
-  .jsnote-icon-btn.running{opacity:.5; pointer-events:none;}
-  .jsnote-run-btn{
-    display:inline-flex; align-items:center; gap:5px; flex-shrink:0; border:none; cursor:pointer;
-    background:#3c8a5c; color:#fff; font:inherit; font-size:10.5px; font-weight:800;
-    padding:4px 10px; border-radius:7px; -webkit-tap-highlight-color:transparent;
-  }
-  .jsnote-run-btn svg{width:11px; height:11px;}
-  .jsnote-run-btn.browser{background:#2f6fae;}
-  .jsnote-run-btn.browser:hover{background:#245a8f;}
-  .jsnote-run-btn:hover{background:#2f7549;}
-  .jsnote-run-btn:disabled{opacity:.55; cursor:default;}
-  .jsnote-console{display:none; background:#111b19; border-top:1px solid #2a3d3a;}
-  .jsnote-console.show{display:block;}
-  .jsnote-console-head{
-    display:flex; align-items:center; justify-content:space-between; padding:4px 10px;
-    font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#7fa89c; letter-spacing:.03em;
-  }
-  .jsnote-console-clear{border:none; background:transparent; color:#7fa89c; font:inherit; cursor:pointer; padding:2px 4px;}
-  .jsnote-console-clear:hover{color:#fff;}
-  .jsnote-console-out{
-    max-height:150px; overflow:auto; padding:2px 10px 8px;
-    font-family:'JetBrains Mono', monospace; font-size:11.5px; line-height:1.5;
-  }
-  .jsnote-console-out .cl{white-space:pre-wrap; word-break:break-word; padding:1px 0; color:#d8ece5;}
-  .jsnote-console-out .cl.warn{color:#e6b04f;}
-  .jsnote-console-out .cl.error{color:#f08466;}
-  .jsnote-console-out .cl.result{color:#7fd1b0;}
-  .jsnote-console-out .cl.result::before{content:'\2190  '; opacity:.7;}
-  .jsnote-console-out .cl.info{color:#7fb6e6;}
-  .jsnote-console-out .cl.sys{color:#6f8c85; font-style:italic;}
   .jsnote-count-badge{
     font-size:10.5px; font-weight:700; color:var(--ink-soft); background:var(--mint); border-radius:20px;
     padding:2px 8px; margin-left:6px;
@@ -8347,11 +8338,22 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
           <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
+          <button class="cashier-nav-btn" id="cashierJsBtn" onclick="cashierToggleJs()" title="Jalankan JavaScript di iframe" style="font-size:10px;">JS</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
         </form>
       </div>
+    </div>
+    <div class="cashier-js-panel" id="cashierJsPanel">
+      <textarea class="cashier-js-code" id="cashierJsCode" spellcheck="false" autocomplete="off" autocapitalize="off"
+        placeholder="Tulis JavaScript untuk dijalankan di dalam iframe, mis: document.title"></textarea>
+      <div class="cashier-js-bar">
+        <button class="cashier-js-run" onclick="cashierRunJs()">▶ Jalankan</button>
+        <button class="cashier-js-clear" onclick="cashierClearJs()">Bersihkan</button>
+        <span class="cashier-js-hint">Ctrl+Enter</span>
+      </div>
+      <pre class="cashier-js-out" id="cashierJsOut"></pre>
     </div>
     <div class="cashier-popup-body">
       <iframe id="cashierPopupFrame" src="about:blank" loading="lazy" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
@@ -8444,6 +8446,104 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     var u = (document.getElementById('cashierAddrBar').value || '').trim();
     if(u) window.open(u, '_blank', 'noopener');
   }
+  // ===== Jalankan JavaScript di dalam iframe =====
+  // Catatan: browser hanya mengizinkan ini kalau halaman di dalam iframe
+  // satu domain (same-origin) dengan aplikasi ini, mis. game.html atau about:blank.
+  // Situs lain (Google, Farmacare, dst) diblokir oleh kebijakan keamanan browser.
+  function cashierToggleJs(){
+    var panel = document.getElementById('cashierJsPanel');
+    var btn = document.getElementById('cashierJsBtn');
+    var show = !panel.classList.contains('show');
+    panel.classList.toggle('show', show);
+    btn.classList.toggle('active', show);
+    if(show){
+      var ta = document.getElementById('cashierJsCode');
+      if(ta) setTimeout(function(){ ta.focus(); }, 0);
+    }
+  }
+
+  function cashierJsFormat(v, depth){
+    depth = depth || 0;
+    if(v === undefined) return 'undefined';
+    if(v === null) return 'null';
+    if(typeof v === 'string') return depth ? JSON.stringify(v) : v;
+    if(typeof v === 'function') return String(v).split('\n')[0] + (String(v).indexOf('\n') > -1 ? ' …' : '');
+    if(v instanceof Error) return v.name + ': ' + v.message;
+    if(typeof v === 'object'){
+      try{ return JSON.stringify(v, null, 2); }catch(e){}
+    }
+    try{ return String(v); }catch(e){ return Object.prototype.toString.call(v); }
+  }
+
+  function cashierJsAppend(text, cls){
+    var out = document.getElementById('cashierJsOut');
+    var line = document.createElement('div');
+    if(cls) line.className = cls;
+    line.textContent = text;
+    out.appendChild(line);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function cashierRunJs(){
+    var ta = document.getElementById('cashierJsCode');
+    var code = (ta.value || '').trim();
+    if(!code) return;
+    var frame = document.getElementById('cashierPopupFrame');
+    var win;
+    try{
+      win = frame.contentWindow;
+      // Mengakses document akan melempar SecurityError kalau iframe beda domain
+      void win.document.body;
+    }catch(err){
+      cashierJsAppend('✖ Tidak bisa menjalankan JS: halaman di iframe berasal dari domain lain (diblokir browser). Hanya halaman satu domain seperti game.html yang bisa dikontrol.', 'err');
+      return;
+    }
+    if(!win || typeof win.eval !== 'function'){
+      cashierJsAppend('✖ Iframe belum siap. Tunggu halaman selesai dimuat lalu coba lagi.', 'err');
+      return;
+    }
+    cashierJsAppend('> ' + code.split('\n')[0] + (code.indexOf('\n') > -1 ? ' …' : ''));
+    // Tangkap console.log dari iframe selama kode berjalan
+    var origLog = win.console.log, origErr = win.console.error, origWarn = win.console.warn;
+    function cap(cls){
+      return function(){
+        var parts = [];
+        for(var i = 0; i < arguments.length; i++) parts.push(cashierJsFormat(arguments[i], 1));
+        cashierJsAppend(parts.join(' '), cls);
+      };
+    }
+    win.console.log = cap('log'); win.console.warn = cap('log'); win.console.error = cap('err');
+    try{
+      var result = (0, win.eval)(code); // eval global di dalam window iframe
+      if(result && typeof result.then === 'function'){
+        cashierJsAppend('⏳ Promise…', 'log');
+        result.then(function(v){ cashierJsAppend('← ' + cashierJsFormat(v)); },
+                    function(e){ cashierJsAppend('✖ ' + cashierJsFormat(e), 'err'); });
+      } else {
+        cashierJsAppend('← ' + cashierJsFormat(result));
+      }
+    }catch(e){
+      cashierJsAppend('✖ ' + cashierJsFormat(e), 'err');
+    }finally{
+      win.console.log = origLog; win.console.error = origErr; win.console.warn = origWarn;
+    }
+  }
+
+  function cashierClearJs(){
+    document.getElementById('cashierJsOut').innerHTML = '';
+    var ta = document.getElementById('cashierJsCode');
+    ta.value = '';
+    ta.focus();
+  }
+
+  (function(){
+    var ta = document.getElementById('cashierJsCode');
+    if(ta) ta.addEventListener('keydown', function(e){
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); cashierRunJs(); }
+      e.stopPropagation();
+    });
+  })();
+
   function closeCashierPopup(){
     document.getElementById('cashierPopup').classList.remove('show');
   }
@@ -10308,7 +10408,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   const ICO_CHEVRON = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICO_COPY = '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg>';
   const ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const ICO_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8Z"/></svg>';
   const ICO_TRASH = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function getJsNotes(){
@@ -10375,18 +10474,15 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
             </div>
             <div class="jsnote-row-actions">
               <span class="jsnote-save-dot" id="jsnote-saved-${note.id}" title="Tersimpan"></span>
-              <button type="button" class="jsnote-icon-btn run-icon" id="jsnote-runrow-${note.id}" title="Jalankan kode" onclick="event.stopPropagation(); runJsNote(${note.id})">${ICO_PLAY}</button>
               <button type="button" class="jsnote-icon-btn" id="jsnote-copybtn-${note.id}" title="Salin kode" onclick="event.stopPropagation(); copyJsNote(${note.id})">${ICO_COPY}</button>
               <button type="button" class="jsnote-icon-btn del-icon" title="Hapus" onclick="event.stopPropagation(); deleteJsNote(${note.id})">${ICO_TRASH}</button>
             </div>
           </div>
           <div class="jsnote-body">
-            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><button type="button" class="jsnote-run-btn" id="jsnote-runbtn-${note.id}" title="Jalankan di halaman ini (Ctrl/Cmd + Enter)" onclick="runJsNote(${note.id}, 'page')">${ICO_PLAY}Halaman</button><button type="button" class="jsnote-run-btn browser" id="jsnote-runfrm-${note.id}" title="Jalankan di dalam iframe Browser (Ctrl/Cmd + Shift + Enter)" onclick="runJsNote(${note.id}, 'frame')">${ICO_PLAY}Browser</button><span>UTF-8</span></div>
+            <div class="jsnote-editor-bar"><span title="${escapeHtml(note.title || 'javascript')}.js">${escapeHtml(note.title || 'javascript')}.js</span><span>UTF-8</span></div>
             <textarea class="jsnote-code" id="jsnote-code-${note.id}" spellcheck="false"
-                      onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){ event.preventDefault(); runJsNote(${note.id}, event.shiftKey ? 'frame' : 'page'); }"
                       oninput="updateJsNoteCode(${note.id}, this.value)"
                       placeholder="Tempel atau tulis kode JavaScript di sini...">${escapeHtml(note.code)}</textarea>
-            ${jsNoteConsoleHtml(note.id)}
           </div>
         </div>
       `;
@@ -10484,193 +10580,6 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(typeof petugasSessionSlug === 'undefined' || !petugasSessionSlug) return;
     if(typeof applyingPetugasSession !== 'undefined' && applyingPetugasSession) return;
     if(typeof pushPetugasSession === 'function') pushPetugasSession(immediate);
-  }
-
-  // ------------------------------------------------------
-  // Jalankan JavaScript dari catatan. Kode dijalankan langsung
-  // di halaman ini (bisa akses fungsi/variabel aplikasi & DOM),
-  // mendukung `await` dan `return`. Output console.log/info/
-  // warn/error, hasil return, dan error ditampilkan di konsol
-  // di bawah editor.
-  // ------------------------------------------------------
-  const jsNotesConsole = {};   // id -> [{type, text}]
-  const jsNotesRunning = {};   // id -> true saat sedang berjalan
-
-  function jsNoteFmt(v){
-    if(typeof v === 'string') return v;
-    if(v === undefined) return 'undefined';
-    if(typeof v === 'function') return v.toString();
-    if(typeof v === 'symbol' || typeof v === 'bigint') return String(v);
-    if(v instanceof Error || Object.prototype.toString.call(v) === '[object Error]') return (v.stack || (v.name + ': ' + v.message));
-    try{
-      const seen = new WeakSet();
-      const out = JSON.stringify(v, function(k, val){
-        if(typeof val === 'bigint') return val.toString();
-        if(typeof val === 'function') return '[Function]';
-        if(val && typeof val === 'object'){
-          if(seen.has(val)) return '[Circular]';
-          seen.add(val);
-        }
-        return val;
-      }, 2);
-      return out === undefined ? String(v) : out;
-    }catch(e){ return String(v); }
-  }
-
-  function jsNoteConsoleHtml(id){
-    const lines = jsNotesConsole[id];
-    const has = lines && lines.length;
-    const body = has ? lines.map(function(l){
-      return '<div class="cl ' + l.type + '">' + escapeHtml(l.text) + '</div>';
-    }).join('') : '';
-    return '<div class="jsnote-console' + (has ? ' show' : '') + '" id="jsnote-console-' + id + '">' +
-      '<div class="jsnote-console-head"><span>KONSOL</span>' +
-      '<span><button type="button" class="jsnote-console-clear" id="jsnote-bm-' + id + '" title="Salin sebagai bookmarklet untuk dipakai di tab browser biasa" onclick="copyJsBookmarklet(' + id + ')">Salin bookmarklet</button>' +
-      '<button type="button" class="jsnote-console-clear" onclick="clearJsNoteConsole(' + id + ')">Bersihkan</button></span></div>' +
-      '<div class="jsnote-console-out" id="jsnote-console-out-' + id + '">' + body + '</div></div>';
-  }
-
-  function refreshJsNoteConsole(id){
-    const wrap = document.getElementById('jsnote-console-' + id);
-    if(!wrap) return;
-    const lines = jsNotesConsole[id] || [];
-    wrap.classList.toggle('show', lines.length > 0);
-    const out = document.getElementById('jsnote-console-out-' + id);
-    if(out){
-      out.innerHTML = lines.map(function(l){
-        return '<div class="cl ' + l.type + '">' + escapeHtml(l.text) + '</div>';
-      }).join('');
-      out.scrollTop = out.scrollHeight;
-    }
-  }
-
-  function clearJsNoteConsole(id){
-    jsNotesConsole[id] = [];
-    refreshJsNoteConsole(id);
-  }
-
-  // Ambil window iframe Browser bila bisa diakses (sama-origin). Untuk situs
-  // lain (mis. farmacare.id, Google) browser memblokir akses ini demi keamanan.
-  function getBrowserFrameWindow(){
-    const f = document.getElementById('cashierPopupFrame');
-    if(!f || !f.contentWindow) return {err: 'Iframe Browser tidak ditemukan.'};
-    try{
-      const w = f.contentWindow;
-      void w.document.body;          // melempar SecurityError kalau lintas-domain
-      void w.eval;
-      return {win: w};
-    }catch(e){
-      let host = '';
-      try{ host = new URL(document.getElementById('cashierAddrBar').value).hostname; }catch(_){}
-      return {err: 'Diblokir browser: halaman' + (host ? ' ' + host : '') + ' di iframe berasal dari domain lain, jadi JavaScript dari luar tidak boleh dijalankan di dalamnya (Same-Origin Policy). Ini aturan keamanan browser dan tidak bisa dilewati dari kode halaman. Alternatif: tombol "Salin bookmarklet" lalu pakai di tab biasa (tombol \u2197 di Browser).'};
-    }
-  }
-
-  function copyJsBookmarklet(id){
-    const ta = document.getElementById('jsnote-code-' + id);
-    const note = getJsNotes().find(function(n){ return n.id === id; });
-    const code = ta ? ta.value : (note ? note.code : '');
-    if(!code.trim()) return;
-    const wrapped = '(async()=>{try{' + code + '\n}catch(e){alert("Error: "+e.message)}})();void 0';
-    const bm = 'javascript:' + encodeURIComponent(wrapped);
-    const btn = document.getElementById('jsnote-bm-' + id);
-    const done = function(ok){ if(btn){ const t = btn.textContent; btn.textContent = ok ? 'Tersalin \u2713' : 'Gagal'; setTimeout(function(){ btn.textContent = 'Salin bookmarklet'; }, 1400); } };
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(bm).then(function(){ done(true); }).catch(function(){ done(false); });
-    } else {
-      try{ const t = document.createElement('textarea'); t.value = bm; t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); done(true); }catch(e){ done(false); }
-    }
-  }
-
-  async function runJsNote(id, target){
-    target = target === 'frame' ? 'frame' : 'page';
-    if(jsNotesRunning[id]) return;
-    const notes = getJsNotes();
-    const note = notes.find(function(n){ return n.id === id; });
-    if(!note) return;
-
-    // Pastikan catatan terbuka supaya konsol kelihatan
-    if(jsNotesOpenId !== id){
-      jsNotesOpenId = id;
-      renderJsNotesList();
-    }
-    // Pakai isi editor terbaru (autosave bisa belum sempat jalan)
-    const ta = document.getElementById('jsnote-code-' + id);
-    const code = ta ? ta.value : (note.code || '');
-    if(ta && note.code !== code){
-      note.code = code; saveJsNotes(notes); syncJsNotesToPetugasSession();
-    }
-
-    const lines = jsNotesConsole[id] = [];
-    const push = function(type, text){ lines.push({type: type, text: text}); };
-    if(!code.trim()){
-      push('warn', 'Kode masih kosong.');
-      refreshJsNoteConsole(id);
-      return;
-    }
-
-    let win = window;
-    if(target === 'frame'){
-      const r = getBrowserFrameWindow();
-      if(!r.win){
-        push('sys', '\u25B6 Target: iframe Browser');
-        push('error', r.err);
-        refreshJsNoteConsole(id);
-        return;
-      }
-      win = r.win;
-    }
-
-    jsNotesRunning[id] = true;
-    const runBtn = document.getElementById('jsnote-runbtn-' + id);
-    const rowBtn = document.getElementById('jsnote-runrow-' + id);
-    if(runBtn) runBtn.disabled = true;
-    if(rowBtn) rowBtn.classList.add('running');
-    push('sys', '\u25B6 Menjalankan "' + (note.title || 'Javascript') + '" di ' + (target === 'frame' ? 'iframe Browser' : 'halaman ini') + '...');
-    refreshJsNoteConsole(id);
-
-    // Tangkap console selama kode berjalan
-    const orig = {};
-    const methods = ['log','info','warn','error','debug','table'];
-    methods.forEach(function(m){
-      orig[m] = win.console[m];
-      win.console[m] = function(){
-        const args = Array.prototype.slice.call(arguments);
-        const type = (m === 'warn') ? 'warn' : (m === 'error') ? 'error' : (m === 'info') ? 'info' : 'log';
-        push(type, args.map(jsNoteFmt).join(' '));
-        try{ orig[m].apply(win.console, args); }catch(e){}
-      };
-    });
-    const onErr = function(ev){ push('error', 'Uncaught: ' + (ev.message || jsNoteFmt(ev.error))); };
-    const onRej = function(ev){ push('error', 'Unhandled promise rejection: ' + jsNoteFmt(ev.reason)); };
-    win.addEventListener('error', onErr);
-    win.addEventListener('unhandledrejection', onRej);
-
-    const t0 = performance.now();
-    try{
-      const AsyncFunction = win.eval('(async function(){}).constructor');
-      const fn = new AsyncFunction(code);
-      const result = await fn();
-      if(result !== undefined) push('result', jsNoteFmt(result));
-      push('sys', '\u2713 Selesai (' + Math.round(performance.now() - t0) + ' ms)');
-    }catch(e){
-      push('error', jsNoteFmt(e));
-      push('sys', '\u2717 Gagal (' + Math.round(performance.now() - t0) + ' ms)');
-    }finally{
-      // beri jeda singkat agar error async cepat ikut tertangkap
-      await new Promise(function(r){ setTimeout(r, 60); });
-      try{
-        methods.forEach(function(m){ win.console[m] = orig[m]; });
-        win.removeEventListener('error', onErr);
-        win.removeEventListener('unhandledrejection', onRej);
-      }catch(e){ /* frame sudah pindah halaman */ }
-      jsNotesRunning[id] = false;
-      const rb = document.getElementById('jsnote-runbtn-' + id);
-      const rr = document.getElementById('jsnote-runrow-' + id);
-      if(rb) rb.disabled = false;
-      if(rr) rr.classList.remove('running');
-      refreshJsNoteConsole(id);
-    }
   }
 
   function copyJsNote(id){
