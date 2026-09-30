@@ -114,7 +114,11 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   for(var i=0;i<N*N;i++){var d=document.createElement('div');d.className='cell'+(((i>>3)+i)%2?' alt':'');boardEl.appendChild(d);cells.push(d);}
 
   var level=1,last=null,grid,pieces,score,best=0,streak,over,busy,drag=null,muted=false,AC=null;
-  try{best=+localStorage.getItem('blockBlastBest')||0;muted=localStorage.getItem('blockBlastMute')==='1';}catch(e){}
+  // Di dalam halaman Stok Opname, rekor ("TERBAIK") milik USER (petugas) dan dikirim dari leaderboard,
+  // bukan dari HP. localStorage hanya dipakai kalau game dibuka mandiri.
+  var EMB=false;try{EMB=window.parent&&window.parent!==window;}catch(e){}
+  try{if(!EMB)best=+localStorage.getItem('blockBlastBest')||0;muted=localStorage.getItem('blockBlastMute')==='1';}catch(e){}
+  function saveBest(){if(EMB)return;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
 
   // ---- suara sederhana ----
   function tone(f,t,dur,type,v){
@@ -406,7 +410,7 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
     var fl=fullLines(grid),lines=fl.n,gain=n;
     if(lines){streak++;gain+=lines*lines*10+(streak-1)*5;}else streak=0;
     score+=gain;
-    if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
+    if(score>best){best=score;saveBest();}
     renderBoard();renderTray();updateScore(true);setUndo();
     if(!lines){tone(300,0,.09);after();return;}
     var keys=Object.keys(fl.set),colors=grid.slice();
@@ -428,8 +432,12 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
     renderTray();
     if(!pieces.some(function(p){return p&&canAny(p);}))endGame();
   }
+  // Kirim skor ke halaman Stok Opname (leaderboard). Server hanya menyimpan bila lebih tinggi dari skor terbaik pemain.
+  function report(){
+    try{ if(typeof score==='number'&&score>0&&window.parent&&window.parent!==window) window.parent.postMessage({type:'blockblast-score',score:score},'*'); }catch(e){}
+  }
   function endGame(){
-    over=true;var rec=score>0&&score>=best;
+    over=true;report();var rec=score>0&&score>=best;
     $('overScore').textContent=score;$('rec').classList.toggle('show',rec);
     $('overTxt').textContent='Level '+level+'  ·  Terbaik: '+best;
     tone(330,0,.25,'sawtooth',.08);tone(247,.2,.25,'sawtooth',.08);tone(196,.4,.45,'sawtooth',.08);
@@ -465,7 +473,7 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
   }
   function levelUp(){
     busy=true;setUndo();var bonus=100*level;score+=bonus;
-    if(score>best){best=score;try{localStorage.setItem('blockBlastBest',best);}catch(e){}}
+    if(score>best){best=score;saveBest();}
     updateScore(true);confetti();buzz([40,40,80]);
     toast('BERSIH!','+'+bonus+'  ·  Level '+(level+1));
     [523,659,784,1047,1319].forEach(function(f,i){tone(f,i*.09,.3,'triangle',.14);});
@@ -477,12 +485,23 @@ h1 span{background:linear-gradient(180deg,#ffe066,#ff8a3d);-webkit-background-cl
     },1500);
   }
   function start(){
+    report();
     level=1;last=null;fillLevel();score=0;streak=0;over=false;busy=false;
     $('over').classList.remove('show');
     newPieces();renderBoard();renderTray();updateScore();setUndo();
   }
   $('undo').onclick=undo;$('restart').onclick=start;$('again').onclick=start;
+  document.addEventListener('visibilitychange',function(){if(document.hidden)report();});
+  window.addEventListener('pagehide',report);
   syncSnd();start();
+  // Terima rekor milik user dari halaman Stok Opname
+  window.addEventListener('message',function(e){
+    var d=e.data;if(!d||d.type!=='blockblast-best'||e.source!==window.parent)return;
+    best=Math.max(0,+d.best||0);
+    if(typeof score==='number'&&score>best)best=score;
+    updateScore();
+  });
+  if(EMB){try{window.parent.postMessage({type:'blockblast-hello'},'*');}catch(e){}}
 })();
 </script>
 </body>
