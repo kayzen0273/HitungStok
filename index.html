@@ -2111,20 +2111,6 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   </div>
   </div>
 
-
-  <div class="card" id="kirimCard">
-    <h2>Kirim Keluar Aplikasi</h2>
-    <div class="kr-num"><label for="krNum">No. WhatsApp tujuan</label><input id="krNum" type="tel" inputmode="tel" placeholder="08xxxx (kosong = pilih kontak)"></div>
-    <div class="kr-grid">
-      <button type="button" class="kr-btn wa" onclick="krWA()"><span class="e">💬</span><span><b>Kirim langsung ke WhatsApp</b><br><small>Membuka WhatsApp dengan laporan sudah terisi</small></span></button>
-      <button type="button" class="kr-btn" onclick="krShareText()"><span class="e">📤</span><b>Bagikan ke aplikasi lain</b><small>Telegram, LINE, Drive, dll.</small></button>
-      <button type="button" class="kr-btn" onclick="krImage()"><span class="e">🖼️</span><b>Gambar laporan</b><small>PNG rapi berisi ringkasan &amp; daftar selisih</small></button>
-      <button type="button" class="kr-btn" onclick="krCSV()"><span class="e">📑</span><b>File CSV</b><small>Buka di Excel / Google Sheets</small></button>
-      <button type="button" class="kr-btn" onclick="krMail()"><span class="e">✉️</span><b>Email</b><small>Buka aplikasi email dengan isi laporan</small></button>
-    </div>
-    <div class="footnote">Kalau HP/browser tidak mendukung berbagi file, gambar &amp; CSV otomatis diunduh.</div>
-  </div>
-
   <div class="reset-zone">
     <div class="rz-text">
       <div class="rz-title">Reset data</div>
@@ -8314,6 +8300,39 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
 
 <canvas id="drawOverlayCanvas"></canvas>
 
+<style>
+  .gpick{position:fixed; inset:0; z-index:9998; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,30,27,.55);}
+  .gpick.show{display:flex;}
+  .gpick-box{width:100%; max-width:340px; background:var(--card,#fff); color:var(--ink,#173b36); border:2px solid var(--ink,#173b36); border-radius:20px; padding:16px; box-shadow:0 6px 0 var(--ink,#173b36);}
+  .gpick-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-weight:800; font-size:16px;}
+  .gpick-x{border:0; background:none; font:inherit; font-size:18px; font-weight:800; color:inherit; cursor:pointer; padding:2px 6px;}
+  .gpick-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .gpick-item{display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px 12px; font:inherit; font-size:13px; font-weight:800; color:inherit; background:var(--mint,#e4f2ec); border:2px solid var(--ink,#173b36); border-radius:14px; box-shadow:0 3px 0 var(--ink,#173b36); cursor:pointer;}
+  .gpick-item:active{transform:translateY(3px); box-shadow:none;}
+  .gpick-ico{display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; box-shadow:inset 0 2px 0 rgba(255,255,255,.35);}
+  .gpick-item:nth-child(1) .gpick-ico{background:linear-gradient(150deg,#f08466,#c0503a);}
+  .gpick-item:nth-child(2) .gpick-ico{background:linear-gradient(150deg,#9878d0,#6a4ba6);}
+  .gpick-ico svg{width:52px; height:52px; overflow:visible;}
+  .gpick-ico{width:68px; height:68px; border-radius:20px; box-shadow:inset 0 2px 0 rgba(255,255,255,.35), 0 5px 10px -4px rgba(23,59,54,.5);}
+  .gp-car{animation:gpBob 1.1s ease-in-out infinite; transform-origin:center;}
+  .gp-lines{animation:gpDash .7s linear infinite;}
+  .gp-blk{transform-origin:32px 32px; animation:gpPulse 1.8s ease-in-out infinite;}
+  .gp-spark{transform-origin:49px 35px; animation:gpSpark 1.4s ease-in-out infinite;}
+  @keyframes gpBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-1.6px);}}
+  @keyframes gpDash{from{transform:translateX(4px); opacity:0;}50%{opacity:.7;}to{transform:translateX(-4px); opacity:0;}}
+  @keyframes gpPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+  @keyframes gpSpark{0%,100%{transform:scale(.6) rotate(0); opacity:.7;}50%{transform:scale(1.15) rotate(45deg); opacity:1;}}
+  @media (prefers-reduced-motion:reduce){.gp-car,.gp-lines,.gp-blk,.gp-spark{animation:none;}}
+</style>
+<div class="gpick" id="gamePicker" onclick="if(event.target===this)closeGamePicker()">
+  <div class="gpick-box" role="dialog" aria-label="Pilih game">
+    <div class="gpick-head"><span>Pilih Game</span><button type="button" class="gpick-x" onclick="closeGamePicker()" aria-label="Tutup">✕</button></div>
+    <div class="gpick-grid">
+      <button type="button" class="gpick-item" onclick="startGame('game')"><span class="gpick-ico"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g class="gp-lines" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".7"><path d="M3 27h10"/><path d="M6 33h8"/><path d="M2 39h11"/></g><g class="gp-car"><path d="M15 41v-6.5c0-1.6 1-2.9 2.5-3.3l7-1.9 5-7.3c.8-1.2 2-1.8 3.4-1.8h11c1.4 0 2.7.7 3.5 1.9l4.6 7 5.3 1.4c1.6.4 2.7 1.8 2.7 3.5V41c0 1.1-.9 2-2 2H17c-1.1 0-2-.9-2-2z" fill="#fff"/><path d="M31.5 24.5h11.6l3.6 5.5H27.8z" fill="#173b36" opacity=".78"/><path d="M39 24.5h4l3.6 5.5h-4z" fill="#fff" opacity=".25"/><rect x="53" y="34" width="5" height="3.4" rx="1.4" fill="#ffd66b"/><rect x="14.5" y="34.5" width="3" height="3" rx="1.2" fill="#ff5a4d"/><circle cx="26" cy="43" r="6.5" fill="#173b36" stroke="#fff" stroke-width="2"/><circle cx="26" cy="43" r="2.2" fill="#fff"/><circle cx="48" cy="43" r="6.5" fill="#173b36" stroke="#fff" stroke-width="2"/><circle cx="48" cy="43" r="2.2" fill="#fff"/></g></svg></span>Carzen</button>
+      <button type="button" class="gpick-item" onclick="startGame('blockblast')"><span class="gpick-ico"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><g class="gp-blk"><rect x="9" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="25" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="41" y="12" width="14" height="14" rx="3.5" fill="#fff"/><rect x="25" y="28" width="14" height="14" rx="3.5" fill="#fff"/><rect x="9" y="44" width="14" height="14" rx="3.5" fill="#fff" opacity=".45"/><rect x="41" y="44" width="14" height="14" rx="3.5" fill="#ffd66b"/></g><path class="gp-spark" d="M49 27l2 5.2 5.2 2-5.2 2-2 5.2-2-5.2-5.2-2 5.2-2z" fill="#ffd66b"/></svg></span>Block Blast</button>
+    </div>
+  </div>
+</div>
 <div class="cashier-popup" id="cashierPopup">
   <div class="cashier-popup-box">
     <div class="cashier-popup-head">
@@ -8419,7 +8438,14 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
   }
   function openCashierPopup(){ cashierOpenApp('kasir', CASHIER_HOME, 'Browser'); }
   function openRekapPopup(){ cashierOpenApp('rekap', REKAP_HOME, 'Rekap Setoran', true); }
-  function openGamePopup(){ cashierOpenApp('game', GAME_HOME, 'Game'); }
+  var BLOCKBLAST_HOME = 'blockblast.html'; // file terpisah, satu folder dengan halaman ini
+  function openGamePopup(){ document.getElementById('gamePicker').classList.add('show'); }
+  function closeGamePicker(){ document.getElementById('gamePicker').classList.remove('show'); }
+  function startGame(which){
+    closeGamePicker();
+    if(which === 'blockblast') cashierOpenApp('blockblast', BLOCKBLAST_HOME, 'Block Blast');
+    else cashierOpenApp('game', GAME_HOME, 'Game');
+  }
   function cashierOpenExternal(){
     var u = (document.getElementById('cashierAddrBar').value || '').trim();
     if(u) window.open(u, '_blank', 'noopener');
@@ -12390,110 +12416,5 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 })();
 </script>
 
-
-<style id="kirimCss">
-.kr-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
-.kr-btn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font:inherit;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
-.kr-btn:active{transform:scale(.97)}
-.kr-btn .e{font-size:22px;line-height:1}
-.kr-btn b{font-size:12.5px;font-weight:800}
-.kr-btn small{font-size:10.5px;color:var(--ink-soft);line-height:1.3}
-.kr-btn.wa{grid-column:1/-1;background:linear-gradient(150deg,#25d366,#128c7e);border:0;color:#fff;flex-direction:row;align-items:center;gap:12px;box-shadow:0 6px 14px -6px #128c7e}
-.kr-btn.wa small{color:#e6fff0}.kr-btn.wa .e{font-size:26px}
-.kr-num{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-.kr-num label{font-size:11px;font-weight:800;color:var(--ink-soft);white-space:nowrap}
-.kr-num input{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 11px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);outline:none}
-.kr-num input:focus{border-color:var(--teal)}
-.kr-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);background:#173b36;color:#fff;font-size:12px;font-weight:700;padding:10px 15px;border-radius:12px;opacity:0;transition:.2s;z-index:9500;pointer-events:none;max-width:88vw;text-align:center}
-.kr-toast.show{opacity:1;transform:translate(-50%,0)}
-</style>
-<div class="kr-toast" id="krToast"></div>
-<script>
-(function(){
-  var $=function(i){return document.getElementById(i)};
-  var NK='stokOpnameWaNumber';
-  try{$('krNum').value=localStorage.getItem(NK)||'';}catch(e){}
-  $('krNum').addEventListener('input',function(){try{localStorage.setItem(NK,this.value)}catch(e){}});
-  function toast(m){var t=$('krToast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},2400);}
-  function meta(){
-    return{toko:$('metaToko').value.trim()||'-',waktu:$('metaWaktu').value||'-',tgl:formatTanggal($('metaTgl').value)||'-',tglRaw:$('metaTgl').value||todayISO(),petugas:$('metaPetugas').value.trim()||'-'};
-  }
-  function report(){ // pakai generate() bawaan supaya format & riwayat sama persis dengan "Salin ke WhatsApp"
-    generate(true);
-    var p=$('preview'); if(!p||p.classList.contains('empty'))return null;
-    return p.textContent;
-  }
-  function phone(){
-    var n=($('krNum').value||'').replace(/[^0-9+]/g,'').replace(/^\+/,'');
-    if(!n)return'';
-    if(n.charAt(0)==='0')n='62'+n.slice(1);
-    return n;
-  }
-  window.krWA=function(){var t=report();if(!t){toast('Isi data barang dulu');return;}
-    window.open('https://wa.me/'+phone()+'?text='+encodeURIComponent(t),'_blank');};
-  window.krMail=function(){var t=report();if(!t){toast('Isi data barang dulu');return;}var m=meta();
-    location.href='mailto:?subject='+encodeURIComponent('Stok Opname '+m.toko+' '+m.tgl)+'&body='+encodeURIComponent(t);};
-  window.krShareText=async function(){var t=report();if(!t){toast('Isi data barang dulu');return;}
-    if(navigator.share){try{await navigator.share({title:'Stok Opname',text:t});}catch(e){}}
-    else{try{await navigator.clipboard.writeText(t);toast('Browser tak mendukung berbagi — teks disalin');}catch(e){toast('Berbagi tidak didukung di browser ini');}}};
-
-  async function shareOrDownload(blob,name,type){
-    var f=new File([blob],name,{type:type});
-    if(navigator.canShare&&navigator.canShare({files:[f]})){
-      try{await navigator.share({files:[f],title:name});return;}catch(e){if(e&&e.name==='AbortError')return;}
-    }
-    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);toast('File diunduh: '+name);
-  }
-  function fname(ext){var m=meta();return ('stok-opname-'+m.toko+'-'+m.tglRaw).replace(/[^\w\-]+/g,'_')+'.'+ext;}
-
-  window.krCSV=function(){
-    var data=rows.filter(function(r){return r.nama.trim()!==''});
-    if(!data.length){toast('Belum ada barang');return;}
-    var q=function(v){v=String(v==null?'':v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
-    var m=meta(),L=[['Toko',m.toko,'Waktu',m.waktu,'Tanggal',m.tglRaw,'Petugas',m.petugas].map(q).join(','),'No,Nama Barang,Rafa 1,Rafa 2,Fisik,Web/Apk,Selisih,Status,Catatan'];
-    data.forEach(function(r,i){var s=statusOf(r);
-      L.push([i+1,r.nama.trim(),r.t1,r.t2,fisikOf(r),r.apk,s?s.selisih:'',s?s.type.toUpperCase():'BELUM DICEK',r.catatan||''].map(q).join(','));});
-    shareOrDownload(new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),fname('csv'),'text/csv');
-  };
-
-  window.krImage=function(){
-    var m=meta(),named=rows.filter(function(r){return r.nama.trim()!==''&&r.apk!==''});
-    if(!named.length){toast('Belum ada barang yang dicek');return;}
-    var mi=[],pl=[],k=0;
-    named.forEach(function(r){var s=statusOf(r);if(!s)return;if(s.type==='klop')k++;else(s.type==='minus'?mi:pl).push({n:r.nama.trim(),s:s.selisih,a:r.apk,f:fisikOf(r)});});
-    mi.sort(function(a,b){return a.s-b.s});pl.sort(function(a,b){return b.s-a.s});
-    var MAX=30,W=760,P=32,RH=38,cs=getComputedStyle(document.body);
-    var teal=(cs.getPropertyValue('--teal')||'#0d5c52').trim(),deep=(cs.getPropertyValue('--teal-deep')||'#0a453e').trim();
-    var secs=[['YANG MINUS','#c0503a','#fbebe6',mi],['YANG PLUS','#2f6fae','#e9f1fa',pl]].filter(function(s){return s[3].length});
-    var H=250+secs.reduce(function(a,s){return a+70+Math.min(s[3].length,MAX)*RH+(s[3].length>MAX?RH:0)},0)+(secs.length?0:70)+70;
-    var c=document.createElement('canvas'),dpr=2;c.width=W*dpr;c.height=H*dpr;var x=c.getContext('2d');x.scale(dpr,dpr);
-    var F="'Plus Jakarta Sans',system-ui,sans-serif";
-    x.fillStyle='#f6f4ee';x.fillRect(0,0,W,H);
-    var g=x.createLinearGradient(0,0,W,150);g.addColorStop(0,teal);g.addColorStop(1,deep);x.fillStyle=g;x.fillRect(0,0,W,150);
-    x.fillStyle='#fff';x.font='800 30px '+F;x.fillText('Laporan Stok Opname',P,56);
-    x.font='600 17px '+F;x.fillStyle='#d6ede6';x.fillText(m.toko+'  ·  '+m.waktu+'  ·  '+m.tgl,P,88);x.fillText('Petugas: '+m.petugas,P,116);
-    var stats=[['Dicek',named.length,teal],['Klop',k,'#3c8a5c'],['Minus',mi.length,'#c0503a'],['Plus',pl.length,'#2f6fae']],bw=(W-2*P-3*12)/4;
-    stats.forEach(function(s,i){var bx=P+i*(bw+12);x.fillStyle='#fff';rr(x,bx,124+14,bw,84,16);x.fill();
-      x.fillStyle=s[2];x.font='800 34px '+F;x.textAlign='center';x.fillText(s[1],bx+bw/2,138+42);x.fillStyle='#4b6b65';x.font='700 14px '+F;x.fillText(s[0],bx+bw/2,138+68);x.textAlign='left';});
-    var y=250;
-    secs.forEach(function(s){
-      x.fillStyle=s[2];rr(x,P,y,W-2*P,44,12);x.fill();x.fillStyle=s[1];x.font='800 17px '+F;x.fillText(s[0]+' ('+s[3].length+')',P+16,y+29);y+=58;
-      s[3].slice(0,MAX).forEach(function(it,i){
-        x.fillStyle='#173b36';x.font='600 16px '+F;
-        var nm=it.n;while(x.measureText(nm).width>W-2*P-200&&nm.length>4)nm=nm.slice(0,-2);if(nm!==it.n)nm+='…';
-        x.fillText((i+1)+'. '+nm,P+6,y+22);
-        x.textAlign='right';x.fillStyle=s[1];x.font='800 17px '+F;x.fillText((it.s>0?'+':'')+it.s,W-P-6,y+22);
-        x.fillStyle='#4b6b65';x.font='500 12px '+F;x.fillText('web '+it.a+' · fisik '+it.f,W-P-70,y+22);x.textAlign='left';
-        x.strokeStyle='#dde3dd';x.beginPath();x.moveTo(P,y+RH-4);x.lineTo(W-P,y+RH-4);x.stroke();y+=RH;});
-      if(s[3].length>MAX){x.fillStyle='#4b6b65';x.font='600 14px '+F;x.fillText('+ '+(s[3].length-MAX)+' barang lainnya',P+6,y+22);y+=RH;}
-      y+=12;});
-    if(!secs.length){x.fillStyle='#3c8a5c';x.font='800 22px '+F;x.textAlign='center';x.fillText('Semua barang klop ✅',W/2,y+40);x.textAlign='left';}
-    x.fillStyle='#8aa39d';x.font='500 12px '+F;x.fillText('Dibuat '+new Date().toLocaleString('id-ID')+' · Stok Opname',P,H-24);
-    c.toBlob(function(b){shareOrDownload(b,fname('png'),'image/png');},'image/png');
-  };
-  function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
-})();
-</script>
 </body>
 </html>
