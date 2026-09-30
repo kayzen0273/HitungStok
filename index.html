@@ -662,31 +662,25 @@
   }
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
-  /* ===== Konsol JavaScript untuk iframe ===== */
-  .cashier-nav-btn.active{background:#f5b942; color:#123;}
-  .cashier-js-panel{display:none; flex-direction:column; gap:5px; padding:6px 8px 8px; background:#0f1a17; border-top:1px solid rgba(255,255,255,0.12);}
-  .cashier-js-panel.show{display:flex;}
-  .cashier-js-code{
-    width:100%; box-sizing:border-box; min-height:54px; max-height:120px; resize:vertical;
-    background:#16221f; color:#d7f5e8; border:1px solid rgba(255,255,255,0.15); border-radius:8px;
-    padding:7px 9px; font-family:'JetBrains Mono', monospace; font-size:11.5px; line-height:1.4; outline:none;
+
+  /* ===== Ambil Data dari Browser (iframe) ===== */
+  #ambilOverlay{z-index:230;}
+  .ambil-steps{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .ambil-btn{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px;
+    border:1.5px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink);
+    font:inherit; font-size:12.5px; font-weight:800; cursor:pointer;
   }
-  .cashier-js-code:focus{border-color:#f5b942;}
-  .cashier-js-bar{display:flex; align-items:center; gap:6px;}
-  .cashier-js-run, .cashier-js-clear{
-    border:none; border-radius:7px; padding:5px 12px; font-size:11.5px; font-weight:700; cursor:pointer;
-  }
-  .cashier-js-run{background:#f5b942; color:#123;}
-  .cashier-js-clear{background:rgba(255,255,255,0.16); color:#fff;}
-  .cashier-js-hint{font-size:10px; color:rgba(255,255,255,0.55); margin-left:auto;}
-  .cashier-js-out{
-    max-height:90px; overflow:auto; margin:0; padding:6px 9px; border-radius:8px; background:#0a1210;
-    font-family:'JetBrains Mono', monospace; font-size:11px; line-height:1.4; white-space:pre-wrap; word-break:break-word;
-    color:#9fe3c2;
-  }
-  .cashier-js-out:empty{display:none;}
-  .cashier-js-out .err{color:#ff8f8f;}
-  .cashier-js-out .log{color:#cfe6dd;}
+  .ambil-btn:hover{border-color:var(--teal); background:var(--mint);}
+  .ambil-btn small{display:block; font-size:10.8px; font-weight:500; color:var(--ink-soft); margin-top:2px; line-height:1.35;}
+  .ambil-btn .ab-ico{font-size:18px; flex-shrink:0;}
+  .ambil-status{margin-top:10px; padding:8px 10px; border-radius:10px; font-size:11.5px; font-weight:600; line-height:1.45; display:none; white-space:pre-wrap;}
+  .ambil-status.show{display:block;}
+  .ambil-status.ok{background:var(--klop-bg); color:var(--klop);}
+  .ambil-status.err{background:var(--minus-bg); color:var(--minus);}
+  .ambil-status.info{background:var(--mint); color:var(--ink-soft);}
+  .ambil-count{margin-top:6px; font-size:11px; font-weight:700; color:var(--ink-soft);}
+  .cashier-nav-btn.ambil-nav{width:auto; padding:0 8px; font-size:11px; gap:4px; background:rgba(255,255,255,0.28);}
   .history-overlay.show{display:flex;}
 
   /* ===== Catatan Kode JS — gaya code manager yang padat & profesional ===== */
@@ -8338,22 +8332,12 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
           <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
-          <button class="cashier-nav-btn" id="cashierJsBtn" onclick="cashierToggleJs()" title="Jalankan JavaScript di iframe" style="font-size:10px;">JS</button>
+          <button class="cashier-nav-btn ambil-nav" onclick="openAmbilData()" title="Ambil data dari halaman browser">⤓ Ambil</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
         </form>
       </div>
-    </div>
-    <div class="cashier-js-panel" id="cashierJsPanel">
-      <textarea class="cashier-js-code" id="cashierJsCode" spellcheck="false" autocomplete="off" autocapitalize="off"
-        placeholder="Tulis JavaScript untuk dijalankan di dalam iframe, mis: document.title"></textarea>
-      <div class="cashier-js-bar">
-        <button class="cashier-js-run" onclick="cashierRunJs()">▶ Jalankan</button>
-        <button class="cashier-js-clear" onclick="cashierClearJs()">Bersihkan</button>
-        <span class="cashier-js-hint">Ctrl+Enter</span>
-      </div>
-      <pre class="cashier-js-out" id="cashierJsOut"></pre>
     </div>
     <div class="cashier-popup-body">
       <iframe id="cashierPopupFrame" src="about:blank" loading="lazy" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
@@ -8361,6 +8345,203 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
   </div>
 </div>
+<div class="history-overlay" id="ambilOverlay" onclick="if(event.target===this) closeAmbilData()">
+  <div class="history-modal">
+    <div class="history-modal-head">
+      <h3>Ambil Data dari Browser</h3>
+      <button class="history-close" onclick="closeAmbilData()">✕</button>
+    </div>
+    <div class="history-modal-body">
+      <div class="footnote" style="margin-top:0;">
+        Ambil daftar barang &amp; stok dari halaman yang sedang terbuka di browser mini, lalu isi ke Rafa 1 / Rafa 2.
+        Browser tidak mengizinkan membaca isi situs <b>beda domain</b> secara langsung, jadi tersedia beberapa cara di bawah.
+      </div>
+      <div class="ambil-steps">
+        <button type="button" class="ambil-btn" onclick="ambilTryDirect()">
+          <span class="ab-ico">🔍</span>
+          <span>Baca langsung dari halaman<small>Otomatis membaca tabel / teks terpilih. Hanya berhasil untuk halaman satu domain dengan aplikasi ini.</small></span>
+        </button>
+        <button type="button" class="ambil-btn" onclick="ambilFromClipboard()">
+          <span class="ab-ico">📋</span>
+          <span>Ambil dari clipboard<small>Di browser mini: blok teks/tabel stok → salin (Ctrl+C / tekan lama → Salin) → tekan tombol ini.</small></span>
+        </button>
+        <button type="button" class="ambil-btn" onclick="ambilCopySenderCode()">
+          <span class="ab-ico">🔗</span>
+          <span>Salin kode pengirim<small>Untuk halaman milik sendiri (mis. Rekap Setoran): tempel kode ini di halaman itu, lalu panggil <code>kirimKeStokOpname()</code>.</small></span>
+        </button>
+      </div>
+      <div class="ambil-status" id="ambilStatus"></div>
+      <textarea id="ambilText" class="paste-stok-textarea" style="min-height:130px;" oninput="ambilUpdateCount()" placeholder="Hasil pengambilan muncul di sini, format: Nama barang : jumlah (bisa diedit dulu)"></textarea>
+      <div class="ambil-count" id="ambilCount"></div>
+      <div class="paste-stok-actions">
+        <button type="button" class="btn-main" onclick="ambilApply('t1')">Isi ke Rafa 1</button>
+        <button type="button" class="btn-main" onclick="ambilApply('t2')">Isi ke Rafa 2</button>
+      </div>
+      <div class="paste-stok-actions" style="margin-top:6px;">
+        <button type="button" class="btn-add" style="border-style:solid;" onclick="ambilToPasteModal()">Buka di Tempel &amp; Isi Stok</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // ===== Ambil Data dari iframe browser mini =====
+  function ambilEl(id){ return document.getElementById(id); }
+
+  function ambilSetStatus(msg, kind){
+    var el = ambilEl('ambilStatus');
+    el.className = 'ambil-status show ' + (kind || 'info');
+    el.textContent = msg;
+  }
+
+  function ambilUpdateCount(){
+    var n = (typeof parsePasteStokText === 'function') ? parsePasteStokText(ambilEl('ambilText').value).length : 0;
+    ambilEl('ambilCount').textContent = n ? (n + ' baris barang terbaca') : '';
+  }
+
+  function ambilSetText(text, sourceLabel){
+    text = String(text || '').slice(0, 200000);
+    ambilEl('ambilText').value = text;
+    ambilUpdateCount();
+    var n = parsePasteStokText(text).length;
+    if(n){
+      ambilSetStatus('✓ ' + n + ' barang diambil dari ' + sourceLabel + '. Cek dulu, lalu pilih Rafa 1 atau Rafa 2.', 'ok');
+    } else if(text.trim()){
+      ambilSetStatus('Teks diambil dari ' + sourceLabel + ', tapi belum ada baris berformat "Nama barang : jumlah". Edit manual di kotak bawah kalau perlu.', 'err');
+    } else {
+      ambilSetStatus('Tidak ada data yang ditemukan di ' + sourceLabel + '.', 'err');
+    }
+  }
+
+  function openAmbilData(){
+    ambilEl('ambilOverlay').classList.add('show');
+    ambilEl('ambilStatus').className = 'ambil-status';
+    ambilTryDirect(true);
+  }
+  function closeAmbilData(){ ambilEl('ambilOverlay').classList.remove('show'); }
+
+  // Ubah isi dokumen jadi baris "Nama : jumlah". Dipakai juga sebagai kode pengirim.
+  function ambilExtractFromDoc(doc){
+    var lines = [];
+    var tables = doc.querySelectorAll('table');
+    for(var t = 0; t < tables.length; t++){
+      var tb = tables[t], nameCol = -1, qtyCol = -1;
+      var head = tb.querySelector('thead tr') || tb.querySelector('tr');
+      if(head){
+        for(var i = 0; i < head.children.length; i++){
+          var h = head.children[i].textContent.trim().toLowerCase();
+          if(nameCol < 0 && /nama|barang|produk|item|obat/.test(h)) nameCol = i;
+          if(qtyCol < 0 && /stok|stock|qty|jumlah|sisa/.test(h)) qtyCol = i;
+        }
+      }
+      var trs = tb.querySelectorAll('tr');
+      for(var r = 0; r < trs.length; r++){
+        var tr = trs[r];
+        if(!tr.querySelector('td')) continue;
+        var cells = [].map.call(tr.children, function(c){ return c.textContent.replace(/\s+/g, ' ').trim(); });
+        if(cells.length < 2) continue;
+        var nama = nameCol >= 0 ? cells[nameCol] : cells.filter(function(c){ return c && !/^-?[\d.,]+$/.test(c); })[0];
+        var q = qtyCol >= 0 ? cells[qtyCol] : cells.slice().reverse().filter(function(c){ return /^-?\d+([.,]\d+)?$/.test(c); })[0];
+        if(!nama || q === undefined || q === '') continue;
+        q = String(q).replace(/[.,]\d{1,2}$/, '').replace(/[^\d-]/g, '');
+        if(q === '' || q === '-') continue;
+        lines.push(nama + ' : ' + q);
+      }
+    }
+    if(lines.length) return { text: lines.join('\n'), source: 'tabel di halaman' };
+    var sel = doc.getSelection ? String(doc.getSelection()).trim() : '';
+    if(sel) return { text: sel, source: 'teks terpilih di halaman' };
+    return { text: ((doc.body && doc.body.innerText) || '').trim(), source: 'teks halaman' };
+  }
+
+  function ambilTryDirect(silent){
+    var f = ambilEl('cashierPopupFrame');
+    var doc = null;
+    try{
+      doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+      if(doc) void doc.body; // memicu SecurityError kalau beda domain
+    }catch(err){ doc = null; }
+    if(!doc || !doc.body || f.getAttribute('src') === 'about:blank' && !doc.body.innerText){
+      ambilSetStatus(
+        'Halaman di browser mini beda domain, jadi isinya tidak bisa dibaca langsung oleh browser (aturan keamanan same-origin).\n' +
+        'Pakai "Ambil dari clipboard" (salin tabel/teks stok dari halaman itu dulu) atau "Salin kode pengirim".',
+        silent === true ? 'info' : 'err'
+      );
+      return;
+    }
+    var res = ambilExtractFromDoc(doc);
+    ambilSetText(res.text, res.source);
+  }
+
+  async function ambilFromClipboard(){
+    try{
+      var text = await navigator.clipboard.readText();
+      if(!text || !text.trim()){
+        ambilSetStatus('Clipboard kosong. Salin dulu teks/tabel stok dari halaman di browser mini.', 'err');
+        return;
+      }
+      ambilSetText(text, 'clipboard');
+    }catch(err){
+      ambilSetStatus('Browser tidak mengizinkan membaca clipboard otomatis. Tempel manual (tekan lama → Tempel) di kotak bawah ini.', 'err');
+      var ta = ambilEl('ambilText'); ta.focus();
+    }
+  }
+
+  // Kode yang ditempel di halaman LAIN (milik sendiri) supaya bisa mengirim data ke aplikasi ini.
+  function ambilCopySenderCode(){
+    var code =
+      '/* Tempel di halaman yang tampil di browser mini Stok Opname */\n' +
+      'function kirimKeStokOpname(){\n' +
+      '  var ambil = ' + ambilExtractFromDoc.toString() + ';\n' +
+      '  var r = ambil(document);\n' +
+      '  parent.postMessage({ type: "stokopname-data", text: r.text }, "*");\n' +
+      '}';
+    var done = function(){ ambilSetStatus('✓ Kode pengirim disalin. Tempel di halaman sumber, lalu panggil kirimKeStokOpname() (mis. lewat tombol di halaman itu). Data akan masuk otomatis ke sini.', 'ok'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(done, function(){ ambilEl('ambilText').value = code; ambilSetStatus('Gagal menyalin otomatis; kodenya ditaruh di kotak bawah, salin manual.', 'err'); });
+    } else {
+      ambilEl('ambilText').value = code;
+      ambilSetStatus('Kodenya ditaruh di kotak bawah, salin manual.', 'info');
+    }
+  }
+
+  // Terima kiriman dari halaman di iframe (hanya dari iframe browser mini itu sendiri).
+  window.addEventListener('message', function(e){
+    var f = ambilEl('cashierPopupFrame');
+    if(!f || e.source !== f.contentWindow) return;
+    var d = e.data;
+    if(!d || d.type !== 'stokopname-data') return;
+    var text = '';
+    if(Array.isArray(d.items)){
+      text = d.items.map(function(it){
+        var q = parseInt(it && it.qty, 10);
+        var n = it && typeof it.nama === 'string' ? it.nama.trim() : '';
+        return (n && !isNaN(q)) ? (n + ' : ' + q) : '';
+      }).filter(Boolean).join('\n');
+    } else if(typeof d.text === 'string'){
+      text = d.text;
+    }
+    ambilEl('ambilOverlay').classList.add('show');
+    ambilSetText(text, 'kiriman dari halaman browser');
+  });
+
+  function ambilApply(target){
+    if(typeof isViewOnlyForMe === 'function' && isViewOnlyForMe()) return;
+    var items = parsePasteStokText(ambilEl('ambilText').value);
+    if(!items.length){
+      ambilSetStatus('Belum ada baris yang bisa dibaca. Format yang dibutuhkan: "Nama barang : jumlah" per baris.', 'err');
+      return;
+    }
+    closeAmbilData();
+    openPasteStokReview(target, items);
+  }
+
+  function ambilToPasteModal(){
+    var t = ambilEl('ambilText').value;
+    closeAmbilData();
+    openPasteStokModal();
+    ambilEl('pasteStokText').value = t;
+  }
+</script>
 <script>
   var CASHIER_HOME = 'https://app.farmacare.id/4833/cashier';
   var cashierHistory = [];
@@ -8446,104 +8627,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     var u = (document.getElementById('cashierAddrBar').value || '').trim();
     if(u) window.open(u, '_blank', 'noopener');
   }
-  // ===== Jalankan JavaScript di dalam iframe =====
-  // Catatan: browser hanya mengizinkan ini kalau halaman di dalam iframe
-  // satu domain (same-origin) dengan aplikasi ini, mis. game.html atau about:blank.
-  // Situs lain (Google, Farmacare, dst) diblokir oleh kebijakan keamanan browser.
-  function cashierToggleJs(){
-    var panel = document.getElementById('cashierJsPanel');
-    var btn = document.getElementById('cashierJsBtn');
-    var show = !panel.classList.contains('show');
-    panel.classList.toggle('show', show);
-    btn.classList.toggle('active', show);
-    if(show){
-      var ta = document.getElementById('cashierJsCode');
-      if(ta) setTimeout(function(){ ta.focus(); }, 0);
-    }
-  }
-
-  function cashierJsFormat(v, depth){
-    depth = depth || 0;
-    if(v === undefined) return 'undefined';
-    if(v === null) return 'null';
-    if(typeof v === 'string') return depth ? JSON.stringify(v) : v;
-    if(typeof v === 'function') return String(v).split('\n')[0] + (String(v).indexOf('\n') > -1 ? ' …' : '');
-    if(v instanceof Error) return v.name + ': ' + v.message;
-    if(typeof v === 'object'){
-      try{ return JSON.stringify(v, null, 2); }catch(e){}
-    }
-    try{ return String(v); }catch(e){ return Object.prototype.toString.call(v); }
-  }
-
-  function cashierJsAppend(text, cls){
-    var out = document.getElementById('cashierJsOut');
-    var line = document.createElement('div');
-    if(cls) line.className = cls;
-    line.textContent = text;
-    out.appendChild(line);
-    out.scrollTop = out.scrollHeight;
-  }
-
-  function cashierRunJs(){
-    var ta = document.getElementById('cashierJsCode');
-    var code = (ta.value || '').trim();
-    if(!code) return;
-    var frame = document.getElementById('cashierPopupFrame');
-    var win;
-    try{
-      win = frame.contentWindow;
-      // Mengakses document akan melempar SecurityError kalau iframe beda domain
-      void win.document.body;
-    }catch(err){
-      cashierJsAppend('✖ Tidak bisa menjalankan JS: halaman di iframe berasal dari domain lain (diblokir browser). Hanya halaman satu domain seperti game.html yang bisa dikontrol.', 'err');
-      return;
-    }
-    if(!win || typeof win.eval !== 'function'){
-      cashierJsAppend('✖ Iframe belum siap. Tunggu halaman selesai dimuat lalu coba lagi.', 'err');
-      return;
-    }
-    cashierJsAppend('> ' + code.split('\n')[0] + (code.indexOf('\n') > -1 ? ' …' : ''));
-    // Tangkap console.log dari iframe selama kode berjalan
-    var origLog = win.console.log, origErr = win.console.error, origWarn = win.console.warn;
-    function cap(cls){
-      return function(){
-        var parts = [];
-        for(var i = 0; i < arguments.length; i++) parts.push(cashierJsFormat(arguments[i], 1));
-        cashierJsAppend(parts.join(' '), cls);
-      };
-    }
-    win.console.log = cap('log'); win.console.warn = cap('log'); win.console.error = cap('err');
-    try{
-      var result = (0, win.eval)(code); // eval global di dalam window iframe
-      if(result && typeof result.then === 'function'){
-        cashierJsAppend('⏳ Promise…', 'log');
-        result.then(function(v){ cashierJsAppend('← ' + cashierJsFormat(v)); },
-                    function(e){ cashierJsAppend('✖ ' + cashierJsFormat(e), 'err'); });
-      } else {
-        cashierJsAppend('← ' + cashierJsFormat(result));
-      }
-    }catch(e){
-      cashierJsAppend('✖ ' + cashierJsFormat(e), 'err');
-    }finally{
-      win.console.log = origLog; win.console.error = origErr; win.console.warn = origWarn;
-    }
-  }
-
-  function cashierClearJs(){
-    document.getElementById('cashierJsOut').innerHTML = '';
-    var ta = document.getElementById('cashierJsCode');
-    ta.value = '';
-    ta.focus();
-  }
-
-  (function(){
-    var ta = document.getElementById('cashierJsCode');
-    if(ta) ta.addEventListener('keydown', function(e){
-      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); cashierRunJs(); }
-      e.stopPropagation();
-    });
-  })();
-
   function closeCashierPopup(){
     document.getElementById('cashierPopup').classList.remove('show');
   }
