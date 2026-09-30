@@ -2167,7 +2167,7 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
         Tempel Sisa Stok (Clipboard)
       </button>
       <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="importExcel(this.files[0]); this.value='';">
-      <input type="file" id="stockImportUploadInput" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="handleStockImportUpload(this.files[0]); this.value='';">
+      <input type="file" id="stockImportUploadInput" accept="*/*" style="display:none;" onchange="handleStockImportUpload(this.files[0]); this.value='';">
     </div>
   </div>
 
@@ -6212,7 +6212,7 @@ async function excelFileToRows(file){
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
-  const ws = wb.worksheets[0];
+  const ws = wb.worksheets.find(w => w.actualRowCount > 0) || wb.worksheets[0];
   if(!ws) return [];
   const rows = [];
   ws.eachRow({ includeEmpty: true }, row => {
@@ -6253,15 +6253,29 @@ function csvTextToRows(text){
 }
 
 async function readFileToStockImportRows(file){
-  const isCsv = /\.csv$/i.test(file.name);
-  if(isCsv){
+  const name = file.name || '';
+  // Teks biasa: csv / tsv / txt (juga hasil ekspor yang tidak punya ekstensi jelas)
+  if(/\.(csv|tsv|txt)$/i.test(name) || (file.type && /^text\//i.test(file.type))){
     const text = await file.text();
-    return csvTextToRows(text);
+    if(/\.csv$/i.test(name) && !text.includes('\t')) return csvTextToRows(text);
+    if(text.includes('\t')) return clipboardTextToRows(text);
+    return /\.csv$/i.test(name) ? csvTextToRows(text) : clipboardTextToRows(text);
   }
   if(typeof ExcelJS === 'undefined'){
     throw new Error('Modul Excel belum termuat. Cek koneksi internet lalu coba lagi.');
   }
-  return excelFileToRows(file);
+  try{
+    return await excelFileToRows(file);
+  }catch(e){
+    // Bukan file Excel yang valid: coba baca sebagai teks sebelum menyerah
+    try{
+      const text = await file.text();
+      if(text && !/[\u0000-\u0008]/.test(text.slice(0, 2000))){
+        return text.includes('\t') || !text.includes(',') ? clipboardTextToRows(text) : csvTextToRows(text);
+      }
+    }catch(_){}
+    throw new Error('Format file "' + name + '" tidak dikenali. Gunakan file Excel (.xlsx), CSV, atau teks.');
+  }
 }
 
 async function handleStockImportUpload(file){
