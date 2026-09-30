@@ -12454,18 +12454,45 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 (function(){
   var TABLE = 'blockblast_leaderboard';
   var TOP_N = 10;
+  var PENDING_KEY = 'bb-pending-score';   // skor yang belum sukses tersimpan ke server (bertahan walau di-refresh)
+  var NAME_KEY = 'bb-player-name';        // nama cadangan kalau nama petugas belum terisi
   var rows = [];
   var chan = null;
-  var lastSent = {};   // nama -> skor terakhir yang berhasil dikirim (cegah kirim ulang)
+  var lastSent = {};      // nama -> skor terakhir yang berhasil dikirim (cegah kirim ulang)
+  var inflight = false, dirty = false, timer = null, nameDeclined = false;
 
   function $(id){ return document.getElementById(id); }
   function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function client(){ try{ return (typeof initSupabaseClient === 'function') ? initSupabaseClient() : null; }catch(e){ return null; } }
 
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+  function getPending(){ try{ return JSON.parse(lsGet(PENDING_KEY) || 'null'); }catch(e){ return null; } }
+  function setPending(name, score){
+    var p = getPending();
+    if(p && p.name === name && Number(p.score) >= score) return;
+    lsSet(PENDING_KEY, JSON.stringify({name:name, score:score}));
+  }
+  function clearPending(name, score){
+    var p = getPending();
+    if(p && p.name === name && Number(p.score) <= score) lsDel(PENDING_KEY);
+  }
+
   function myName(){
     var n = '';
     try{ var el = $('metaPetugas'); if(el) n = (el.value || '').trim(); }catch(e){}
     if(!n){ try{ n = (findPetugasNameById(getMyPetugasId()) || '').trim(); }catch(e){} }
+    if(!n) n = (lsGet(NAME_KEY) || '').trim();
+    return n;
+  }
+  // Ambil nama; kalau belum ada, tanya sekali lalu simpan supaya tidak hilang saat refresh
+  function resolveName(){
+    var n = myName();
+    if(n || nameDeclined) return n;
+    n = (prompt('Masukkan namamu untuk leaderboard Block Blast:') || '').trim();
+    if(n) lsSet(NAME_KEY, n); else nameDeclined = true;
     return n;
   }
 
@@ -12498,13 +12525,17 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     sendBest();
   }
 
-  // Kirim rekor pribadi user (berdasarkan nama petugas) ke game supaya "TERBAIK" per user, bukan per HP
+  // Kirim rekor pribadi user ke game. Skor yang belum sempat tersimpan ikut dihitung,
+  // jadi "TERBAIK" tidak turun ke 0 saat server belum menerima skornya.
   function sendBest(){
     var f = $('cashierPopupFrame');
     if(!f || !f.contentWindow) return;
     var n = myName(), me = n.toLowerCase();
     var r = me ? rows.find(function(x){ return String(x.player_name).toLowerCase() === me; }) : null;
-    try{ f.contentWindow.postMessage({type:'blockblast-best', name:n, best: r ? Number(r.best_score) : 0}, '*'); }catch(e){}
+    var best = r ? Number(r.best_score) : 0;
+    var p = getPending();
+    if(p && String(p.name).toLowerCase() === me) best = Math.max(best, Number(p.score) || 0);
+    try{ f.contentWindow.postMessage({type:'blockblast-best', name:n, best:best}, '*'); }catch(e){}
   }
 
   function upsertLocal(row){
@@ -12523,7 +12554,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     }catch(e){
       console.error('Gagal memuat leaderboard Block Blast:', e);
       var ul = $('bblbList');
-      if(ul) ul.innerHTML = '<li class="bblb-empty">Leaderboard belum siap (tabel Supabase belum dibuat).</li>';
+      if(ul) ul.innerHTML = '<li class="bblb-empty">Leaderboard belum siap (tabel Supabase belum dibuat / izin akses belum diatur).</li>';
       setLive(false, 'Belum siap');
     }
   }
@@ -12545,25 +12576,24 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       });
   }
 
-  // Kirim skor: hanya tersimpan kalau LEBIH TINGGI dari skor terbaik pemain itu.
+  // Kirim skor ke server: hanya tersimpan kalau LEBIH TINGGI dari skor terbaik pemain itu.
+  // Mengembalikan 'ok' | 'skip' (tidak perlu dikirim) | 'error' (gagal, akan dicoba lagi).
   async function submit(score, nameOverride){
     score = Math.floor(Number(score));
-    if(!isFinite(score) || score <= 0) return false;
-    var name = (nameOverride || myName() || '').trim();
-    if(!name){
-      name = (prompt('Masukkan namamu untuk leaderboard Block Blast:') || '').trim();
-      if(!name) return false;
-    }
-    if((lastSent[name] || 0) >= score) return false;
-    var c = client(); if(!c) return false;
+    if(!isFinite(score) || score <= 0) return 'skip';
+    var name = (nameOverride || resolveName() || '').trim();
+    if(!name) return 'skip';
+    setPending(name, score);   // simpan dulu di HP, supaya aman kalau halaman di-refresh sebelum terkirim
+    if((lastSent[name] || 0) >= score){ clearPending(name, score); return 'skip'; }
+    var c = client(); if(!c) return 'error';
     try{
       var cur = rows.find(function(r){ return r.player_name === name; });
-      if(cur && cur.best_score >= score){ lastSent[name] = cur.best_score; return false; }
+      if(cur && Number(cur.best_score) >= score){ lastSent[name] = Number(cur.best_score); clearPending(name, score); return 'skip'; }
       // cek ke server dulu supaya rekor dari perangkat lain tidak tertimpa skor yang lebih kecil
       var chk = await c.from(TABLE).select('*').eq('player_name', name).maybeSingle();
       if(!chk.error && chk.data){
         upsertLocal(chk.data);
-        if(chk.data.best_score >= score){ lastSent[name] = chk.data.best_score; render(); return false; }
+        if(Number(chk.data.best_score) >= score){ lastSent[name] = Number(chk.data.best_score); clearPending(name, score); render(); return 'skip'; }
       }
       var res = await c.from(TABLE).upsert(
         {player_name:name, best_score:score, updated_at:new Date().toISOString()},
@@ -12571,15 +12601,44 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
       ).select().maybeSingle();
       if(res.error) throw res.error;
       lastSent[name] = score;
-      upsertLocal(res.data || {player_name:name, best_score:score, updated_at:new Date().toISOString()});
+      clearPending(name, score);
+      upsertLocal((res && res.data) || {player_name:name, best_score:score, updated_at:new Date().toISOString()});
+      setLive(true, 'Live');
       render();
-      return true;
+      return 'ok';
     }catch(e){
       console.error('Gagal mengirim skor Block Blast:', e);
-      return false;
+      setLive(false, 'Gagal simpan skor');
+      return 'error';
     }
   }
   window.submitBlockBlastScore = submit;
+
+  // Kirim skor yang tersimpan (satu per satu, tidak tumpang tindih)
+  async function flush(){
+    if(inflight){ dirty = true; return; }
+    inflight = true;
+    try{
+      do{
+        dirty = false;
+        var p = getPending();
+        if(!p || !p.name) break;
+        await submit(p.score, p.name);
+      }while(dirty);
+    }finally{ inflight = false; }
+  }
+
+  // Dipanggil setiap game melaporkan skor (tiap langkah): simpan lokal dulu, kirim ke server dengan jeda singkat
+  function queueScore(score, name, final){
+    score = Math.floor(Number(score));
+    if(!isFinite(score) || score <= 0) return;
+    var n = (name || resolveName() || '').trim();
+    if(!n) return;
+    setPending(n, score);
+    clearTimeout(timer);
+    timer = setTimeout(flush, final ? 0 : 700);
+  }
+
   var _startGame = window.startGame;
   if(typeof _startGame === 'function'){
     window.startGame = function(which){
@@ -12589,7 +12648,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     };
   }
 
-  // Game (iframe blockblast.html) bisa kirim skor lewat postMessage
+  // Game (iframe blockblast.html) mengirim skor lewat postMessage
   window.addEventListener('message', function(ev){
     var d = ev.data;
     if(!d) return;
@@ -12597,12 +12656,14 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     if(f && ev.source !== f.contentWindow) return;
     if(d.type === 'blockblast-hello'){ sendBest(); return; }
     if(d.type !== 'blockblast-score') return;
-    submit(d.score, d.name);
+    queueScore(d.score, d.name, d.final);
   });
 
   function init(){
-    load().then(subscribe);
-    document.addEventListener('visibilitychange', function(){ if(!document.hidden) load(); });
+    load().then(subscribe).then(flush);   // begitu halaman dibuka, kirim skor yang tertunda (mis. sebelum refresh)
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden){ load(); flush(); } });
+    window.addEventListener('online', flush);
+    setInterval(function(){ if(getPending()) flush(); }, 15000);   // coba lagi otomatis kalau sebelumnya gagal
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(init, 300); });
   else setTimeout(init, 300);
