@@ -662,25 +662,6 @@
   }
   .cashier-popup-body{flex:1; min-height:0; position:relative; background:#fff;}
   .cashier-popup-body iframe{width:100%; height:100%; border:none; display:block;}
-
-  /* ===== Ambil Data dari Browser (iframe) ===== */
-  #ambilOverlay{z-index:230;}
-  .ambil-steps{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
-  .ambil-btn{
-    display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px;
-    border:1.5px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink);
-    font:inherit; font-size:12.5px; font-weight:800; cursor:pointer;
-  }
-  .ambil-btn:hover{border-color:var(--teal); background:var(--mint);}
-  .ambil-btn small{display:block; font-size:10.8px; font-weight:500; color:var(--ink-soft); margin-top:2px; line-height:1.35;}
-  .ambil-btn .ab-ico{font-size:18px; flex-shrink:0;}
-  .ambil-status{margin-top:10px; padding:8px 10px; border-radius:10px; font-size:11.5px; font-weight:600; line-height:1.45; display:none; white-space:pre-wrap;}
-  .ambil-status.show{display:block;}
-  .ambil-status.ok{background:var(--klop-bg); color:var(--klop);}
-  .ambil-status.err{background:var(--minus-bg); color:var(--minus);}
-  .ambil-status.info{background:var(--mint); color:var(--ink-soft);}
-  .ambil-count{margin-top:6px; font-size:11px; font-weight:700; color:var(--ink-soft);}
-  .cashier-nav-btn.ambil-nav{width:auto; padding:0 8px; font-size:11px; gap:4px; background:rgba(255,255,255,0.28);}
   .history-overlay.show{display:flex;}
 
   /* ===== Catatan Kode JS — gaya code manager yang padat & profesional ===== */
@@ -2128,6 +2109,20 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     <div class="preview empty" id="preview">Isi daftar barang di atas, lalu klik "Salin ke WhatsApp" untuk melihat hasilnya di sini.</div>
     <div class="footnote">Barang dianggap <b>klop</b> jika Rafa 1 + Rafa 2 = Web/Apk. Selisih minus artinya fisik lebih sedikit dari data apk, selisih plus artinya fisik lebih banyak. Untuk barang minus/plus, ada tombol catatan (ikon pensil) di sebelah badge untuk isi keterangan opsional kenapa selisihnya terjadi.</div>
   </div>
+  </div>
+
+
+  <div class="card" id="kirimCard">
+    <h2>Kirim Keluar Aplikasi</h2>
+    <div class="kr-num"><label for="krNum">No. WhatsApp tujuan</label><input id="krNum" type="tel" inputmode="tel" placeholder="08xxxx (kosong = pilih kontak)"></div>
+    <div class="kr-grid">
+      <button type="button" class="kr-btn wa" onclick="krWA()"><span class="e">💬</span><span><b>Kirim langsung ke WhatsApp</b><br><small>Membuka WhatsApp dengan laporan sudah terisi</small></span></button>
+      <button type="button" class="kr-btn" onclick="krShareText()"><span class="e">📤</span><b>Bagikan ke aplikasi lain</b><small>Telegram, LINE, Drive, dll.</small></button>
+      <button type="button" class="kr-btn" onclick="krImage()"><span class="e">🖼️</span><b>Gambar laporan</b><small>PNG rapi berisi ringkasan &amp; daftar selisih</small></button>
+      <button type="button" class="kr-btn" onclick="krCSV()"><span class="e">📑</span><b>File CSV</b><small>Buka di Excel / Google Sheets</small></button>
+      <button type="button" class="kr-btn" onclick="krMail()"><span class="e">✉️</span><b>Email</b><small>Buka aplikasi email dengan isi laporan</small></button>
+    </div>
+    <div class="footnote">Kalau HP/browser tidak mendukung berbagi file, gambar &amp; CSV otomatis diunduh.</div>
   </div>
 
   <div class="reset-zone">
@@ -8332,7 +8327,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
           <button class="cashier-nav-btn" id="cashierBackBtn" onclick="cashierGoBack()" title="Kembali">‹</button>
           <button class="cashier-nav-btn" onclick="cashierReload()" title="Muat ulang">⟳</button>
           <button class="cashier-nav-btn" onclick="cashierOpenExternal()" title="Buka di tab baru">↗</button>
-          <button class="cashier-nav-btn ambil-nav" onclick="openAmbilData()" title="Ambil data dari halaman browser">⤓ Ambil</button>
         </div>
         <form class="cashier-addr-form" onsubmit="return cashierNavigate(event)">
           <input class="cashier-addr-bar" id="cashierAddrBar" type="text" placeholder="Cari di Google atau ketik URL" autocomplete="off">
@@ -8345,203 +8339,6 @@ window.addEventListener('load', () => setTimeout(async () => { await nmFetch(); 
     <div class="cashier-resize-handle" id="cashierResizeHandle"></div>
   </div>
 </div>
-<div class="history-overlay" id="ambilOverlay" onclick="if(event.target===this) closeAmbilData()">
-  <div class="history-modal">
-    <div class="history-modal-head">
-      <h3>Ambil Data dari Browser</h3>
-      <button class="history-close" onclick="closeAmbilData()">✕</button>
-    </div>
-    <div class="history-modal-body">
-      <div class="footnote" style="margin-top:0;">
-        Ambil daftar barang &amp; stok dari halaman yang sedang terbuka di browser mini, lalu isi ke Rafa 1 / Rafa 2.
-        Browser tidak mengizinkan membaca isi situs <b>beda domain</b> secara langsung, jadi tersedia beberapa cara di bawah.
-      </div>
-      <div class="ambil-steps">
-        <button type="button" class="ambil-btn" onclick="ambilTryDirect()">
-          <span class="ab-ico">🔍</span>
-          <span>Baca langsung dari halaman<small>Otomatis membaca tabel / teks terpilih. Hanya berhasil untuk halaman satu domain dengan aplikasi ini.</small></span>
-        </button>
-        <button type="button" class="ambil-btn" onclick="ambilFromClipboard()">
-          <span class="ab-ico">📋</span>
-          <span>Ambil dari clipboard<small>Di browser mini: blok teks/tabel stok → salin (Ctrl+C / tekan lama → Salin) → tekan tombol ini.</small></span>
-        </button>
-        <button type="button" class="ambil-btn" onclick="ambilCopySenderCode()">
-          <span class="ab-ico">🔗</span>
-          <span>Salin kode pengirim<small>Untuk halaman milik sendiri (mis. Rekap Setoran): tempel kode ini di halaman itu, lalu panggil <code>kirimKeStokOpname()</code>.</small></span>
-        </button>
-      </div>
-      <div class="ambil-status" id="ambilStatus"></div>
-      <textarea id="ambilText" class="paste-stok-textarea" style="min-height:130px;" oninput="ambilUpdateCount()" placeholder="Hasil pengambilan muncul di sini, format: Nama barang : jumlah (bisa diedit dulu)"></textarea>
-      <div class="ambil-count" id="ambilCount"></div>
-      <div class="paste-stok-actions">
-        <button type="button" class="btn-main" onclick="ambilApply('t1')">Isi ke Rafa 1</button>
-        <button type="button" class="btn-main" onclick="ambilApply('t2')">Isi ke Rafa 2</button>
-      </div>
-      <div class="paste-stok-actions" style="margin-top:6px;">
-        <button type="button" class="btn-add" style="border-style:solid;" onclick="ambilToPasteModal()">Buka di Tempel &amp; Isi Stok</button>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-  // ===== Ambil Data dari iframe browser mini =====
-  function ambilEl(id){ return document.getElementById(id); }
-
-  function ambilSetStatus(msg, kind){
-    var el = ambilEl('ambilStatus');
-    el.className = 'ambil-status show ' + (kind || 'info');
-    el.textContent = msg;
-  }
-
-  function ambilUpdateCount(){
-    var n = (typeof parsePasteStokText === 'function') ? parsePasteStokText(ambilEl('ambilText').value).length : 0;
-    ambilEl('ambilCount').textContent = n ? (n + ' baris barang terbaca') : '';
-  }
-
-  function ambilSetText(text, sourceLabel){
-    text = String(text || '').slice(0, 200000);
-    ambilEl('ambilText').value = text;
-    ambilUpdateCount();
-    var n = parsePasteStokText(text).length;
-    if(n){
-      ambilSetStatus('✓ ' + n + ' barang diambil dari ' + sourceLabel + '. Cek dulu, lalu pilih Rafa 1 atau Rafa 2.', 'ok');
-    } else if(text.trim()){
-      ambilSetStatus('Teks diambil dari ' + sourceLabel + ', tapi belum ada baris berformat "Nama barang : jumlah". Edit manual di kotak bawah kalau perlu.', 'err');
-    } else {
-      ambilSetStatus('Tidak ada data yang ditemukan di ' + sourceLabel + '.', 'err');
-    }
-  }
-
-  function openAmbilData(){
-    ambilEl('ambilOverlay').classList.add('show');
-    ambilEl('ambilStatus').className = 'ambil-status';
-    ambilTryDirect(true);
-  }
-  function closeAmbilData(){ ambilEl('ambilOverlay').classList.remove('show'); }
-
-  // Ubah isi dokumen jadi baris "Nama : jumlah". Dipakai juga sebagai kode pengirim.
-  function ambilExtractFromDoc(doc){
-    var lines = [];
-    var tables = doc.querySelectorAll('table');
-    for(var t = 0; t < tables.length; t++){
-      var tb = tables[t], nameCol = -1, qtyCol = -1;
-      var head = tb.querySelector('thead tr') || tb.querySelector('tr');
-      if(head){
-        for(var i = 0; i < head.children.length; i++){
-          var h = head.children[i].textContent.trim().toLowerCase();
-          if(nameCol < 0 && /nama|barang|produk|item|obat/.test(h)) nameCol = i;
-          if(qtyCol < 0 && /stok|stock|qty|jumlah|sisa/.test(h)) qtyCol = i;
-        }
-      }
-      var trs = tb.querySelectorAll('tr');
-      for(var r = 0; r < trs.length; r++){
-        var tr = trs[r];
-        if(!tr.querySelector('td')) continue;
-        var cells = [].map.call(tr.children, function(c){ return c.textContent.replace(/\s+/g, ' ').trim(); });
-        if(cells.length < 2) continue;
-        var nama = nameCol >= 0 ? cells[nameCol] : cells.filter(function(c){ return c && !/^-?[\d.,]+$/.test(c); })[0];
-        var q = qtyCol >= 0 ? cells[qtyCol] : cells.slice().reverse().filter(function(c){ return /^-?\d+([.,]\d+)?$/.test(c); })[0];
-        if(!nama || q === undefined || q === '') continue;
-        q = String(q).replace(/[.,]\d{1,2}$/, '').replace(/[^\d-]/g, '');
-        if(q === '' || q === '-') continue;
-        lines.push(nama + ' : ' + q);
-      }
-    }
-    if(lines.length) return { text: lines.join('\n'), source: 'tabel di halaman' };
-    var sel = doc.getSelection ? String(doc.getSelection()).trim() : '';
-    if(sel) return { text: sel, source: 'teks terpilih di halaman' };
-    return { text: ((doc.body && doc.body.innerText) || '').trim(), source: 'teks halaman' };
-  }
-
-  function ambilTryDirect(silent){
-    var f = ambilEl('cashierPopupFrame');
-    var doc = null;
-    try{
-      doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
-      if(doc) void doc.body; // memicu SecurityError kalau beda domain
-    }catch(err){ doc = null; }
-    if(!doc || !doc.body || f.getAttribute('src') === 'about:blank' && !doc.body.innerText){
-      ambilSetStatus(
-        'Halaman di browser mini beda domain, jadi isinya tidak bisa dibaca langsung oleh browser (aturan keamanan same-origin).\n' +
-        'Pakai "Ambil dari clipboard" (salin tabel/teks stok dari halaman itu dulu) atau "Salin kode pengirim".',
-        silent === true ? 'info' : 'err'
-      );
-      return;
-    }
-    var res = ambilExtractFromDoc(doc);
-    ambilSetText(res.text, res.source);
-  }
-
-  async function ambilFromClipboard(){
-    try{
-      var text = await navigator.clipboard.readText();
-      if(!text || !text.trim()){
-        ambilSetStatus('Clipboard kosong. Salin dulu teks/tabel stok dari halaman di browser mini.', 'err');
-        return;
-      }
-      ambilSetText(text, 'clipboard');
-    }catch(err){
-      ambilSetStatus('Browser tidak mengizinkan membaca clipboard otomatis. Tempel manual (tekan lama → Tempel) di kotak bawah ini.', 'err');
-      var ta = ambilEl('ambilText'); ta.focus();
-    }
-  }
-
-  // Kode yang ditempel di halaman LAIN (milik sendiri) supaya bisa mengirim data ke aplikasi ini.
-  function ambilCopySenderCode(){
-    var code =
-      '/* Tempel di halaman yang tampil di browser mini Stok Opname */\n' +
-      'function kirimKeStokOpname(){\n' +
-      '  var ambil = ' + ambilExtractFromDoc.toString() + ';\n' +
-      '  var r = ambil(document);\n' +
-      '  parent.postMessage({ type: "stokopname-data", text: r.text }, "*");\n' +
-      '}';
-    var done = function(){ ambilSetStatus('✓ Kode pengirim disalin. Tempel di halaman sumber, lalu panggil kirimKeStokOpname() (mis. lewat tombol di halaman itu). Data akan masuk otomatis ke sini.', 'ok'); };
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(code).then(done, function(){ ambilEl('ambilText').value = code; ambilSetStatus('Gagal menyalin otomatis; kodenya ditaruh di kotak bawah, salin manual.', 'err'); });
-    } else {
-      ambilEl('ambilText').value = code;
-      ambilSetStatus('Kodenya ditaruh di kotak bawah, salin manual.', 'info');
-    }
-  }
-
-  // Terima kiriman dari halaman di iframe (hanya dari iframe browser mini itu sendiri).
-  window.addEventListener('message', function(e){
-    var f = ambilEl('cashierPopupFrame');
-    if(!f || e.source !== f.contentWindow) return;
-    var d = e.data;
-    if(!d || d.type !== 'stokopname-data') return;
-    var text = '';
-    if(Array.isArray(d.items)){
-      text = d.items.map(function(it){
-        var q = parseInt(it && it.qty, 10);
-        var n = it && typeof it.nama === 'string' ? it.nama.trim() : '';
-        return (n && !isNaN(q)) ? (n + ' : ' + q) : '';
-      }).filter(Boolean).join('\n');
-    } else if(typeof d.text === 'string'){
-      text = d.text;
-    }
-    ambilEl('ambilOverlay').classList.add('show');
-    ambilSetText(text, 'kiriman dari halaman browser');
-  });
-
-  function ambilApply(target){
-    if(typeof isViewOnlyForMe === 'function' && isViewOnlyForMe()) return;
-    var items = parsePasteStokText(ambilEl('ambilText').value);
-    if(!items.length){
-      ambilSetStatus('Belum ada baris yang bisa dibaca. Format yang dibutuhkan: "Nama barang : jumlah" per baris.', 'err');
-      return;
-    }
-    closeAmbilData();
-    openPasteStokReview(target, items);
-  }
-
-  function ambilToPasteModal(){
-    var t = ambilEl('ambilText').value;
-    closeAmbilData();
-    openPasteStokModal();
-    ambilEl('pasteStokText').value = t;
-  }
-</script>
 <script>
   var CASHIER_HOME = 'https://app.farmacare.id/4833/cashier';
   var cashierHistory = [];
@@ -12593,5 +12390,110 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 })();
 </script>
 
+
+<style id="kirimCss">
+.kr-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
+.kr-btn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font:inherit;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.kr-btn:active{transform:scale(.97)}
+.kr-btn .e{font-size:22px;line-height:1}
+.kr-btn b{font-size:12.5px;font-weight:800}
+.kr-btn small{font-size:10.5px;color:var(--ink-soft);line-height:1.3}
+.kr-btn.wa{grid-column:1/-1;background:linear-gradient(150deg,#25d366,#128c7e);border:0;color:#fff;flex-direction:row;align-items:center;gap:12px;box-shadow:0 6px 14px -6px #128c7e}
+.kr-btn.wa small{color:#e6fff0}.kr-btn.wa .e{font-size:26px}
+.kr-num{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.kr-num label{font-size:11px;font-weight:800;color:var(--ink-soft);white-space:nowrap}
+.kr-num input{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 11px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);outline:none}
+.kr-num input:focus{border-color:var(--teal)}
+.kr-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);background:#173b36;color:#fff;font-size:12px;font-weight:700;padding:10px 15px;border-radius:12px;opacity:0;transition:.2s;z-index:9500;pointer-events:none;max-width:88vw;text-align:center}
+.kr-toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+<div class="kr-toast" id="krToast"></div>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var NK='stokOpnameWaNumber';
+  try{$('krNum').value=localStorage.getItem(NK)||'';}catch(e){}
+  $('krNum').addEventListener('input',function(){try{localStorage.setItem(NK,this.value)}catch(e){}});
+  function toast(m){var t=$('krToast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},2400);}
+  function meta(){
+    return{toko:$('metaToko').value.trim()||'-',waktu:$('metaWaktu').value||'-',tgl:formatTanggal($('metaTgl').value)||'-',tglRaw:$('metaTgl').value||todayISO(),petugas:$('metaPetugas').value.trim()||'-'};
+  }
+  function report(){ // pakai generate() bawaan supaya format & riwayat sama persis dengan "Salin ke WhatsApp"
+    generate(true);
+    var p=$('preview'); if(!p||p.classList.contains('empty'))return null;
+    return p.textContent;
+  }
+  function phone(){
+    var n=($('krNum').value||'').replace(/[^0-9+]/g,'').replace(/^\+/,'');
+    if(!n)return'';
+    if(n.charAt(0)==='0')n='62'+n.slice(1);
+    return n;
+  }
+  window.krWA=function(){var t=report();if(!t){toast('Isi data barang dulu');return;}
+    window.open('https://wa.me/'+phone()+'?text='+encodeURIComponent(t),'_blank');};
+  window.krMail=function(){var t=report();if(!t){toast('Isi data barang dulu');return;}var m=meta();
+    location.href='mailto:?subject='+encodeURIComponent('Stok Opname '+m.toko+' '+m.tgl)+'&body='+encodeURIComponent(t);};
+  window.krShareText=async function(){var t=report();if(!t){toast('Isi data barang dulu');return;}
+    if(navigator.share){try{await navigator.share({title:'Stok Opname',text:t});}catch(e){}}
+    else{try{await navigator.clipboard.writeText(t);toast('Browser tak mendukung berbagi — teks disalin');}catch(e){toast('Berbagi tidak didukung di browser ini');}}};
+
+  async function shareOrDownload(blob,name,type){
+    var f=new File([blob],name,{type:type});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],title:name});return;}catch(e){if(e&&e.name==='AbortError')return;}
+    }
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);toast('File diunduh: '+name);
+  }
+  function fname(ext){var m=meta();return ('stok-opname-'+m.toko+'-'+m.tglRaw).replace(/[^\w\-]+/g,'_')+'.'+ext;}
+
+  window.krCSV=function(){
+    var data=rows.filter(function(r){return r.nama.trim()!==''});
+    if(!data.length){toast('Belum ada barang');return;}
+    var q=function(v){v=String(v==null?'':v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+    var m=meta(),L=[['Toko',m.toko,'Waktu',m.waktu,'Tanggal',m.tglRaw,'Petugas',m.petugas].map(q).join(','),'No,Nama Barang,Rafa 1,Rafa 2,Fisik,Web/Apk,Selisih,Status,Catatan'];
+    data.forEach(function(r,i){var s=statusOf(r);
+      L.push([i+1,r.nama.trim(),r.t1,r.t2,fisikOf(r),r.apk,s?s.selisih:'',s?s.type.toUpperCase():'BELUM DICEK',r.catatan||''].map(q).join(','));});
+    shareOrDownload(new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),fname('csv'),'text/csv');
+  };
+
+  window.krImage=function(){
+    var m=meta(),named=rows.filter(function(r){return r.nama.trim()!==''&&r.apk!==''});
+    if(!named.length){toast('Belum ada barang yang dicek');return;}
+    var mi=[],pl=[],k=0;
+    named.forEach(function(r){var s=statusOf(r);if(!s)return;if(s.type==='klop')k++;else(s.type==='minus'?mi:pl).push({n:r.nama.trim(),s:s.selisih,a:r.apk,f:fisikOf(r)});});
+    mi.sort(function(a,b){return a.s-b.s});pl.sort(function(a,b){return b.s-a.s});
+    var MAX=30,W=760,P=32,RH=38,cs=getComputedStyle(document.body);
+    var teal=(cs.getPropertyValue('--teal')||'#0d5c52').trim(),deep=(cs.getPropertyValue('--teal-deep')||'#0a453e').trim();
+    var secs=[['YANG MINUS','#c0503a','#fbebe6',mi],['YANG PLUS','#2f6fae','#e9f1fa',pl]].filter(function(s){return s[3].length});
+    var H=250+secs.reduce(function(a,s){return a+70+Math.min(s[3].length,MAX)*RH+(s[3].length>MAX?RH:0)},0)+(secs.length?0:70)+70;
+    var c=document.createElement('canvas'),dpr=2;c.width=W*dpr;c.height=H*dpr;var x=c.getContext('2d');x.scale(dpr,dpr);
+    var F="'Plus Jakarta Sans',system-ui,sans-serif";
+    x.fillStyle='#f6f4ee';x.fillRect(0,0,W,H);
+    var g=x.createLinearGradient(0,0,W,150);g.addColorStop(0,teal);g.addColorStop(1,deep);x.fillStyle=g;x.fillRect(0,0,W,150);
+    x.fillStyle='#fff';x.font='800 30px '+F;x.fillText('Laporan Stok Opname',P,56);
+    x.font='600 17px '+F;x.fillStyle='#d6ede6';x.fillText(m.toko+'  ·  '+m.waktu+'  ·  '+m.tgl,P,88);x.fillText('Petugas: '+m.petugas,P,116);
+    var stats=[['Dicek',named.length,teal],['Klop',k,'#3c8a5c'],['Minus',mi.length,'#c0503a'],['Plus',pl.length,'#2f6fae']],bw=(W-2*P-3*12)/4;
+    stats.forEach(function(s,i){var bx=P+i*(bw+12);x.fillStyle='#fff';rr(x,bx,124+14,bw,84,16);x.fill();
+      x.fillStyle=s[2];x.font='800 34px '+F;x.textAlign='center';x.fillText(s[1],bx+bw/2,138+42);x.fillStyle='#4b6b65';x.font='700 14px '+F;x.fillText(s[0],bx+bw/2,138+68);x.textAlign='left';});
+    var y=250;
+    secs.forEach(function(s){
+      x.fillStyle=s[2];rr(x,P,y,W-2*P,44,12);x.fill();x.fillStyle=s[1];x.font='800 17px '+F;x.fillText(s[0]+' ('+s[3].length+')',P+16,y+29);y+=58;
+      s[3].slice(0,MAX).forEach(function(it,i){
+        x.fillStyle='#173b36';x.font='600 16px '+F;
+        var nm=it.n;while(x.measureText(nm).width>W-2*P-200&&nm.length>4)nm=nm.slice(0,-2);if(nm!==it.n)nm+='…';
+        x.fillText((i+1)+'. '+nm,P+6,y+22);
+        x.textAlign='right';x.fillStyle=s[1];x.font='800 17px '+F;x.fillText((it.s>0?'+':'')+it.s,W-P-6,y+22);
+        x.fillStyle='#4b6b65';x.font='500 12px '+F;x.fillText('web '+it.a+' · fisik '+it.f,W-P-70,y+22);x.textAlign='left';
+        x.strokeStyle='#dde3dd';x.beginPath();x.moveTo(P,y+RH-4);x.lineTo(W-P,y+RH-4);x.stroke();y+=RH;});
+      if(s[3].length>MAX){x.fillStyle='#4b6b65';x.font='600 14px '+F;x.fillText('+ '+(s[3].length-MAX)+' barang lainnya',P+6,y+22);y+=RH;}
+      y+=12;});
+    if(!secs.length){x.fillStyle='#3c8a5c';x.font='800 22px '+F;x.textAlign='center';x.fillText('Semua barang klop ✅',W/2,y+40);x.textAlign='left';}
+    x.fillStyle='#8aa39d';x.font='500 12px '+F;x.fillText('Dibuat '+new Date().toLocaleString('id-ID')+' · Stok Opname',P,H-24);
+    c.toBlob(function(b){shareOrDownload(b,fname('png'),'image/png');},'image/png');
+  };
+  function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
+})();
+</script>
 </body>
 </html>
