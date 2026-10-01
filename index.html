@@ -1319,8 +1319,21 @@ button.bblb-av{cursor:zoom-in;}
 button.bblb-av:active{transform:scale(.92);}
 .pf-lightbox{display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.82); flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px;}
 .pf-lightbox.show{display:flex;}
-.pf-lightbox img{max-width:min(92vw,420px); max-height:70vh; border-radius:18px; border:3px solid #fff; object-fit:contain; background:#111;}
+.pf-lb-stage{width:min(92vw,560px); height:min(92vw,560px,66vh); overflow:hidden; border-radius:22px; padding:8px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none;}
+.pf-lightbox img{width:100%; height:100%; box-sizing:border-box; border-radius:18px; border:3px solid #fff; object-fit:contain; background:#111; transform-origin:50% 50%; will-change:transform; pointer-events:none; user-select:none; -webkit-user-drag:none;}
 .pf-lightbox span{color:#fff; font-weight:800; font-size:16px;}
+.pf-lb-ctl{display:flex; gap:8px; align-items:center; color:#fff; font-weight:800; font-size:13px;}
+.pf-lb-ctl button{min-width:36px; height:36px; padding:0 12px; border-radius:18px; border:2px solid #fff; background:rgba(255,255,255,.14); color:#fff; font:inherit; font-size:18px; font-weight:800; cursor:pointer; line-height:1;}
+.pf-lb-ctl button#pfLbReset{font-size:12px;}
+.pf-lb-ctl b{min-width:48px; text-align:center;}
+.pf-lb-hint{color:rgba(255,255,255,.7); font-size:11px; text-align:center;}
+.pf-lb-x{position:absolute; top:calc(env(safe-area-inset-top,0px) + 12px); right:14px; width:38px; height:38px; border-radius:50%; border:2px solid #fff; background:rgba(255,255,255,.14); color:#fff; font-size:16px; font-weight:800; cursor:pointer; padding:0;}
+.pf-crop{position:relative; width:260px; height:260px; margin:10px auto 0; overflow:hidden; border-radius:14px; background:#222; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none;}
+.pf-crop canvas{width:100%; height:100%; display:block;}
+.pf-crop::after{content:""; position:absolute; inset:0; border-radius:50%; border:2px solid var(--teal); box-shadow:0 0 0 400px rgba(255,255,255,.55), inset 0 0 0 1px rgba(255,255,255,.9); pointer-events:none; box-sizing:border-box;}
+.pf-zoom{display:flex; align-items:center; gap:8px; justify-content:center; margin-top:10px;}
+.pf-zoom input{flex:1; max-width:170px;}
+.pf-zoom button{width:30px; height:30px; border-radius:50%; border:2px solid var(--ink); background:#fff; color:var(--ink); font:inherit; font-size:16px; font-weight:800; cursor:pointer; padding:0; line-height:1;}
 /* efek avatar per peringkat: #1 raja (mahkota+bintang mengorbit+kilap), #2 petir (ring putus-putus+getar), #3 api (bara naik+api) */
 .bblb-avw{position:relative; width:38px; height:38px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
 .bblb-avw .bblb-av{position:relative; z-index:1; width:30px; height:30px;}
@@ -2619,6 +2632,15 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     <div class="history-modal-body" style="text-align:center;">
       <div class="pf-av" id="pfPreview">?</div>
       <div id="pfName" style="font-weight:800; margin-top:8px;"></div>
+      <div id="pfCropWrap" style="display:none;">
+        <div class="pf-crop" id="pfCrop"><canvas id="pfCropCv"></canvas></div>
+        <div class="pf-zoom">
+          <button type="button" id="pfZm" aria-label="Perkecil">&minus;</button>
+          <input type="range" id="pfZoom" min="50" max="400" value="100" aria-label="Zoom foto">
+          <button type="button" id="pfZp" aria-label="Perbesar">+</button>
+        </div>
+        <div class="footnote" style="margin-top:6px;">Geser foto untuk mengatur posisi. Cubit, scroll, atau slider untuk perbesar/perkecil (kalau fotonya sudah pas, perbesar dulu supaya bisa digeser; di bawah 100% area kosong jadi putih).</div>
+      </div>
       <div class="footnote" style="margin-top:4px;">Foto akan tampil di leaderboard dan bisa diklik untuk diperbesar.</div>
       <input type="file" id="pfFile" accept="image/*" style="display:none">
       <div class="pf-btns">
@@ -2646,7 +2668,18 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     </div>
   </div>
 </div>
-<div class="pf-lightbox" id="pfLightbox" onclick="this.classList.remove('show')"><img id="pfLbImg" alt="Foto profil"><span id="pfLbName"></span></div>
+<div class="pf-lightbox" id="pfLightbox">
+  <button type="button" class="pf-lb-x" id="pfLbClose" aria-label="Tutup">&#10005;</button>
+  <div class="pf-lb-stage" id="pfLbStage"><img id="pfLbImg" alt="Foto profil" draggable="false"></div>
+  <span id="pfLbName"></span>
+  <div class="pf-lb-ctl">
+    <button type="button" id="pfLbOut" aria-label="Perkecil">&minus;</button>
+    <b id="pfLbZoom">100%</b>
+    <button type="button" id="pfLbIn" aria-label="Perbesar">+</button>
+    <button type="button" id="pfLbReset">Reset</button>
+  </div>
+  <small class="pf-lb-hint">Cubit / scroll untuk zoom &middot; geser untuk menggeser &middot; ketuk 2&times; untuk perbesar</small>
+</div>
 
 <script>
 (function(){
@@ -2660,15 +2693,16 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   }
   function needLogin(){ alert('Kamu belum masuk sebagai petugas. Pilih nama & masukkan password dulu.'); }
   function closeMenu(){ var b=$('stBackdrop'); if(b) b.click(); }
-  window.pfClose = function(){ $('pfProfileOverlay').classList.remove('show'); $('pfPassOverlay').classList.remove('show'); };
+  window.pfClose = function(){ cropReset(); $('pfProfileOverlay').classList.remove('show'); $('pfPassOverlay').classList.remove('show'); };
   function paint(url, name){
     var p=$('pfPreview'); p.innerHTML='';
+    p.style.cursor = url ? 'zoom-in' : '';
     if(url){ var im=document.createElement('img'); im.src=url; im.alt=''; p.appendChild(im); }
     else p.textContent=(name||'?').trim().charAt(0).toUpperCase()||'?';
   }
   window.pfOpenProfile = function(){
     closeMenu(); var r=me(); if(!r){ needLogin(); return; }
-    pending=null; $('pfSaveBtn').disabled=true; $('pfDelBtn').style.display=r.avatar?'':'none';
+    cropReset(); pending=null; $('pfSaveBtn').disabled=true; $('pfDelBtn').style.display=r.avatar?'':'none';
     $('pfName').textContent=r.nama||''; paint(r.avatar, r.nama); msg('pfMsg','');
     $('pfProfileOverlay').classList.add('show');
   };
@@ -2679,8 +2713,45 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     $('pfOldPw').style.display = r.password_hash ? '' : 'none';
     msg('pfPassMsg',''); $('pfPassOverlay').classList.add('show');
   };
-  // Perkecil foto jadi 160x160 (crop tengah) supaya ringan disimpan & dimuat.
-  function shrink(file){
+  // ===== Editor foto: geser & zoom (perbesar/perkecil) sebelum disimpan. Hasil HD 640x640 =====
+  var V = 260, OUT = 640, MAXSRC = 1600, ZMIN = 0.5;        // V = ukuran area crop (px), OUT = ukuran hasil akhir
+  var C = { img:null, iw:0, ih:0, base:1, z:1, ox:0, oy:0 };
+  var dpr = Math.min(window.devicePixelRatio || 1, 3);
+  var AV_BUCKET = 'broadcast-foto', AV_DIR = 'avatar';   // bucket Storage yang sama dengan foto siaran admin
+
+  function cropClamp(){
+    // Foto lebih besar dari area: tidak boleh ada celah kosong. Foto lebih kecil (di-zoom out): bebas digeser di dalam area.
+    var s=C.base*C.z, w=C.iw*s, h=C.ih*s;
+    C.ox=Math.min(Math.max(0,V-w), Math.max(Math.min(0,V-w), C.ox));
+    C.oy=Math.min(Math.max(0,V-h), Math.max(Math.min(0,V-h), C.oy));
+  }
+  function cropDraw(){
+    if(!C.img) return;
+    var el=$('pfCropCv'); if(!el) return;
+    if(el.width!==V*dpr){ el.width=V*dpr; el.height=V*dpr; }
+    var x=el.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.imageSmoothingQuality='high';
+    x.fillStyle='#fff'; x.fillRect(0,0,V,V);
+    var s=C.base*C.z; x.drawImage(C.img, C.ox, C.oy, C.iw*s, C.ih*s);
+    $('pfZoom').value=Math.round(C.z*100);
+  }
+  function cropZoom(z, px, py){
+    z=Math.max(ZMIN, Math.min(4, z)); if(px==null){ px=V/2; py=V/2; }
+    var s0=C.base*C.z, ix=(px-C.ox)/s0, iy=(py-C.oy)/s0;
+    C.z=z; var s1=C.base*z; C.ox=px-ix*s1; C.oy=py-iy*s1; cropClamp(); cropDraw();
+  }
+  function cropReset(){
+    C.img=null;
+    var w=$('pfCropWrap'), p=$('pfPreview');
+    if(w) w.style.display='none'; if(p) p.style.display='';
+  }
+  function cropStart(o){
+    C.img=o.img; C.iw=o.w; C.ih=o.h; C.base=Math.max(V/o.w, V/o.h); C.z=1;
+    C.ox=(V-o.w*C.base)/2; C.oy=(V-o.h*C.base)/2;
+    $('pfCropWrap').style.display=''; $('pfPreview').style.display='none';
+    cropDraw(); pending=true; $('pfSaveBtn').disabled=false; msg('pfMsg','');
+  }
+  // Baca file; foto raksasa (mis. 12 MP) diperkecil dulu ke maks 1600px supaya editor ringan
+  function loadImage(file){
     return new Promise(function(res, rej){
       var fr=new FileReader();
       fr.onerror=function(){ rej(new Error('Gagal membaca file')); };
@@ -2688,37 +2759,112 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
         var im=new Image();
         im.onerror=function(){ rej(new Error('File bukan gambar yang valid')); };
         im.onload=function(){
-          var S=160, c=document.createElement('canvas'); c.width=c.height=S;
-          var m=Math.min(im.width,im.height), sx=(im.width-m)/2, sy=(im.height-m)/2;
-          c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,S,S);
-          res(c.toDataURL('image/jpeg',0.8));
+          var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height, m=Math.max(w,h);
+          if(m>MAXSRC){
+            var k=MAXSRC/m, c=document.createElement('canvas'); c.width=Math.round(w*k); c.height=Math.round(h*k);
+            var g=c.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(im,0,0,c.width,c.height);
+            res({img:c, w:c.width, h:c.height});
+          } else res({img:im, w:w, h:h});
         };
         im.src=fr.result;
       };
       fr.readAsDataURL(file);
     });
   }
+  function cropRender(S){
+    var c=document.createElement('canvas'); c.width=c.height=S; var g=c.getContext('2d');
+    g.imageSmoothingQuality='high'; g.fillStyle='#fff'; g.fillRect(0,0,S,S);
+    var f=S/V, s=C.base*C.z; g.drawImage(C.img, C.ox*f, C.oy*f, C.iw*s*f, C.ih*s*f);
+    return c;
+  }
+  function toBlob(c,q){ return new Promise(function(res){ if(c.toBlob) c.toBlob(res,'image/jpeg',q); else res(null); }); }
+
+  // Geser (1 jari) & cubit (2 jari) & scroll di area crop, plus slider dan tombol +/-
+  (function(){
+    var box=$('pfCrop'); if(!box) return;
+    var P={}, d0=0, z0=1;
+    function keys(){ return Object.keys(P); }
+    function rel(x,y){ var r=box.getBoundingClientRect(); return {x:(x-r.left)*V/r.width, y:(y-r.top)*V/r.height}; }
+    box.addEventListener('pointerdown', function(e){
+      if(!C.img) return;
+      try{ box.setPointerCapture(e.pointerId); }catch(er){}
+      P[e.pointerId]={x:e.clientX, y:e.clientY};
+      var k=keys(); if(k.length===2){ d0=Math.hypot(P[k[0]].x-P[k[1]].x, P[k[0]].y-P[k[1]].y); z0=C.z; }
+    });
+    box.addEventListener('pointermove', function(e){
+      var o=P[e.pointerId]; if(!o||!C.img) return; var k=keys();
+      if(k.length===2){
+        P[e.pointerId]={x:e.clientX, y:e.clientY};
+        var a=P[k[0]], b=P[k[1]], d=Math.hypot(a.x-b.x, a.y-b.y), m=rel((a.x+b.x)/2,(a.y+b.y)/2);
+        if(d0>0) cropZoom(z0*d/d0, m.x, m.y);
+      } else {
+        var r=box.getBoundingClientRect(), f=V/r.width;
+        C.ox+=(e.clientX-o.x)*f; C.oy+=(e.clientY-o.y)*f;
+        P[e.pointerId]={x:e.clientX, y:e.clientY}; cropClamp(); cropDraw();
+      }
+    });
+    function up(e){ delete P[e.pointerId]; }
+    box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+    box.addEventListener('wheel', function(e){
+      if(!C.img) return; e.preventDefault();
+      var m=rel(e.clientX,e.clientY); cropZoom(C.z*Math.exp(-e.deltaY*0.0015), m.x, m.y);
+    }, {passive:false});
+    $('pfZoom').addEventListener('input', function(){ if(C.img) cropZoom(this.value/100); });
+    $('pfZm').addEventListener('click', function(){ if(C.img) cropZoom(C.z-0.25); });
+    $('pfZp').addEventListener('click', function(){ if(C.img) cropZoom(C.z+0.25); });
+  })();
+
   document.addEventListener('change', function(e){
     if(!e.target || e.target.id!=='pfFile') return;
     var f=e.target.files && e.target.files[0]; e.target.value=''; if(!f) return;
-    shrink(f).then(function(u){ pending=u; paint(u,''); $('pfSaveBtn').disabled=false; msg('pfMsg',''); })
-      .catch(function(er){ msg('pfMsg', er.message); });
+    loadImage(f).then(cropStart).catch(function(er){ msg('pfMsg', er.message); });
   });
+
+  // Simpan HD ke Storage (kolom avatar hanya berisi URL, jadi tabel petugas tetap ringan).
+  function avPath(u){ var m=/\/storage\/v1\/object\/public\/broadcast-foto\/(avatar\/[^?#]+)/.exec(String(u||'')); return m ? decodeURIComponent(m[1]) : null; }
+  function dropOld(u){
+    var p=avPath(u); if(!p) return;
+    try{ sb.storage.from(AV_BUCKET).remove([p]).then(function(){}, function(){}); }catch(e){}
+  }
+  async function uploadAvatar(r){
+    var blob=await toBlob(cropRender(OUT), 0.9); if(!blob) throw new Error('Gagal membuat gambar');
+    var path=AV_DIR+'/'+r.id+'-'+Date.now()+'.jpg';
+    var up=await sb.storage.from(AV_BUCKET).upload(path, blob, {contentType:'image/jpeg', cacheControl:'31536000', upsert:false});
+    if(up.error) throw up.error;
+    return sb.storage.from(AV_BUCKET).getPublicUrl(path).data.publicUrl;
+  }
   async function saveAvatar(val){
-    var r=me(); if(!r){ needLogin(); return; }
-    var c=initSupabaseClient(); if(!c){ msg('pfMsg','Tidak ada koneksi ke server.'); return; }
+    var r=me(); if(!r){ needLogin(); return false; }
+    var c=initSupabaseClient(); if(!c){ msg('pfMsg','Tidak ada koneksi ke server.'); return false; }
     $('pfSaveBtn').disabled=true;
+    var old=r.avatar;
     var res=await sb.from(PETUGAS_TABLE).update({avatar:val}).eq('id', r.id);
     if(res.error){
       console.error(res.error);
       msg('pfMsg', /avatar/i.test(res.error.message||'') ? 'Kolom "avatar" belum ada di Supabase. Jalankan SQL: alter table stok_opname_petugas add column avatar text;' : 'Gagal menyimpan. Cek koneksi lalu coba lagi.');
-      $('pfSaveBtn').disabled=!pending; return;
+      $('pfSaveBtn').disabled=!pending; return false;
     }
-    r.avatar=val; pending=null; $('pfDelBtn').style.display=val?'':'none';
+    r.avatar=val; pending=null; cropReset(); $('pfDelBtn').style.display=val?'':'none';
     paint(val, r.nama); msg('pfMsg', val?'Foto profil tersimpan.':'Foto profil dihapus.', true);
+    if(old && old!==val) dropOld(old);
     try{ if(window.bblbRefresh) window.bblbRefresh(); }catch(e){}
+    return true;
   }
-  window.pfSaveAvatar = function(){ if(pending) saveAvatar(pending); };
+  window.pfSaveAvatar = async function(){
+    if(!C.img) return;
+    var r=me(); if(!r){ needLogin(); return; }
+    var c=initSupabaseClient(); if(!c){ msg('pfMsg','Tidak ada koneksi ke server.'); return; }
+    $('pfSaveBtn').disabled=true; msg('pfMsg','Mengunggah foto…', true);
+    var val, hd=true;
+    try{ val=await uploadAvatar(r); }
+    catch(e){
+      // Cadangan: bucket belum siap / izin kurang -> simpan versi lebih kecil langsung di kolom avatar
+      console.warn('Upload HD gagal, pakai versi kecil:', e);
+      hd=false; val=cropRender(360).toDataURL('image/jpeg', 0.82);
+    }
+    var ok=await saveAvatar(val);
+    if(ok && !hd) msg('pfMsg','Foto tersimpan, tapi versi HD gagal diunggah (bucket "broadcast-foto" belum siap?) jadi dipakai versi lebih kecil.', false);
+  };
   window.pfRemoveAvatar = function(){ if(confirm('Hapus foto profil?')) saveAvatar(null); };
 
   window.pfSavePassword = async function(){
@@ -2752,10 +2898,72 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
     var r=(typeof petugasRowsFull!=='undefined'?petugasRowsFull:[]).find(function(x){ return (x.nama||'').trim().toLowerCase()===n; });
     return (r && r.avatar) || '';
   };
+  // ===== Lightbox foto: perbesar/perkecil (cubit, scroll, tombol, ketuk 2x) & geser =====
+  var L={s:1, x:0, y:0};
+  function lbApply(){
+    var st=$('pfLbStage'), w=st.clientWidth, h=st.clientHeight;
+    var mx=Math.max(0,(L.s-1)*w/2), my=Math.max(0,(L.s-1)*h/2);
+    L.x=Math.max(-mx, Math.min(mx, L.x)); L.y=Math.max(-my, Math.min(my, L.y));
+    $('pfLbImg').style.transform='translate('+L.x+'px,'+L.y+'px) scale('+L.s+')';
+    $('pfLbZoom').textContent=Math.round(L.s*100)+'%';
+  }
+  function lbScale(ns, px, py){   // px,py = titik zoom relatif ke pusat area
+    ns=Math.max(1, Math.min(6, ns)); px=px||0; py=py||0;
+    var k=ns/L.s; L.x=px-(px-L.x)*k; L.y=py-(py-L.y)*k; L.s=ns; lbApply();
+  }
+  window.pfOpenLightbox=function(url, name, rank){
+    var lb=$('pfLightbox'); $('pfLbImg').src=url;
+    lb.className='pf-lightbox'+(rank>=1 && rank<=3 ? ' rk'+rank : '');
+    $('pfLbName').textContent=name||''; L.s=1; L.x=0; L.y=0; lb.classList.add('show'); lbApply();
+  };
+  function lbClose(){ $('pfLightbox').classList.remove('show'); }
+  (function(){
+    var st=$('pfLbStage'), lb=$('pfLightbox'), P={}, d0=0, s0=1, tapT=0, tapX=0, tapY=0, moved=0;
+    function rel(x,y){ var r=st.getBoundingClientRect(); return {x:x-(r.left+r.width/2), y:y-(r.top+r.height/2)}; }
+    st.addEventListener('pointerdown', function(e){
+      try{ st.setPointerCapture(e.pointerId); }catch(er){}
+      P[e.pointerId]={x:e.clientX, y:e.clientY}; moved=0;
+      var k=Object.keys(P); if(k.length===2){ d0=Math.hypot(P[k[0]].x-P[k[1]].x, P[k[0]].y-P[k[1]].y); s0=L.s; }
+    });
+    st.addEventListener('pointermove', function(e){
+      var o=P[e.pointerId]; if(!o) return; var k=Object.keys(P);
+      if(k.length===2){
+        P[e.pointerId]={x:e.clientX, y:e.clientY};
+        var a=P[k[0]], b=P[k[1]], d=Math.hypot(a.x-b.x, a.y-b.y), m=rel((a.x+b.x)/2,(a.y+b.y)/2);
+        moved=99; if(d0>0) lbScale(s0*d/d0, m.x, m.y);
+      } else {
+        var dx=e.clientX-o.x, dy=e.clientY-o.y; moved+=Math.abs(dx)+Math.abs(dy);
+        P[e.pointerId]={x:e.clientX, y:e.clientY};
+        if(L.s>1){ L.x+=dx; L.y+=dy; lbApply(); }
+      }
+    });
+    function up(e){
+      var had=!!P[e.pointerId]; delete P[e.pointerId];
+      if(had && e.type==='pointerup' && Object.keys(P).length===0 && moved<8){   // ketuk 2x = zoom / reset
+        var now=Date.now(), m=rel(e.clientX, e.clientY);
+        if(now-tapT<320 && Math.abs(e.clientX-tapX)<30 && Math.abs(e.clientY-tapY)<30){
+          if(L.s>1.05) lbScale(1); else lbScale(2.5, m.x, m.y);
+          tapT=0;
+        } else { tapT=now; tapX=e.clientX; tapY=e.clientY; }
+      }
+    }
+    st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    st.addEventListener('wheel', function(e){
+      e.preventDefault(); var m=rel(e.clientX, e.clientY); lbScale(L.s*Math.exp(-e.deltaY*0.0015), m.x, m.y);
+    }, {passive:false});
+    $('pfLbIn').addEventListener('click', function(){ lbScale(L.s*1.4); });
+    $('pfLbOut').addEventListener('click', function(){ lbScale(L.s/1.4); });
+    $('pfLbReset').addEventListener('click', function(){ lbScale(1); });
+    lb.addEventListener('click', function(e){ if(e.target===lb || e.target.id==='pfLbClose') lbClose(); });
+  })();
   document.addEventListener('click', function(e){
     var b=e.target.closest && e.target.closest('.bblb-av[data-name]'); if(!b) return;
     var u=window.pfGetAvatar(b.getAttribute('data-name')); if(!u) return;
-    $('pfLbImg').src=u; $('pfLightbox').className='pf-lightbox'+(b.getAttribute('data-rank')<=3?' rk'+b.getAttribute('data-rank'):''); $('pfLbName').textContent=b.getAttribute('data-name'); $('pfLightbox').classList.add('show');
+    window.pfOpenLightbox(u, b.getAttribute('data-name'), +b.getAttribute('data-rank') || 0);
+  });
+  // Klik foto di dialog Foto Profil = lihat/zoom foto yang tersimpan
+  $('pfPreview').addEventListener('click', function(){
+    var im=this.querySelector('img'); if(im && !C.img) window.pfOpenLightbox(im.src, $('pfName').textContent, 0);
   });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ $('pfLightbox').classList.remove('show'); window.pfClose(); } });
 })();
