@@ -5088,6 +5088,21 @@ function subscribeScreenBroadcast(){
 // ====== Kontrol Modal Sinkronisasi Tim & Kata-kata AI Agent (dari panel admin) ======
 const SETTINGS_TABLE = 'stok_opname_settings';
 
+// Saklar Event Block Blast dari Panel Admin. Skrip pengumuman event ada di akhir
+// file, jadi nilai disimpan dulu di window.__bbEvtAdmin kalau skripnya belum siap.
+function applyBbEventEnabled(on){
+  window.__bbEvtAdmin = on;
+  if(window.bbEvent) window.bbEvent.setAdminEnabled(on);
+}
+
+// Sinyal "Reset Skor" dari Panel Admin (kolom bb_reset_at). Dinormalkan ke milidetik
+// supaya format waktu dari select dan dari realtime tidak dianggap berbeda.
+function applyBbReset(val){
+  var t = val ? Date.parse(val) : 0;
+  window.__bbResetEpoch = String(isNaN(t) ? 0 : t);
+  if(window.bbLb) window.bbLb.onReset(window.__bbResetEpoch);
+}
+
 function applySyncCardVisibility(visible){
   const card = document.querySelector('.sync-card');
   if(card) card.style.display = (visible === false) ? 'none' : '';
@@ -5101,6 +5116,8 @@ async function initSyncCardVisibilityListener(){
     if(!error){
       applySyncCardVisibility(data ? data.sync_card_visible !== false : true);
       if(window.aiHintBubble) window.aiHintBubble.setAdminEnabled(data ? data.hint_bubble_enabled !== false : true);
+      applyBbEventEnabled(data ? data.bb_event_enabled !== false : true);
+      applyBbReset(data ? data.bb_reset_at : null);
     }
   } catch(e){
     console.error('Gagal memuat status modal sinkronisasi dari admin:', e);
@@ -5117,6 +5134,8 @@ function subscribeSettingsChannel(){
     }, payload => {
       applySyncCardVisibility(payload.new ? payload.new.sync_card_visible !== false : true);
       if(window.aiHintBubble) window.aiHintBubble.setAdminEnabled(payload.new ? payload.new.hint_bubble_enabled !== false : true);
+      applyBbEventEnabled(payload.new ? payload.new.bb_event_enabled !== false : true);
+      if(payload.new) applyBbReset(payload.new.bb_reset_at);
     })
     .subscribe();
 }
@@ -12897,6 +12916,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var chan = null;
   var lastSent = {};      // nama -> skor terakhir yang berhasil dikirim (cegah kirim ulang)
   var inflight = false, dirty = false, timer = null, nameDeclined = false;
+  var SEEN_KEY = 'bb-reset-seen';         // penanda reset terakhir yang sudah diproses HP ini
+  var epochKnown = false;                 // sudah tahu status reset dari server? (skor tertunda baru dikirim setelah itu)
 
   function $(id){ return document.getElementById(id); }
   function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -13062,6 +13083,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 
   // Kirim skor yang tersimpan (satu per satu, tidak tumpang tindih)
   async function flush(){
+    if(!epochKnown) return;   // tunggu info reset dari admin dulu, supaya skor lama tidak terkirim ulang
     if(inflight){ dirty = true; return; }
     inflight = true;
     try{
@@ -13085,6 +13107,27 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     timer = setTimeout(flush, final ? 0 : 700);
   }
 
+  // Dipanggil saat info reset dari Panel Admin diterima (awal buka halaman & realtime).
+  // Kalau waktu reset berbeda dari yang terakhir diproses HP ini: buang skor tertunda &
+  // catatan skor terkirim, kosongkan daftar, lalu muat ulang dari server.
+  function onReset(epoch){
+    epoch = String(epoch || '0');
+    var seen = lsGet(SEEN_KEY);
+    var changed = epoch !== (seen == null ? '0' : seen);
+    epochKnown = true;
+    if(changed){
+      lsSet(SEEN_KEY, epoch);
+      lsDel(PENDING_KEY);
+      lastSent = {};
+      clearTimeout(timer);
+      rows = [];
+      render();
+      load();
+    }
+    flush();
+  }
+  window.bbLb = { onReset: onReset };
+
   var _startGame = window.startGame;
   if(typeof _startGame === 'function'){
     window.startGame = function(which){
@@ -13106,6 +13149,9 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   });
 
   function init(){
+    if(window.__bbResetEpoch !== undefined) onReset(window.__bbResetEpoch);
+    // Cadangan: kalau info reset tidak kunjung datang (offline / kolom belum ada), jangan tahan skor selamanya
+    setTimeout(function(){ if(!epochKnown){ epochKnown = true; flush(); } }, 6000);
     load().then(subscribe).then(flush);   // begitu halaman dibuka, kirim skor yang tertunda (mis. sebelum refresh)
     document.addEventListener('visibilitychange', function(){ if(!document.hidden){ load(); flush(); } });
     window.addEventListener('online', flush);
@@ -13184,7 +13230,8 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   var el = document.getElementById('bbEvt');
   if(!el) return;
   function ls(g, v){ try{ return v === undefined ? localStorage.getItem(KEY) : localStorage.setItem(KEY, v); }catch(e){ return null; } }
-  function active(){ return Date.now() <= END.getTime(); }
+  var adminOn = (window.__bbEvtAdmin !== false);   // saklar dari Panel Admin (default aktif)
+  function active(){ return adminOn && Date.now() <= END.getTime(); }
   function sync(){
     if(!active()){ el.classList.remove('on'); document.getElementById('bbEvtM').classList.remove('on'); return; }
     el.classList.add('on');
@@ -13211,6 +13258,7 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
     closeM();
     try{ if(typeof startGame === 'function') startGame('blockblast'); }catch(e){}
   });
+  window.bbEvent = { setAdminEnabled: function(v){ adminOn = (v !== false); sync(); } };
   sync();
   setInterval(sync, 60000);
 })();
