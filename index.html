@@ -13115,5 +13115,105 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   else setTimeout(init, 300);
 })();
 </script>
+
+<!-- ====== Pengumuman Event Top Score Block Blast (kecil, tidak menghalangi layar) ====== -->
+<style>
+  #bbEvt{position:fixed; top:calc(env(safe-area-inset-top, 0px) + 6px); left:50%; transform:translateX(-50%);
+    z-index:9000; max-width:calc(100vw - 20px); display:none; pointer-events:none;
+    font-family:inherit; -webkit-tap-highlight-color:transparent;}
+  #bbEvt.on{display:block;}
+  #bbEvt .bbe-pill{pointer-events:auto; display:flex; align-items:center; gap:6px;
+    padding:4px 4px 4px 9px; border-radius:999px; color:#fff; font-size:11px; line-height:1.2; font-weight:600;
+    background:linear-gradient(135deg,rgba(21,94,78,.94),rgba(180,120,10,.94));
+    box-shadow:0 2px 8px rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.28);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);}
+  #bbEvt .bbe-txt{background:none; border:0; color:inherit; font:inherit; padding:0; cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left;}
+  #bbEvt .bbe-x{flex:none; width:18px; height:18px; border-radius:50%; border:0; cursor:pointer; padding:0;
+    background:rgba(255,255,255,.22); color:#fff; font-size:12px; line-height:18px; text-align:center;}
+  #bbEvt .bbe-chip{display:none; pointer-events:auto; width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,.35);
+    background:linear-gradient(135deg,rgba(21,94,78,.94),rgba(180,120,10,.94)); box-shadow:0 2px 6px rgba(0,0,0,.28);
+    font-size:13px; line-height:24px; text-align:center; cursor:pointer; padding:0;}
+  #bbEvt.min .bbe-pill{display:none;}
+  #bbEvt.min .bbe-chip{display:block;}
+  #bbEvtM{position:fixed; inset:0; z-index:9990; display:none; align-items:center; justify-content:center; padding:16px;
+    background:rgba(10,25,22,.55); font-family:inherit;}
+  #bbEvtM.on{display:flex;}
+  #bbEvtM .bbm-box{position:relative; width:100%; max-width:340px; max-height:calc(100% - 20px); overflow:auto; border-radius:18px;
+    background:#fff; color:#1b2a27; padding:20px 18px 16px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.35);}
+  #bbEvtM .bbm-x{position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%; border:0; cursor:pointer;
+    background:#eef2f1; color:#355; font-size:16px; line-height:28px; padding:0;}
+  #bbEvtM .bbm-ico{font-size:40px; line-height:1;}
+  #bbEvtM h3{margin:6px 0 2px; font-size:17px; color:#155e4e;}
+  #bbEvtM .bbm-per{display:inline-block; margin:4px 0 10px; padding:3px 10px; border-radius:999px; background:#fff4d6; color:#8a5a00; font-size:12px; font-weight:700;}
+  #bbEvtM ul{list-style:none; margin:0 0 12px; padding:0; text-align:left; font-size:13px; line-height:1.45;}
+  #bbEvtM li{padding:5px 0 5px 22px; position:relative;}
+  #bbEvtM li:before{content:attr(data-i); position:absolute; left:0; top:5px;}
+  #bbEvtM .bbm-top{margin:0 0 12px; padding:8px 10px; border-radius:10px; background:#eaf6f2; font-size:12.5px; color:#155e4e; display:none;}
+  #bbEvtM .bbm-go{width:100%; border:0; border-radius:12px; padding:11px; font:inherit; font-weight:700; font-size:14px; color:#fff; cursor:pointer;
+    background:linear-gradient(135deg,#155e4e,#b4780a);}
+  @media (max-width:380px){ #bbEvt .bbe-pill{font-size:10px;} }
+</style>
+<div id="bbEvt" role="status" aria-live="polite">
+  <div class="bbe-pill">
+    <button type="button" class="bbe-txt" id="bbEvtTxt" title="Lihat info event">🏆 Event Block Blast s/d 30 Nov · Top 1 dapat hadiah!</button>
+    <button type="button" class="bbe-x" id="bbEvtX" aria-label="Kecilkan pengumuman">×</button>
+  </div>
+  <button type="button" class="bbe-chip" id="bbEvtChip" aria-label="Buka pengumuman event Block Blast">🏆</button>
+</div>
+<div id="bbEvtM" role="dialog" aria-modal="true" aria-labelledby="bbmTitle">
+  <div class="bbm-box">
+    <button type="button" class="bbm-x" id="bbmX" aria-label="Tutup">×</button>
+    <div class="bbm-ico">🏆</div>
+    <h3 id="bbmTitle">Event Top Score Block Blast</h3>
+    <div class="bbm-per">Berlaku s/d 30 November 2026</div>
+    <ul>
+      <li data-i="🎮">Mainkan Block Blast sebanyak yang kamu mau.</li>
+      <li data-i="📈">Skor tertinggimu otomatis masuk Leaderboard (live).</li>
+      <li data-i="🥇">Pemilik skor <b>Top 1</b> di akhir event berhak mendapat <b>hadiah</b>!</li>
+    </ul>
+    <div class="bbm-top" id="bbmTop"></div>
+    <button type="button" class="bbm-go" id="bbmGo">Main Sekarang</button>
+  </div>
+</div>
+<script>
+(function(){
+  // Ubah tanggal akhir event di sini (bulan 0-based: 10 = November)
+  var END = new Date(2026, 10, 30, 23, 59, 59);
+  var KEY = 'bb-event-min-nov2026';
+  var el = document.getElementById('bbEvt');
+  if(!el) return;
+  function ls(g, v){ try{ return v === undefined ? localStorage.getItem(KEY) : localStorage.setItem(KEY, v); }catch(e){ return null; } }
+  function active(){ return Date.now() <= END.getTime(); }
+  function sync(){
+    if(!active()){ el.classList.remove('on'); document.getElementById('bbEvtM').classList.remove('on'); return; }
+    el.classList.add('on');
+  }
+  if(ls() === '1') el.classList.add('min');
+  document.getElementById('bbEvtX').addEventListener('click', function(){ el.classList.add('min'); ls(0,'1'); });
+  document.getElementById('bbEvtChip').addEventListener('click', function(){ el.classList.remove('min'); ls(0,'0'); });
+  var modal = document.getElementById('bbEvtM');
+  function openM(){
+    var box = document.getElementById('bbmTop'), r = document.querySelector('#bblbList .bblb-row .bblb-name');
+    if(r){
+      var sc = document.querySelector('#bblbList .bblb-row .bblb-score');
+      box.textContent = '🥇 Top 1 saat ini: ' + r.textContent.replace(' (kamu)','') + (sc ? ' · ' + sc.textContent : '');
+      box.style.display = 'block';
+    } else box.style.display = 'none';
+    modal.classList.add('on');
+  }
+  function closeM(){ modal.classList.remove('on'); }
+  document.getElementById('bbEvtTxt').addEventListener('click', openM);
+  document.getElementById('bbmX').addEventListener('click', closeM);
+  modal.addEventListener('click', function(e){ if(e.target === modal) closeM(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeM(); });
+  document.getElementById('bbmGo').addEventListener('click', function(){
+    closeM();
+    try{ if(typeof startGame === 'function') startGame('blockblast'); }catch(e){}
+  });
+  sync();
+  setInterval(sync, 60000);
+})();
+</script>
 </body>
 </html>
