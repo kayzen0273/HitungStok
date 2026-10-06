@@ -5904,7 +5904,14 @@ async function pushPetugasSessionNow(){
     // collectCurrentState() tidak ikut kebawa) -- supaya Catatan JS di HP
     // petugas ini sama persis dengan yang tampil di jendela Ambil Alih admin.
     const state = collectCurrentState();
-    state.jsNotes = getJsNotes();
+    // Gabungkan dulu dengan Catatan JS yang sudah ada di server, supaya HP
+    // baru (yang localStorage-nya masih kosong) TIDAK menimpa catatan lama.
+    const cur = await sb.from(PETUGAS_SESSION_TABLE).select('state').eq('petugas_slug', petugasSessionSlug).maybeSingle();
+    if(cur.error) throw cur.error;
+    if(cur.data && cur.data.state && Array.isArray(cur.data.state.jsNotes)){
+      mergeJsNotesFromRemote(cur.data.state.jsNotes);
+    }
+    state.jsNotes = getJsNotesRaw();
     const { error } = await sb.from(PETUGAS_SESSION_TABLE).upsert({
       petugas_slug: petugasSessionSlug,
       petugas_nama: namaEl ? namaEl.value.trim() : '',
@@ -5972,9 +5979,7 @@ function applyPetugasSessionState(state){
   // jendela Ambil Alih admin, atau dari HP petugas ini sendiri di tab lain)
   // supaya daftar catatan kode selalu sama di kedua sisi.
   if(Array.isArray(state.jsNotes)){
-    saveJsNotes(state.jsNotes);
-    const jsNotesOverlayEl = document.getElementById('jsNotesOverlay');
-    if(jsNotesOverlayEl && jsNotesOverlayEl.classList.contains('show')) renderJsNotesList();
+    mergeJsNotesFromRemote(state.jsNotes);
   }
   updateHideTokoUI();
   renderSesiTabs();
@@ -6029,7 +6034,7 @@ async function startPetugasSession(nama){
     // juga supaya kalau Panel Admin sedang menunggu buka "Ambil Alih",
     // datanya langsung ada.
     const applied = await pullPetugasSessionIfNewer();
-    if(!applied) pushPetugasSession(true);
+    if(!applied){ await pullJsNotesFromServer(); pushPetugasSession(true); }
   }
 
   subscribePetugasSessionChannel();
@@ -11012,22 +11017,78 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   const ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICO_TRASH = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  function getJsNotes(){
+  // ---- Penyimpanan Catatan JS (aman untuk ganti HP) ----
+  // Tiap catatan punya updatedAt; catatan yang dihapus tidak dibuang tapi
+  // ditandai deleted:true (tombstone) supaya penghapusan ikut tersinkron dan
+  // tidak "hidup lagi" saat digabung dengan data dari HP/server lain.
+  function getJsNotesRaw(){
     try{
       const raw = localStorage.getItem(JS_NOTES_KEY);
       const arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr : [];
     }catch(e){ return []; }
   }
-
-  function saveJsNotes(list){
+  function setJsNotesRaw(list){
     try{ localStorage.setItem(JS_NOTES_KEY, JSON.stringify(list)); }catch(e){ /* abaikan */ }
+  }
+  function getJsNotes(){
+    return getJsNotesRaw().filter(function(n){ return n && !n.deleted; });
+  }
+  // Gabungkan dua daftar catatan berdasarkan id; yang updatedAt-nya lebih baru menang.
+  function mergeJsNotes(a, b){
+    const map = new Map();
+    [].concat(Array.isArray(a) ? a : [], Array.isArray(b) ? b : []).forEach(function(n){
+      if(!n || n.id == null) return;
+      const cur = map.get(n.id);
+      if(!cur || (n.updatedAt || 0) > (cur.updatedAt || 0)) map.set(n.id, n);
+    });
+    return Array.from(map.values()).sort(function(x, y){ return (y.id || 0) - (x.id || 0); });
+  }
+  // Dipanggil oleh kode lama dengan daftar catatan yang "terlihat"; di sini
+  // dihitung perubahannya (baru/diubah/dihapus) lalu disimpan lengkap dengan
+  // tombstone.
+  function saveJsNotes(list){
+    const now = Date.now();
+    const prev = getJsNotesRaw();
+    const prevMap = new Map(prev.map(function(n){ return [n.id, n]; }));
+    const seen = new Set();
+    const out = [];
+    (list || []).forEach(function(n){
+      seen.add(n.id);
+      const p = prevMap.get(n.id);
+      const changed = !p || p.deleted || p.title !== n.title || p.code !== n.code;
+      out.push(Object.assign({}, n, { deleted: false, updatedAt: changed ? now : (p.updatedAt || now) }));
+    });
+    prev.forEach(function(p){
+      if(seen.has(p.id)) return;
+      out.push(p.deleted ? p : Object.assign({}, p, { deleted: true, updatedAt: now }));
+    });
+    setJsNotesRaw(out);
+  }
+  // Terapkan catatan dari server: digabung dengan yang ada di HP ini, TIDAK menimpa.
+  function mergeJsNotesFromRemote(remoteList){
+    if(!Array.isArray(remoteList)) return;
+    setJsNotesRaw(mergeJsNotes(getJsNotesRaw(), remoteList));
+    const ov = document.getElementById('jsNotesOverlay');
+    if(ov && ov.classList.contains('show')) renderJsNotesList();
+  }
+  // Tarik catatan terbaru dari server lalu gabungkan (dipanggil saat HP baru
+  // login & saat modal Catatan JS dibuka).
+  async function pullJsNotesFromServer(){
+    try{
+      if(typeof petugasSessionSlug === 'undefined' || !petugasSessionSlug) return;
+      const client = initSupabaseClient(); if(!client) return;
+      const { data, error } = await sb.from(PETUGAS_SESSION_TABLE).select('state').eq('petugas_slug', petugasSessionSlug).maybeSingle();
+      if(error || !data || !data.state) return;
+      mergeJsNotesFromRemote(data.state.jsNotes);
+    }catch(e){ console.error('Gagal menarik Catatan JS:', e); }
   }
 
   function openJsNotesModal(){
     document.getElementById('jsNotesOverlay').classList.add('show');
     document.getElementById('jsNotesSearchInput').value = '';
     renderJsNotesList();
+    pullJsNotesFromServer();
   }
 
   function closeJsNotesModal(){
