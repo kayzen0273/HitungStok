@@ -13532,5 +13532,91 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   setInterval(sync, 60000);
 })();
 </script>
+
+<!-- ====== Pengumuman: Perbarui Kode Bookmark ====== -->
+<style>
+  #bmUpd{position:fixed; inset:0; z-index:9995; display:none; align-items:center; justify-content:center; padding:16px;
+    background:rgba(10,25,22,.6); font-family:inherit;}
+  #bmUpd.on{display:flex;}
+  #bmUpd .bmu-box{position:relative; width:100%; max-width:380px; max-height:calc(100% - 20px); overflow:auto; border-radius:18px;
+    background:#fff; color:#1b2a27; padding:20px 16px 16px; box-shadow:0 12px 40px rgba(0,0,0,.35);}
+  #bmUpd .bmu-x{position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%; border:0; cursor:pointer;
+    background:#eef2f1; color:#355; font-size:16px; line-height:28px; padding:0;}
+  #bmUpd .bmu-ico{font-size:36px; line-height:1; text-align:center;}
+  #bmUpd h3{margin:6px 0 4px; font-size:17px; color:#155e4e; text-align:center;}
+  #bmUpd .bmu-sub{margin:0 0 10px; font-size:12.5px; line-height:1.45; color:#4b6b65; text-align:center;}
+  #bmUpd .bmu-feat{margin:0 0 12px; padding:9px 12px; border-radius:12px; background:#eaf6f2; border:1px solid #cfe6df;}
+  #bmUpd .bmu-feat-t{font-size:12px; font-weight:800; color:#155e4e; margin-bottom:4px;}
+  #bmUpd .bmu-feat ul{list-style:none; margin:0; padding:0; font-size:13px; line-height:1.5; color:#173b36; font-weight:600;}
+  #bmUpd .bmu-feat li{padding:1px 0;}
+  #bmUpd ol{margin:0 0 10px; padding:0 0 0 20px; font-size:13px; line-height:1.5;}
+  #bmUpd ol li{padding:2px 0;}
+  #bmUpd textarea{display:block; width:100%; height:110px; resize:none; border:1.5px solid #cfdcd7; border-radius:10px; padding:8px;
+    background:#f4f8f6; color:#173b36; font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; font-size:10.5px; line-height:1.35;
+    word-break:break-all; margin:0 0 10px;}
+  #bmUpd .bmu-copy{width:100%; border:0; border-radius:12px; padding:11px; font:inherit; font-weight:700; font-size:14px; color:#fff; cursor:pointer;
+    background:linear-gradient(135deg,#155e4e,#0d5c52); margin-bottom:8px;}
+  #bmUpd .bmu-copy.ok{background:linear-gradient(135deg,#3c8a5c,#2f7a4e);}
+  #bmUpd .bmu-done{width:100%; border:1.5px solid #cfdcd7; border-radius:12px; padding:9px; font:inherit; font-weight:600; font-size:13px;
+    color:#355; background:#fff; cursor:pointer;}
+  #bmUpd .bmu-note{margin:8px 0 0; font-size:11px; color:#7a8f8a; text-align:center; line-height:1.4;}
+</style>
+<div id="bmUpd" role="dialog" aria-modal="true" aria-labelledby="bmuTitle">
+  <div class="bmu-box">
+    <button type="button" class="bmu-x" id="bmuX" aria-label="Tutup">×</button>
+    <div class="bmu-ico">🔖</div>
+    <h3 id="bmuTitle">Perbarui Kode Bookmark</h3>
+    <p class="bmu-sub">Ada pembaruan kode bookmark karena ada tambahan fitur baru. Mohon ganti kode bookmark lama kamu dengan kode terbaru di bawah ini.</p>
+    <div class="bmu-feat">
+      <div class="bmu-feat-t">✨ Fitur baru</div>
+      <ul>
+        <li>🧾 Ambil nama di kasir</li>
+        <li>📦 Ambil stok web</li>
+        <li>⚡ Input faktur otomatis</li>
+      </ul>
+    </div>
+    <ol>
+      <li>Tekan tombol <b>Salin Kode</b> di bawah.</li>
+      <li>Buka pengaturan <b>Bookmark</b> di browser, lalu <b>edit</b> bookmark yang lama.</li>
+      <li>Pada kolom <b>URL / Alamat</b>, hapus isi lama lalu <b>tempel</b> kode baru.</li>
+      <li>Simpan.</li>
+    </ol>
+    <textarea id="bmuCode" readonly spellcheck="false" onclick="this.select()">javascript:(function(){var U='https://hoyframcjysrpkbjmfit.supabase.co',K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveWZyYW1janlzcnBrYmptZml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzA2MTYsImV4cCI6MjEwMDEwNjYxNn0.FZHy-qnZxltXNtHzkQ-bLyEiiW5Kp2fxK9ry5oA-cTY',T='stok_opname_scripts',go=function(){supabase.createClient(U,K).from(T).select('*').eq('enabled',true).order('sort_order').order('name').then(function(r){if(r.error)return alert('Gagal: '+r.error.message);(r.data||[]).forEach(function(it){try{(0,eval)(it.code);}catch(e){console.error(e);}});});};if(window.supabase)go();else{var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.onload=go;document.head.appendChild(s);}})();</textarea>
+    <button type="button" class="bmu-copy" id="bmuCopy">📋 Salin Kode</button>
+    <button type="button" class="bmu-done" id="bmuDone">Sudah diperbarui, jangan tampilkan lagi</button>
+    <p class="bmu-note">Menutup dengan ✕ hanya menyembunyikan sementara. Pengumuman muncul lagi saat halaman dibuka ulang.</p>
+  </div>
+</div>
+<script>
+(function(){
+  // Ganti nilai VER setiap kali kode bookmark diperbarui lagi, supaya pengumuman muncul ulang untuk semua orang
+  var VER = 'bm-update-v3';
+  var KEY = 'stokOpnameBookmarkSeen';
+  var modal = document.getElementById('bmUpd');
+  if(!modal) return;
+  function seen(){ try{ return localStorage.getItem(KEY) === VER; }catch(e){ return false; } }
+  function mark(){ try{ localStorage.setItem(KEY, VER); }catch(e){} }
+  function open(){ modal.classList.add('on'); }
+  function close(){ modal.classList.remove('on'); }
+  var ta = document.getElementById('bmuCode'), btn = document.getElementById('bmuCopy');
+  function flash(){
+    btn.classList.add('ok'); btn.textContent = '✅ Kode tersalin!';
+    setTimeout(function(){ btn.classList.remove('ok'); btn.textContent = '📋 Salin Kode'; }, 2200);
+  }
+  function fallback(){
+    try{ ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); if(document.execCommand('copy')) flash(); }catch(e){}
+  }
+  btn.addEventListener('click', function(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(flash).catch(fallback);
+    } else fallback();
+  });
+  document.getElementById('bmuX').addEventListener('click', close);
+  document.getElementById('bmuDone').addEventListener('click', function(){ mark(); close(); });
+  modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
+  if(!seen()) setTimeout(open, 800);
+})();
+</script>
 </body>
 </html>
