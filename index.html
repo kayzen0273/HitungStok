@@ -2293,10 +2293,6 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
         <div class="field"><label for="gjQty">Jumlah</label><input id="gjQty" type="number" inputmode="numeric" min="1" value="1"></div>
         <div class="field"><label for="gjHarga">Harga satuan (opsional)</label><input id="gjHarga" type="number" inputmode="decimal" min="0"></div>
       </div>
-      <div class="gj-grp" id="gjG_target" hidden>
-        <div class="field"><label for="gjOmset">Omset hari itu (opsional)</label><input id="gjOmset" type="number" inputmode="decimal" min="0"></div>
-        <div class="field"><label for="gjTgt">Target omset (opsional)</label><input id="gjTgt" type="number" inputmode="decimal" min="0"></div>
-      </div>
       <div class="field" style="margin-top:10px;"><label for="gjKet">Catatan (opsional)</label><input id="gjKet" type="text" placeholder="mis. stok opname, titipan Bu Rina"></div>
       <div style="margin-top:12px;"><button type="button" class="btn-main" id="gjAdd">Simpan catatan</button></div>
     </div>
@@ -13618,11 +13614,7 @@ function desc(k,x){
   const kt=x.ket?" · "+x.ket:"";
   if(k==="lembur")return "Lembur"+kt;
   if(k==="kons")return x.barang+" × "+(x.qty||1)+(x.harga?" · "+rp(x.harga*(x.qty||1)):"")+kt;
-  const p=[];
-  if(x.omset)p.push("Omset "+rp(x.omset));
-  if(x.tgt)p.push("target "+rp(x.tgt));
-  if(x.omset&&x.tgt&&x.omset>x.tgt)p.push("lebih "+rp(x.omset-x.tgt));
-  return (p.join(" · ")||"Melebihi target omset")+kt;
+  return "Lewat target omset"+kt;
 }
 function li(x){
   const a=pend===x.id,d=`data-k="${x.k}" data-id="${x.id}"`;
@@ -13652,7 +13644,7 @@ function render(){
   $("gjList").innerHTML=items.length?items.map(li).join(""):`<li class="gj-empty">Belum ada catatan${sp?"":" yang menunggu disetor"}.</li>`;
   $("gjRk").value=rekap();
 }
-function pick(){const v=$("gjJenis").value;$("gjG_kons").hidden=v!=="kons";$("gjG_target").hidden=v!=="target"}
+function pick(){$("gjG_kons").hidden=$("gjJenis").value!=="kons"}
 function add(){
   const k=$("gjJenis").value,tgl=$("gjTgl").value,v=i=>$(i).value.trim(),nm=i=>v(i)===""?null:parseFloat(v(i));
   if(!k){say("Pilih jenis catatannya dulu ya");return}
@@ -13660,9 +13652,8 @@ function add(){
   if(k==="kons"&&!v("gjBarang")){say("Nama barangnya diisi dulu ya");$("gjBarang").focus();return}
   const o={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),tgl,ket:v("gjKet"),done:false};
   if(k==="kons"){o.barang=v("gjBarang");o.qty=nm("gjQty")||1;o.harga=nm("gjHarga")}
-  if(k==="target"){o.omset=nm("gjOmset");o.tgt=nm("gjTgt")}
   S[k].push(o);save();
-  ["gjBarang","gjHarga","gjOmset","gjTgt","gjKet"].forEach(i=>$(i).value="");$("gjQty").value=1;
+  ["gjBarang","gjHarga","gjKet"].forEach(i=>$(i).value="");$("gjQty").value=1;
   render();say("Tersimpan ✓");
 }
 $("gjTgl").value=today();
