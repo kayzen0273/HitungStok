@@ -1779,6 +1779,38 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   .bblb-play{border:2px solid var(--ink); background:var(--teal); color:#fff; font:inherit; font-size:12px; font-weight:800; padding:7px 14px; border-radius:11px; box-shadow:0 2px 0 var(--ink); cursor:pointer;}
   .bblb-play:active{transform:translateY(2px); box-shadow:none;}
 </style>
+<style>
+/* ===== Menu Gajian (lembur, konsinyasi, lewat target) ===== */
+.gj-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.gj-box{background:var(--card);border:var(--t-bw,1px) solid var(--t-edge2,var(--line));border-radius:var(--t-r,14px);padding:10px 6px;text-align:center;box-shadow:var(--t-sh,none)}
+.gj-box i{font-style:normal;font-size:20px}
+.gj-box b{display:block;font-size:22px;line-height:1.15;color:var(--teal)}
+.gj-box span{display:block;font-size:10.5px;font-weight:600;color:var(--ink-soft)}
+.gj-row,.gj-grp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gj-grp{margin-top:10px;padding:10px;border-radius:var(--t-ir,10px);background:var(--mint)}
+.gj-grp[hidden]{display:none}
+.gj-row .field,.gj-grp .field{margin:0}
+.gj-w{grid-column:1/-1}
+.gj-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.gj-chip{border:1.5px solid var(--line);background:var(--card);color:var(--ink-soft);border-radius:99px;padding:6px 11px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.gj-chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.gj-showdone{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px}
+.gj-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.gj-li{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1.5px solid var(--line);border-radius:var(--t-ir,10px);background:var(--card)}
+.gj-li.done{opacity:.55}
+.gj-li.done b{text-decoration:line-through}
+.gj-ic{width:34px;height:34px;border-radius:10px;background:var(--mint);display:grid;place-items:center;font-size:17px;flex:none}
+.gj-mid{flex:1;min-width:0;display:flex;flex-direction:column}
+.gj-mid b{font-size:12.5px}
+.gj-mid span{font-size:11.5px;color:var(--ink-soft);overflow-wrap:anywhere}
+.gj-chk{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+.gj-del{border:1.5px solid var(--line);background:none;color:var(--ink-soft);border-radius:9px;min-width:32px;height:32px;font-family:inherit;font-size:11.5px;cursor:pointer}
+.gj-del.ask{background:var(--minus);border-color:var(--minus);color:#fff}
+.gj-empty{text-align:center;color:var(--ink-soft);font-size:12.5px;padding:10px}
+.gj-rk{width:100%;height:170px;font:12px/1.5 "JetBrains Mono",monospace;padding:10px;border:1.5px solid var(--line);border-radius:var(--t-ir,10px);background:var(--card);color:var(--ink);resize:vertical}
+.gj-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.gj-ghost{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 14px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+</style>
 </head>
 <body data-theme="kardus">
 <script>try{var __t=localStorage.getItem('stokOpnameTheme');if(['asli','kardus','kucing','robot','awan','boba'].indexOf(__t)>-1)document.body.setAttribute('data-theme',__t);}catch(e){}</script>
@@ -1987,6 +2019,10 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
       <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14l-1.5 11a2 2 0 0 1-2 1.7H8.5a2 2 0 0 1-2-1.7L5 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/></svg>
       Barang Kosong
       <span class="tab-count" id="orderTabCount" style="display:none;">0</span>
+    </button>
+    <button type="button" class="page-tab" id="tabGaji" onclick="switchAppPage('gaji')">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 3v4M16 3v4M4 10h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Gajian
     </button>
   </div>
 
@@ -2241,6 +2277,42 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
 
   </div>
   <!-- /#pageOpnameView -->
+
+  <div id="pageGajiView" style="display:none;">
+    <div class="gj-sum" id="gjSum"></div>
+    <div class="card">
+      <h2>Catat Gajian</h2>
+      <div class="gj-row">
+        <div class="field gj-w"><label for="gjTgl">Tanggal</label><input id="gjTgl" type="date"></div>
+        <div class="field gj-w"><label for="gjJenis">Jenis catatan</label>
+          <select id="gjJenis"><option value="">Pilih jenis catatan…</option><option value="lembur">🌙 Lembur</option><option value="kons">🛍️ Jual barang konsinyasi</option><option value="target">🏆 Lewat target omset</option></select>
+        </div>
+      </div>
+      <div class="gj-grp" id="gjG_kons" hidden>
+        <div class="field gj-w"><label for="gjBarang">Nama barang *</label><input id="gjBarang" type="text"></div>
+        <div class="field"><label for="gjQty">Jumlah</label><input id="gjQty" type="number" inputmode="numeric" min="1" value="1"></div>
+        <div class="field"><label for="gjHarga">Harga satuan (opsional)</label><input id="gjHarga" type="number" inputmode="decimal" min="0"></div>
+      </div>
+      <div class="gj-grp" id="gjG_target" hidden>
+        <div class="field"><label for="gjOmset">Omset hari itu (opsional)</label><input id="gjOmset" type="number" inputmode="decimal" min="0"></div>
+        <div class="field"><label for="gjTgt">Target omset (opsional)</label><input id="gjTgt" type="number" inputmode="decimal" min="0"></div>
+      </div>
+      <div class="field" style="margin-top:10px;"><label for="gjKet">Catatan (opsional)</label><input id="gjKet" type="text" placeholder="mis. stok opname, titipan Bu Rina"></div>
+      <div style="margin-top:12px;"><button type="button" class="btn-main" id="gjAdd">Simpan catatan</button></div>
+    </div>
+    <div class="card">
+      <h2>Daftar catatan</h2>
+      <div class="gj-chips" id="gjTabs"></div>
+      <label class="gj-showdone"><input type="checkbox" id="gjShowDone"> Tampilkan yang sudah disetor</label>
+      <ul class="gj-list" id="gjList"></ul>
+    </div>
+    <div class="card">
+      <h2>Rekap untuk setor</h2>
+      <textarea id="gjRk" class="gj-rk" readonly></textarea>
+      <div class="gj-acts"><button type="button" class="btn-main" id="gjCopy">Salin rekap</button><button type="button" class="gj-ghost" id="gjSettle">Tandai semua sudah disetor</button></div>
+      <div class="copied-msg" id="gjMsg" style="margin-top:8px;"></div>
+    </div>
+  </div>
 
   <div id="pageOrderView" style="display:none;">
 
@@ -7853,22 +7925,16 @@ const APP_PAGE_KEY = 'stokOpname_activePage_v1';
 function switchAppPage(page, opts){
   const skipSave = opts && opts.skipSave;
   const skipScroll = opts && opts.skipScroll;
-  const opnameView = document.getElementById('pageOpnameView');
-  const orderView = document.getElementById('pageOrderView');
-  const tabOpname = document.getElementById('tabOpname');
-  const tabOrder = document.getElementById('tabOrder');
-  if(page === 'order'){
-    opnameView.style.display = 'none';
-    orderView.style.display = '';
-    tabOpname.classList.remove('active');
-    tabOrder.classList.add('active');
-    renderOrderList();
-  } else {
-    opnameView.style.display = '';
-    orderView.style.display = 'none';
-    tabOrder.classList.remove('active');
-    tabOpname.classList.add('active');
-  }
+  const views = { opname:'pageOpnameView', order:'pageOrderView', gaji:'pageGajiView' };
+  const tabs = { opname:'tabOpname', order:'tabOrder', gaji:'tabGaji' };
+  if(!views[page]) page = 'opname';
+  Object.keys(views).forEach(function(k){
+    const v = document.getElementById(views[k]), t = document.getElementById(tabs[k]);
+    if(v) v.style.display = (k === page) ? '' : 'none';
+    if(t) t.classList.toggle('active', k === page);
+  });
+  if(page === 'order') renderOrderList();
+  if(page === 'gaji' && window.gjRender) window.gjRender();
   if(!skipSave){
     try{ localStorage.setItem(APP_PAGE_KEY, page); }catch(e){ /* abaikan */ }
   }
@@ -8570,8 +8636,8 @@ initOrderListListener();
 (function restoreActivePage(){
   try{
     const savedPage = localStorage.getItem(APP_PAGE_KEY);
-    if(savedPage === 'order'){
-      switchAppPage('order', { skipSave:true, skipScroll:true });
+    if(savedPage === 'order' || savedPage === 'gaji'){
+      switchAppPage(savedPage, { skipSave:true, skipScroll:true });
     }
   }catch(e){ /* abaikan */ }
 })();
@@ -13532,90 +13598,102 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
   setInterval(sync, 60000);
 })();
 </script>
-
-<!-- ====== Pengumuman: Perbarui Kode Bookmark ====== -->
-<style>
-  #bmUpd{position:fixed; inset:0; z-index:9995; display:none; align-items:center; justify-content:center; padding:16px;
-    background:rgba(10,25,22,.6); font-family:inherit;}
-  #bmUpd.on{display:flex;}
-  #bmUpd .bmu-box{position:relative; width:100%; max-width:380px; max-height:calc(100% - 20px); overflow:auto; border-radius:18px;
-    background:#fff; color:#1b2a27; padding:20px 16px 16px; box-shadow:0 12px 40px rgba(0,0,0,.35);}
-  #bmUpd .bmu-x{position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%; border:0; cursor:pointer;
-    background:#eef2f1; color:#355; font-size:16px; line-height:28px; padding:0;}
-  #bmUpd .bmu-ico{font-size:36px; line-height:1; text-align:center;}
-  #bmUpd h3{margin:6px 0 4px; font-size:17px; color:#155e4e; text-align:center;}
-  #bmUpd .bmu-sub{margin:0 0 10px; font-size:12.5px; line-height:1.45; color:#4b6b65; text-align:center;}
-  #bmUpd .bmu-feat{margin:0 0 12px; padding:9px 12px; border-radius:12px; background:#eaf6f2; border:1px solid #cfe6df;}
-  #bmUpd .bmu-feat-t{font-size:12px; font-weight:800; color:#155e4e; margin-bottom:4px;}
-  #bmUpd .bmu-feat ul{list-style:none; margin:0; padding:0; font-size:13px; line-height:1.5; color:#173b36; font-weight:600;}
-  #bmUpd .bmu-feat li{padding:1px 0;}
-  #bmUpd ol{margin:0 0 10px; padding:0 0 0 20px; font-size:13px; line-height:1.5;}
-  #bmUpd ol li{padding:2px 0;}
-  #bmUpd textarea{display:block; width:100%; height:110px; resize:none; border:1.5px solid #cfdcd7; border-radius:10px; padding:8px;
-    background:#f4f8f6; color:#173b36; font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; font-size:10.5px; line-height:1.35;
-    word-break:break-all; margin:0 0 10px;}
-  #bmUpd .bmu-copy{width:100%; border:0; border-radius:12px; padding:11px; font:inherit; font-weight:700; font-size:14px; color:#fff; cursor:pointer;
-    background:linear-gradient(135deg,#155e4e,#0d5c52); margin-bottom:8px;}
-  #bmUpd .bmu-copy.ok{background:linear-gradient(135deg,#3c8a5c,#2f7a4e);}
-  #bmUpd .bmu-done{width:100%; border:1.5px solid #cfdcd7; border-radius:12px; padding:9px; font:inherit; font-weight:600; font-size:13px;
-    color:#355; background:#fff; cursor:pointer;}
-  #bmUpd .bmu-note{margin:8px 0 0; font-size:11px; color:#7a8f8a; text-align:center; line-height:1.4;}
-</style>
-<div id="bmUpd" role="dialog" aria-modal="true" aria-labelledby="bmuTitle">
-  <div class="bmu-box">
-    <button type="button" class="bmu-x" id="bmuX" aria-label="Tutup">×</button>
-    <div class="bmu-ico">🔖</div>
-    <h3 id="bmuTitle">Perbarui Kode Bookmark</h3>
-    <p class="bmu-sub">Ada pembaruan kode bookmark karena ada tambahan fitur baru. Mohon ganti kode bookmark lama kamu dengan kode terbaru di bawah ini.</p>
-    <div class="bmu-feat">
-      <div class="bmu-feat-t">✨ Fitur baru</div>
-      <ul>
-        <li>🧾 Ambil nama di kasir</li>
-        <li>📦 Ambil stok web</li>
-        <li>⚡ Input faktur otomatis</li>
-      </ul>
-    </div>
-    <ol>
-      <li>Tekan tombol <b>Salin Kode</b> di bawah.</li>
-      <li>Buka pengaturan <b>Bookmark</b> di browser, lalu <b>edit</b> bookmark yang lama.</li>
-      <li>Pada kolom <b>URL / Alamat</b>, hapus isi lama lalu <b>tempel</b> kode baru.</li>
-      <li>Simpan.</li>
-    </ol>
-    <textarea id="bmuCode" readonly spellcheck="false" onclick="this.select()">javascript:(function(){var U='https://hoyframcjysrpkbjmfit.supabase.co',K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveWZyYW1janlzcnBrYmptZml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzA2MTYsImV4cCI6MjEwMDEwNjYxNn0.FZHy-qnZxltXNtHzkQ-bLyEiiW5Kp2fxK9ry5oA-cTY',T='stok_opname_scripts',go=function(){supabase.createClient(U,K).from(T).select('*').eq('enabled',true).order('sort_order').order('name').then(function(r){if(r.error)return alert('Gagal: '+r.error.message);(r.data||[]).forEach(function(it){try{(0,eval)(it.code);}catch(e){console.error(e);}});});};if(window.supabase)go();else{var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.onload=go;document.head.appendChild(s);}})();</textarea>
-    <button type="button" class="bmu-copy" id="bmuCopy">📋 Salin Kode</button>
-    <button type="button" class="bmu-done" id="bmuDone">Sudah diperbarui, jangan tampilkan lagi</button>
-    <p class="bmu-note">Menutup dengan ✕ hanya menyembunyikan sementara. Pengumuman muncul lagi saat halaman dibuka ulang.</p>
-  </div>
-</div>
 <script>
 (function(){
-  // Ganti nilai VER setiap kali kode bookmark diperbarui lagi, supaya pengumuman muncul ulang untuk semua orang
-  var VER = 'bm-update-v3';
-  var KEY = 'stokOpnameBookmarkSeen';
-  var modal = document.getElementById('bmUpd');
-  if(!modal) return;
-  function seen(){ try{ return localStorage.getItem(KEY) === VER; }catch(e){ return false; } }
-  function mark(){ try{ localStorage.setItem(KEY, VER); }catch(e){} }
-  function open(){ modal.classList.add('on'); }
-  function close(){ modal.classList.remove('on'); }
-  var ta = document.getElementById('bmuCode'), btn = document.getElementById('bmuCopy');
-  function flash(){
-    btn.classList.add('ok'); btn.textContent = '✅ Kode tersalin!';
-    setTimeout(function(){ btn.classList.remove('ok'); btn.textContent = '📋 Salin Kode'; }, 2200);
+const $=id=>document.getElementById(id);
+if(!$("gjList"))return;
+const SK="gajianCatatan_v1";
+const T={lembur:{n:"Lembur",e:"🌙",r:"LEMBUR"},kons:{n:"Konsinyasi",e:"🛍️",r:"KONSINYASI TERJUAL"},target:{n:"Lewat target",e:"🏆",r:"LEWAT TARGET OMSET"}};
+let S={lembur:[],kons:[],target:[]},flt="all",sp=false,pend=null,pt,ss=false,mt;
+try{const r=localStorage.getItem(SK);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rp=n=>"Rp "+Math.round(n).toLocaleString("id-ID");
+const pad=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+const fd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"})};
+const pending=k=>S[k].filter(x=>!x.done);
+const save=()=>{try{localStorage.setItem(SK,JSON.stringify(S))}catch(e){}};
+function say(m){const e=$("gjMsg");e.textContent=m;e.classList.add("show");clearTimeout(mt);mt=setTimeout(()=>e.classList.remove("show"),2400)}
+function desc(k,x){
+  const kt=x.ket?" · "+x.ket:"";
+  if(k==="lembur")return "Lembur"+kt;
+  if(k==="kons")return x.barang+" × "+(x.qty||1)+(x.harga?" · "+rp(x.harga*(x.qty||1)):"")+kt;
+  const p=[];
+  if(x.omset)p.push("Omset "+rp(x.omset));
+  if(x.tgt)p.push("target "+rp(x.tgt));
+  if(x.omset&&x.tgt&&x.omset>x.tgt)p.push("lebih "+rp(x.omset-x.tgt));
+  return (p.join(" · ")||"Melebihi target omset")+kt;
+}
+function li(x){
+  const a=pend===x.id,d=`data-k="${x.k}" data-id="${x.id}"`;
+  return `<li class="gj-li ${x.done?"done":""}"><span class="gj-ic">${T[x.k].e}</span><div class="gj-mid"><b>${fd(x.tgl)}</b><span>${esc(desc(x.k,x))}</span></div><label class="gj-chk"><input type="checkbox" data-a="done" ${d} ${x.done?"checked":""}> Disetor</label><button type="button" class="gj-del ${a?"ask":""}" data-a="del" ${d} aria-label="Hapus">${a?"Hapus?":"✕"}</button></li>`;
+}
+function rekap(){
+  const out=["REKAP SETORAN GAJIAN","Dibuat: "+new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}),""];
+  let any=false;
+  for(const k of Object.keys(T)){
+    const a=pending(k).sort((p,q)=>p.tgl.localeCompare(q.tgl));
+    if(!a.length)continue;
+    any=true;
+    out.push(T[k].r+" ("+a.length+(k==="lembur"?" hari":"")+")");
+    a.forEach(x=>out.push("- "+fd(x.tgl)+" — "+desc(k,x)));
+    if(k==="kons"){const v=a.reduce((s,x)=>s+(x.harga||0)*(x.qty||1),0);if(v)out.push("Total: "+rp(v))}
+    out.push("");
   }
-  function fallback(){
-    try{ ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); if(document.execCommand('copy')) flash(); }catch(e){}
-  }
-  btn.addEventListener('click', function(){
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(ta.value).then(flash).catch(fallback);
-    } else fallback();
-  });
-  document.getElementById('bmuX').addEventListener('click', close);
-  document.getElementById('bmuDone').addEventListener('click', function(){ mark(); close(); });
-  modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
-  if(!seen()) setTimeout(open, 800);
+  return any?out.join("\n").trim():"Belum ada catatan yang menunggu disetor.";
+}
+function render(){
+  const L=pending("lembur"),N=pending("kons"),G=pending("target");
+  const qty=N.reduce((s,x)=>s+(x.qty||1),0);
+  $("gjSum").innerHTML=[["lembur",L.length,"hari lembur"],["kons",qty,"barang terjual"],["target",G.length,"hari lewat target"]].map(([k,n,l])=>`<div class="gj-box"><i>${T[k].e}</i><b>${n}</b><span>${l}</span></div>`).join("");
+  const cnt=k=>k==="all"?L.length+N.length+G.length:pending(k).length;
+  $("gjTabs").innerHTML=[["all","Semua"],...Object.keys(T).map(k=>[k,T[k].e+" "+T[k].n])].map(([k,l])=>`<button type="button" class="gj-chip ${k===flt?"on":""}" data-f="${k}">${l}${cnt(k)?" ("+cnt(k)+")":""}</button>`).join("");
+  const items=Object.keys(T).flatMap(k=>S[k].map(x=>({...x,k}))).filter(x=>(flt==="all"||x.k===flt)&&(sp||!x.done)).sort((a,b)=>b.tgl.localeCompare(a.tgl)||b.id.localeCompare(a.id));
+  $("gjList").innerHTML=items.length?items.map(li).join(""):`<li class="gj-empty">Belum ada catatan${sp?"":" yang menunggu disetor"}.</li>`;
+  $("gjRk").value=rekap();
+}
+function pick(){const v=$("gjJenis").value;$("gjG_kons").hidden=v!=="kons";$("gjG_target").hidden=v!=="target"}
+function add(){
+  const k=$("gjJenis").value,tgl=$("gjTgl").value,v=i=>$(i).value.trim(),nm=i=>v(i)===""?null:parseFloat(v(i));
+  if(!k){say("Pilih jenis catatannya dulu ya");return}
+  if(!tgl){say("Tanggalnya diisi dulu ya");return}
+  if(k==="kons"&&!v("gjBarang")){say("Nama barangnya diisi dulu ya");$("gjBarang").focus();return}
+  const o={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),tgl,ket:v("gjKet"),done:false};
+  if(k==="kons"){o.barang=v("gjBarang");o.qty=nm("gjQty")||1;o.harga=nm("gjHarga")}
+  if(k==="target"){o.omset=nm("gjOmset");o.tgt=nm("gjTgt")}
+  S[k].push(o);save();
+  ["gjBarang","gjHarga","gjOmset","gjTgt","gjKet"].forEach(i=>$(i).value="");$("gjQty").value=1;
+  render();say("Tersimpan ✓");
+}
+$("gjTgl").value=today();
+$("gjJenis").onchange=pick;
+$("gjAdd").onclick=add;
+$("gjTabs").onclick=e=>{const b=e.target.closest("[data-f]");if(b){flt=b.dataset.f;pend=null;render()}};
+$("gjList").onclick=e=>{
+  const b=e.target.closest('[data-a="del"]');if(!b)return;
+  const k=b.dataset.k,id=b.dataset.id;
+  if(pend===id){S[k]=S[k].filter(x=>x.id!==id);pend=null;save()}
+  else{pend=id;clearTimeout(pt);pt=setTimeout(()=>{pend=null;render()},2500)}
+  render();
+};
+$("gjList").onchange=e=>{
+  const c=e.target.closest('[data-a="done"]');if(!c)return;
+  const x=S[c.dataset.k].find(y=>y.id===c.dataset.id);
+  if(x){x.done=c.checked;save();render()}
+};
+$("gjShowDone").onchange=e=>{sp=e.target.checked;render()};
+$("gjCopy").onclick=async()=>{
+  const ta=$("gjRk");
+  try{await navigator.clipboard.writeText(ta.value);say("Rekap disalin")}
+  catch(e){ta.select();try{document.execCommand("copy");say("Rekap disalin")}catch(_){say("Tekan lama pada teks untuk menyalin")}}
+};
+$("gjSettle").onclick=()=>{
+  const b=$("gjSettle");
+  if(!ss){ss=true;b.textContent="Yakin? Klik lagi untuk konfirmasi";setTimeout(()=>{ss=false;b.textContent="Tandai semua sudah disetor"},3000);return}
+  ss=false;Object.keys(T).forEach(k=>S[k].forEach(x=>x.done=true));
+  save();render();b.textContent="Tandai semua sudah disetor";say("Semua sudah disetor");
+};
+pick();render();window.gjRender=render;
 })();
 </script>
 </body>
