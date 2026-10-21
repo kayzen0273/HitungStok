@@ -1781,6 +1781,9 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
 </style>
 <style>
 /* ===== Menu Gajian (lembur, konsinyasi, lewat target) ===== */
+.gj-status{font-size:11.5px;color:var(--ink-soft);margin-bottom:10px}
+.gj-status pre{margin:6px 0 0;padding:8px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--t-ir,10px);font:11px/1.5 "JetBrains Mono",monospace;white-space:pre-wrap;user-select:all;color:var(--ink)}
+#pageGajiView.gj-off .card,#pageGajiView.gj-off .gj-sum{pointer-events:none;opacity:.45}
 .gj-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .gj-box{background:var(--card);border:var(--t-bw,1px) solid var(--t-edge2,var(--line));border-radius:var(--t-r,14px);padding:10px 6px;text-align:center;box-shadow:var(--t-sh,none)}
 .gj-box i{font-style:normal;font-size:20px}
@@ -2279,6 +2282,7 @@ body[data-theme]:not([data-theme="asli"]) .toggle-switch input:checked + .toggle
   <!-- /#pageOpnameView -->
 
   <div id="pageGajiView" style="display:none;">
+    <div class="gj-status" id="gjStatus"></div>
     <div class="gj-sum" id="gjSum"></div>
     <div class="card">
       <h2>Catat Gajian</h2>
@@ -13598,17 +13602,71 @@ window.__PHOENIX_LOTTIE__ = {"v":"5.9.0","fr":29.9700012207031,"ip":0,"op":65.00
 (function(){
 const $=id=>document.getElementById(id);
 if(!$("gjList"))return;
-const SK="gajianCatatan_v1";
+const TABLE="stok_opname_gajian";
+const SQL=`create table if not exists stok_opname_gajian (
+  petugas_key text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+alter table stok_opname_gajian enable row level security;
+create policy "gajian_all" on stok_opname_gajian for all using (true) with check (true);`;
 const T={lembur:{n:"Lembur",e:"🌙",r:"LEMBUR"},kons:{n:"Konsinyasi",e:"🛍️",r:"KONSINYASI TERJUAL"},target:{n:"Lewat target",e:"🏆",r:"LEWAT TARGET OMSET"}};
-let S={lembur:[],kons:[],target:[]},flt="all",sp=false,pend=null,pt,ss=false,mt;
-try{const r=localStorage.getItem(SK);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const EMPTY=()=>({lembur:[],kons:[],target:[]});
+let S=EMPTY(),flt="all",sp=false,pend=null,pt,ss=false,mt,curKey=null,ready=false,busy=false,dirty=false,tm,rt;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rp=n=>"Rp "+Math.round(n).toLocaleString("id-ID");
 const pad=n=>String(n).padStart(2,"0");
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
 const fd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"})};
 const pending=k=>S[k].filter(x=>!x.done);
-const save=()=>{try{localStorage.setItem(SK,JSON.stringify(S))}catch(e){}};
+function status(m,sql){const e=$("gjStatus");e.textContent=m;if(sql){const p=document.createElement("pre");p.textContent=sql;e.appendChild(p)}}
+function myKey(){
+  let id=null;try{id=getMyPetugasId()}catch(e){}
+  if(id)return "id:"+id;
+  const el=$("metaPetugas"),sl=(el&&el.value&&typeof slugifyPetugas==="function")?slugifyPetugas(el.value):"";
+  return sl?"nama:"+sl:null;
+}
+function save(){dirty=true;clearTimeout(tm);tm=setTimeout(flush,300)}
+async function flush(){
+  if(busy){tm=setTimeout(flush,300);return}
+  if(!dirty||!curKey||!ready)return;
+  busy=true;dirty=false;
+  try{
+    const cl=initSupabaseClient();if(!cl)throw new Error("Supabase belum siap");
+    const{error}=await cl.from(TABLE).upsert({petugas_key:curKey,data:S,updated_at:new Date().toISOString()},{onConflict:"petugas_key"});
+    if(error)throw error;
+    status("☁ Tersimpan di akun petugas ini");
+  }catch(e){
+    dirty=true;status("Gagal menyimpan ("+((e&&e.message)||e)+"). Mencoba lagi…");
+    clearTimeout(rt);rt=setTimeout(flush,5000);
+  }
+  busy=false;
+}
+async function load(key){
+  status("Memuat catatan…");
+  try{
+    const cl=initSupabaseClient();if(!cl)throw new Error("Supabase belum siap");
+    const{data,error}=await cl.from(TABLE).select("data").eq("petugas_key",key).maybeSingle();
+    if(error)throw error;
+    if(key!==curKey)return;
+    S=Object.assign(EMPTY(),(data&&data.data)||{});
+    ready=true;status("☁ Tersimpan di akun petugas ini");
+  }catch(e){
+    if(key!==curKey)return;
+    ready=false;const m=(e&&e.message)||String(e);
+    if(/does not exist|42P01|schema cache|relation/i.test(m))status("Tabel catatan gajian belum dibuat di Supabase. Jalankan SQL ini sekali di SQL Editor, lalu buka ulang menu ini:",SQL);
+    else status("Gagal memuat catatan: "+m);
+  }
+  render();
+}
+async function sync(){
+  const key=myKey();
+  if(key===curKey)return;
+  if(dirty&&ready)await flush();
+  curKey=key;ready=false;dirty=false;S=EMPTY();render();
+  if(!key){status("Pilih petugas dulu supaya catatan Gajian tersimpan di akunmu.");return}
+  await load(key);
+}
 function say(m){const e=$("gjMsg");e.textContent=m;e.classList.add("show");clearTimeout(mt);mt=setTimeout(()=>e.classList.remove("show"),2400)}
 function desc(k,x){
   const kt=x.ket?" · "+x.ket:"";
@@ -13635,6 +13693,7 @@ function rekap(){
   return any?out.join("\n").trim():"Belum ada catatan yang menunggu disetor.";
 }
 function render(){
+  $("pageGajiView").classList.toggle("gj-off",!ready);
   const L=pending("lembur"),N=pending("kons"),G=pending("target");
   const qty=N.reduce((s,x)=>s+(x.qty||1),0);
   $("gjSum").innerHTML=[["lembur",L.length,"hari lembur"],["kons",qty,"barang terjual"],["target",G.length,"hari lewat target"]].map(([k,n,l])=>`<div class="gj-box"><i>${T[k].e}</i><b>${n}</b><span>${l}</span></div>`).join("");
@@ -13646,6 +13705,7 @@ function render(){
 }
 function pick(){$("gjG_kons").hidden=$("gjJenis").value!=="kons"}
 function add(){
+  if(!ready){say("Data belum termuat. Pilih petugas dulu ya");return}
   const k=$("gjJenis").value,tgl=$("gjTgl").value,v=i=>$(i).value.trim(),nm=i=>v(i)===""?null:parseFloat(v(i));
   if(!k){say("Pilih jenis catatannya dulu ya");return}
   if(!tgl){say("Tanggalnya diisi dulu ya");return}
@@ -13684,7 +13744,11 @@ $("gjSettle").onclick=()=>{
   ss=false;Object.keys(T).forEach(k=>S[k].forEach(x=>x.done=true));
   save();render();b.textContent="Tandai semua sudah disetor";say("Semua sudah disetor");
 };
-pick();render();window.gjRender=render;
+window.gjRender=async()=>{
+  if(myKey()!==curKey)await sync();
+  else if(curKey&&!busy&&!dirty)await load(curKey);
+};
+pick();render();sync();setInterval(sync,3000);
 })();
 </script>
 </body>
