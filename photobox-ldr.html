@@ -1,0 +1,4407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHOTO BOX — Studio Foto Instan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --booth-black:#1a1816;
+    --curtain-red:#b23a30;
+    --curtain-red-dark:#8c2c24;
+    --paper-cream:#f2e8d5;
+    --bulb-amber:#f4b942;
+    --ink:#2b2622;
+    --teal:#3f6b64;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top, #2a2622 0%, var(--booth-black) 60%);
+    color:var(--paper-cream);
+    font-family:'Space Mono', monospace;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 80px;
+    overflow-x:hidden;
+  }
+
+  .marquee{
+    position:relative;
+    width:100%;
+    max-width:720px;
+    text-align:center;
+    padding:22px 10px 26px;
+    margin-bottom:28px;
+    background:repeating-linear-gradient(
+      -8deg,
+      var(--curtain-red),
+      var(--curtain-red) 22px,
+      var(--curtain-red-dark) 22px,
+      var(--curtain-red-dark) 44px
+    );
+    border-radius:10px;
+    box-shadow: 0 10px 0 rgba(0,0,0,.25), 0 14px 24px rgba(0,0,0,.45);
+  }
+  .marquee::before, .marquee::after{
+    content:"";
+    position:absolute;
+    top:8px; bottom:8px;
+    width:14px;
+    background-image: radial-gradient(circle, var(--bulb-amber) 0 3.5px, transparent 4px);
+    background-size: 22px 22px;
+    background-repeat: repeat-y;
+    opacity:.9;
+    filter: drop-shadow(0 0 4px var(--bulb-amber));
+  }
+  .marquee::before{ left:6px; }
+  .marquee::after{ right:6px; }
+
+  .settings-btn{
+    position:absolute;
+    top:10px; right:26px;
+    width:32px; height:32px;
+    border-radius:50%;
+    border:1px solid rgba(244,185,66,.5);
+    background:rgba(0,0,0,.35);
+    color:var(--bulb-amber);
+    font-size:16px;
+    cursor:pointer;
+    z-index:2;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .2s ease, background .2s ease;
+  }
+  .settings-btn:hover{ background:rgba(0,0,0,.55); transform:rotate(35deg); }
+
+  .settings-overlay{
+    position:fixed; inset:0;
+    background:rgba(10,8,6,.72);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:50;
+    padding:16px;
+  }
+  .settings-overlay.open{ display:flex; }
+  .settings-modal{
+    background:var(--paper-cream);
+    color:var(--ink);
+    border-radius:14px;
+    padding:24px;
+    width:min(360px, 100%);
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+    font-family:'Space Mono', monospace;
+  }
+  .settings-modal h2{
+    font-family:'Anton', sans-serif;
+    letter-spacing:2px;
+    margin:0 0 16px;
+    font-size:20px;
+    color:var(--ink);
+  }
+  .settings-modal label{
+    display:block;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    margin-bottom:6px;
+    opacity:.75;
+  }
+  .settings-modal input{
+    width:100%;
+    font-family:'Space Mono', monospace;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:8px;
+    border:2px solid rgba(43,38,34,.2);
+    background:#fff;
+    color:var(--ink);
+    box-sizing:border-box;
+  }
+  .settings-modal input:focus{ outline:none; border-color:var(--bulb-amber); }
+  .settings-hint{
+    font-size:11px;
+    line-height:1.5;
+    opacity:.65;
+    margin:10px 0 0;
+  }
+  .settings-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:20px;
+  }
+  .settings-cancel, .settings-save{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    border:none;
+    padding:9px 16px;
+    border-radius:20px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .settings-cancel{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 2px rgba(43,38,34,.25); }
+  .settings-cancel:hover{ background:rgba(43,38,34,.08); }
+  .settings-save{ background:var(--bulb-amber); color:var(--ink); }
+  .settings-save:hover{ filter:brightness(1.08); }
+
+  .ldr-btn{ left:26px; right:auto; color:#ff9ecb; border-color:rgba(255,158,203,.5); }
+  .ldr-btn:hover{ background:rgba(0,0,0,.55); transform:scale(1.08); }
+  .ldr-btn.active{ background:rgba(255,158,203,.22); border-color:#ff9ecb; }
+  .ldr-role-choice{
+    display:flex; gap:10px; margin-top:4px;
+  }
+  .ldr-role-btn{
+    flex:1;
+    font-family:'Space Mono', monospace;
+    background:#fff;
+    border:2px solid rgba(43,38,34,.15);
+    border-radius:12px;
+    padding:14px 10px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--ink);
+    line-height:1.4;
+    transition:.15s;
+  }
+  .ldr-role-btn:hover{ border-color:#ff9ecb; background:rgba(255,158,203,.08); }
+  .ldr-role-icon{ font-size:22px; display:block; margin-bottom:6px; }
+  .ldr-role-btn small{ font-size:10px; opacity:.65; font-weight:400; }
+  .ldr-panel{ margin-top:16px; }
+  .ldr-code-display{
+    font-family:'Anton', sans-serif;
+    font-size:32px;
+    letter-spacing:6px;
+    text-align:center;
+    background:#fff;
+    border:2px dashed rgba(255,158,203,.6);
+    border-radius:10px;
+    padding:14px 8px;
+    color:var(--ink);
+  }
+  .ldr-status{
+    font-size:12px;
+    line-height:1.5;
+    opacity:.7;
+    margin:10px 0 0;
+    text-align:center;
+  }
+  .ldr-status.connected{ color:#1f7a4d; opacity:1; font-weight:700; }
+  .ldr-status.error{ color:#b23a3a; opacity:1; font-weight:700; }
+
+  .marquee h1{
+    font-family:'Anton', sans-serif;
+    font-size:clamp(38px, 7vw, 64px);
+    letter-spacing:4px;
+    margin:0;
+    color:var(--paper-cream);
+    text-shadow: 3px 3px 0 var(--ink), 0 0 18px rgba(244,185,66,.35);
+  }
+  .marquee p{
+    margin:6px 0 0;
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--paper-cream);
+    opacity:.85;
+  }
+
+  .studio{
+    display:flex;
+    gap:28px;
+    width:100%;
+    max-width:940px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+
+  .camera-unit{
+    background: linear-gradient(180deg, #262220, #16130f);
+    border-radius:18px;
+    padding:18px;
+    width:min(520px, 100%);
+    box-shadow: inset 0 0 0 2px rgba(244,185,66,.15), 0 18px 40px rgba(0,0,0,.5);
+    position:relative;
+  }
+  .viewfinder{
+    position:relative;
+    aspect-ratio: 4/3;
+    background:#000;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 6px var(--ink), inset 0 0 0 8px rgba(244,185,66,.35);
+  }
+  #video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transform: scaleX(-1);
+    display:block;
+    background:#000;
+  }
+  #video.mirror-off{ transform:none; }
+  #aiCanvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    display:none;
+    transform: scaleX(-1);
+    background:#000;
+  }
+  #aiCanvas.mirror-off{ transform:none; }
+  #arCanvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    pointer-events:none;
+    transform: scaleX(-1);
+  }
+  #arCanvas.mirror-off{ transform:none; }
+  .ar-badge{
+    position:absolute; bottom:10px; left:10px;
+    display:none;
+    align-items:center; gap:6px;
+    background:rgba(0,0,0,.6);
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:#ff9ecb;
+    z-index:4;
+  }
+  .ar-badge .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:#ff9ecb;
+    animation: aiPulse 1s ease-in-out infinite;
+  }
+  .ai-badge{
+    position:absolute; top:10px; right:10px;
+    display:none;
+    align-items:center; gap:6px;
+    background:rgba(0,0,0,.6);
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--bulb-amber);
+    z-index:4;
+  }
+  .ai-badge .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--bulb-amber);
+    animation: aiPulse 1s ease-in-out infinite;
+  }
+  @keyframes aiPulse{ 0%,100%{opacity:.3;} 50%{opacity:1;} }
+  .ldr-badge{
+    position:absolute; top:10px; left:50%;
+    transform:translateX(-50%);
+    display:none;
+    align-items:center; gap:6px;
+    background:rgba(0,0,0,.6);
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:#ff9ecb;
+    z-index:6;
+    white-space:nowrap;
+  }
+  .ldr-badge .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:#ff9ecb;
+    animation: aiPulse 1s ease-in-out infinite;
+  }
+  #remoteVideo{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    display:none;
+    transform: scaleX(-1);
+    background:#000;
+  }
+  #remoteVideo.mirror-off{ transform:none; }
+  .viewfinder.ldr-split #video{
+    position:absolute; left:0; top:0;
+    width:50%; height:100%;
+    object-fit:cover;
+  }
+  .viewfinder.ldr-split #remoteVideo{
+    display:block;
+    left:50%; width:50%;
+  }
+  .viewfinder.ldr-split #aiCanvas,
+  .viewfinder.ldr-split #arCanvas{
+    display:none !important;
+  }
+  .ldr-seam{
+    position:absolute; top:0; bottom:0; left:50%; width:0;
+    border-left:2px dashed rgba(244,232,213,.85);
+    pointer-events:none; z-index:5;
+    display:none;
+  }
+  .viewfinder.ldr-split .ldr-seam{ display:block; }
+  /* On the guest's own screen, keep the guest's camera on the right —
+     same side it appears on the host's screen and in the final photo. */
+  .viewfinder.ldr-split.ldr-guest-view #video{
+    left:auto; right:0;
+  }
+  .viewfinder.ldr-split.ldr-guest-view #remoteVideo{
+    left:0; right:auto;
+  }
+  .tint{
+    position:absolute; inset:0;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s;
+  }
+
+  .idle-msg, .error-msg{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:12px;
+    text-align:center; padding:24px;
+    font-size:13px; line-height:1.6;
+    color:var(--paper-cream); background:rgba(0,0,0,.72);
+  }
+  .idle-msg{ background:rgba(20,17,14,.9); }
+  .idle-msg .spinner{
+    width:26px; height:26px;
+    border-radius:50%;
+    border:3px solid rgba(244,185,66,.25);
+    border-top-color:var(--bulb-amber);
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .error-msg{ color:#ffb4a8; }
+  .retry-btn{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    background:var(--bulb-amber);
+    color:var(--ink);
+    border:none;
+    padding:8px 16px;
+    border-radius:20px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .retry-btn:hover{ filter:brightness(1.08); }
+
+  .countdown{
+    position:absolute; inset:0;
+    display:none;
+    align-items:center; justify-content:center;
+    font-family:'Anton', sans-serif;
+    font-size:130px;
+    color:var(--bulb-amber);
+    text-shadow: 0 0 30px rgba(244,185,66,.8);
+    background:rgba(0,0,0,.15);
+  }
+  .flash{
+    position:absolute; inset:0;
+    background:#fff;
+    opacity:0;
+    pointer-events:none;
+  }
+  @keyframes flashPop{
+    0%{opacity:0;} 12%{opacity:1;} 100%{opacity:0;}
+  }
+  .flash.pop{ animation: flashPop .45s ease-out; }
+
+  .shot-counter{
+    position:absolute; top:10px; left:10px;
+    background:rgba(0,0,0,.6);
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--bulb-amber);
+  }
+
+  .controls{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  .filters{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .filter-btn{
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid rgba(244,232,213,.35);
+    color:var(--paper-cream);
+    padding:7px 11px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .filter-btn:hover{ border-color:var(--bulb-amber); color:var(--bulb-amber); }
+  .filter-btn.active{ background:var(--bulb-amber); color:var(--ink); border-color:var(--bulb-amber); font-weight:700; }
+
+  .flip-btn{
+    width:40px; height:40px;
+    border-radius:50%;
+    background:rgba(244,232,213,.08);
+    border:1px solid rgba(244,232,213,.35);
+    color:var(--paper-cream);
+    font-size:16px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+  }
+  .flip-btn:hover{ border-color:var(--bulb-amber); color:var(--bulb-amber); }
+  .flip-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .ai-panel{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:12px;
+    background:rgba(244,232,213,.05);
+    border:1px solid rgba(244,232,213,.18);
+  }
+  .ai-panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .ai-panel-title{
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    opacity:.8;
+  }
+  .ai-switch{
+    width:38px; height:22px;
+    border-radius:20px;
+    background:rgba(244,232,213,.18);
+    border:1px solid rgba(244,232,213,.32);
+    position:relative;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:.2s;
+    padding:0;
+  }
+  .ai-switch::after{
+    content:"";
+    position:absolute; top:2px; left:2px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:var(--paper-cream);
+    transition:.2s;
+  }
+  .ai-switch.on{ background:var(--teal); border-color:var(--teal); }
+  .ai-switch.on::after{ transform:translateX(16px); background:#fff; }
+  .ai-switch:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .ai-presets{
+    display:none;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+  }
+  .ai-preset-btn{
+    width:44px; height:44px;
+    border-radius:10px;
+    border:2px solid transparent;
+    cursor:pointer;
+    font-size:16px;
+    color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+  }
+  .ar-preset-btn{
+    width:44px; height:44px;
+    border-radius:10px;
+    border:2px solid transparent;
+    cursor:pointer;
+    font-size:19px;
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+  }
+  .ai-preset-btn.active, .ar-preset-btn.active{ border-color:var(--bulb-amber); }
+  .ai-preset-btn:disabled, .ar-preset-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .ai-status-text{
+    font-size:9.5px;
+    letter-spacing:.5px;
+    opacity:.65;
+    margin-top:8px;
+    text-align:center;
+    min-height:12px;
+  }
+
+  .shutter-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .shutter{
+    width:66px; height:66px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #d75145, var(--curtain-red-dark));
+    border:4px solid var(--paper-cream);
+    box-shadow: 0 6px 0 rgba(0,0,0,.4), 0 10px 18px rgba(0,0,0,.45);
+    cursor:pointer;
+    transition: transform .1s;
+  }
+  .shutter:active{ transform: translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.4); }
+  .shutter:disabled{ opacity:.4; cursor:not-allowed; }
+  .shutter-label{ font-size:9px; letter-spacing:2px; opacity:.7; text-transform:uppercase; }
+
+  .strip-area{
+    width:min(230px, 100%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .frame-picker{
+    width:100%;
+    margin-bottom:14px;
+  }
+  .frame-picker-label{
+    font-size:9px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    opacity:.6;
+    margin-bottom:8px;
+    text-align:center;
+  }
+  .frames{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    justify-content:center;
+  }
+  .calib-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .calib-row label{
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:.75;
+    width:96px;
+    flex-shrink:0;
+    display:flex;
+    justify-content:space-between;
+  }
+  .calib-row label span{
+    opacity:.55;
+    font-variant-numeric:tabular-nums;
+  }
+  .calib-row input[type="range"]{
+    flex:1;
+    accent-color: var(--bulb-amber);
+  }
+  #scrapbookCalib .settings-cancel{
+    background:rgba(244,232,213,.06);
+    color:var(--paper-cream);
+    box-shadow:inset 0 0 0 1px rgba(244,232,213,.3);
+    font-size:9px;
+  }
+  #scrapbookCalib .settings-hint{
+    color:var(--paper-cream);
+    opacity:.55;
+    text-align:center;
+  }
+  .frame-btn, .layout-btn{
+    font-family:'Space Mono', monospace;
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    background:rgba(244,232,213,.06);
+    border:1px solid rgba(244,232,213,.3);
+    color:var(--paper-cream);
+    padding:7px 9px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.15s;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .frame-btn .swatch{
+    width:10px; height:10px;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+  .layout-icon{
+    display:grid;
+    gap:2px;
+    width:14px; height:14px;
+    flex-shrink:0;
+  }
+  .layout-icon i{
+    display:block;
+    background:var(--paper-cream);
+    opacity:.5;
+    border-radius:1px;
+    font-style:normal;
+  }
+  .layout-btn.active .layout-icon i{ background:var(--ink); opacity:.85; }
+  .frame-btn:hover, .layout-btn:hover{ border-color:var(--bulb-amber); }
+  .frame-btn.active, .layout-btn.active{ background:var(--bulb-amber); color:var(--ink); border-color:var(--bulb-amber); font-weight:700; }
+  .frame-btn:disabled, .layout-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .strip-slot{
+    background: repeating-linear-gradient(180deg, #100e0c, #100e0c 6px, #17140f 6px, #17140f 12px);
+    border-radius: 4px 4px 14px 14px;
+    padding:10px 10px 20px;
+    width:100%;
+    min-height:120px;
+    box-shadow: inset 0 6px 14px rgba(0,0,0,.6);
+    display:flex;
+    justify-content:center;
+  }
+  .strip-canvas-wrap{
+    position:relative;
+    width:100%;
+    max-width:190px;
+    margin:0 auto;
+  }
+  #stripCanvas{
+    width:100%;
+    display:block;
+    border-radius:2px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.5);
+    background:var(--paper-cream);
+  }
+  .sticker-overlay{
+    position:absolute;
+    inset:0;
+    pointer-events:auto;
+    touch-action:none;
+  }
+  .photo-ghost{
+    position:fixed;
+    width:74px;
+    aspect-ratio:4/3;
+    object-fit:cover;
+    border-radius:6px;
+    border:2px solid var(--bulb-amber);
+    box-shadow:0 6px 16px rgba(0,0,0,.5);
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    opacity:.92;
+    z-index:9999;
+  }
+  .sticker-item{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    cursor:grab;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+    line-height:1;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));
+    z-index:4;
+  }
+  .sticker-item.dragging{ cursor:grabbing; z-index:20; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .sticker-remove{
+    position:absolute;
+    top:-9px; right:-9px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:var(--curtain-red);
+    color:#fff;
+    font-size:10px;
+    line-height:16px;
+    text-align:center;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    box-shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  .sticker-resize-handle{
+    position:absolute;
+    right:-11px; bottom:-11px;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:var(--teal);
+    border:2px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.45);
+    cursor:nwse-resize;
+    touch-action:none;
+  }
+  .sticker-rotate-handle{
+    position:absolute;
+    top:-28px; left:50%;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:var(--bulb-amber);
+    border:2px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.45);
+    cursor:grab;
+    touch-action:none;
+    transform:translateX(-50%);
+  }
+  .sticker-rotate-handle:active{ cursor:grabbing; }
+  .sticker-rotate-handle::after{
+    content:"";
+    position:absolute;
+    top:14px; left:50%;
+    width:2px; height:10px;
+    background:rgba(255,255,255,.55);
+    transform:translateX(-50%);
+  }
+  .sticker-ghost{
+    position:fixed;
+    font-size:28px;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    z-index:9999;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));
+  }
+  .photo-delete-btn{
+    position:absolute;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:var(--curtain-red);
+    color:#fff;
+    font-size:14px;
+    line-height:24px;
+    text-align:center;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    box-shadow:0 2px 6px rgba(0,0,0,.5);
+    transform:translate(-50%,-50%);
+    touch-action:none;
+    z-index:6;
+    animation: popIn .15s ease-out;
+  }
+  .photo-delete-btn:hover{ filter:brightness(1.1); transform:translate(-50%,-50%) scale(1.08); }
+  @keyframes popIn{ from{ transform:translate(-50%,-50%) scale(.5); opacity:0; } to{ transform:translate(-50%,-50%) scale(1); opacity:1; } }
+
+  .photo-hit-area{
+    position:absolute;
+    border-radius:6px;
+    cursor:pointer;
+    touch-action:manipulation;
+    z-index:1;
+    background:rgba(0,0,0,0);
+    transition: background .15s ease, box-shadow .15s ease;
+  }
+  .photo-hit-area:hover{ background:rgba(0,0,0,.08); }
+  .photo-hit-area.selected{
+    background:rgba(10,8,6,.28);
+    box-shadow: 0 0 0 3px var(--curtain-red) inset;
+  }
+
+  .sticker-picker{
+    width:100%;
+    margin-top:14px;
+  }
+  .sticker-picker-hint{
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:none;
+    opacity:.5;
+    text-align:center;
+    margin-top:-4px;
+    margin-bottom:8px;
+  }
+  .sticker-palette{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    justify-content:center;
+  }
+  .sticker-chip{
+    width:32px; height:32px;
+    border-radius:9px;
+    background:rgba(244,232,213,.07);
+    border:1px solid rgba(244,232,213,.28);
+    font-size:17px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:grab;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    transition:.15s;
+  }
+  .sticker-chip:hover{ border-color:var(--bulb-amber); background:rgba(244,185,66,.12); }
+  .sticker-chip:active{ cursor:grabbing; }
+  .sticker-chip:disabled{ opacity:.35; cursor:not-allowed; }
+  .sticker-chip-custom{ padding:5px; }
+  .sticker-chip-custom svg{ width:100%; height:100%; display:block; }
+  .sticker-divider{
+    flex-basis:100%;
+    text-align:center;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    opacity:.5;
+    margin:6px 0 0;
+  }
+  .sticker-item svg{ display:block; }
+  .sticker-clear-btn{
+    display:block;
+    margin:10px auto 0;
+    font-family:'Space Mono', monospace;
+    font-size:9px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid rgba(244,232,213,.3);
+    color:var(--paper-cream);
+    padding:6px 12px;
+    border-radius:16px;
+    cursor:pointer;
+    opacity:.75;
+  }
+  .sticker-clear-btn:hover{ border-color:var(--curtain-red); color:#ffb4a8; opacity:1; }
+
+  @keyframes printOut{
+    from{ clip-path: inset(0 0 100% 0); }
+    to{ clip-path: inset(0 0 0 0); }
+  }
+  #stripCanvas.printing{ animation: printOut 1.1s steps(24) forwards; }
+
+  .strip-caption{
+    margin-top:10px;
+    font-size:10px;
+    letter-spacing:2px;
+    text-align:center;
+    opacity:.65;
+    text-transform:uppercase;
+  }
+
+  .paper-picker{
+    width:100%;
+    margin-top:12px;
+  }
+  .paper-swatches{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+  }
+  .paper-swatch{
+    width:22px; height:22px;
+    border-radius:50%;
+    cursor:pointer;
+    border:2px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.2);
+    transition:.15s;
+  }
+  .paper-swatch.active{ border-color:var(--bulb-amber); transform:scale(1.12); }
+  .paper-swatch:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .strip-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:16px;
+    width:100%;
+  }
+  .action-btn{
+    flex:1 1 28%;
+    min-width:64px;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    padding:10px 6px;
+    border-radius:8px;
+    border:1px solid rgba(244,232,213,.3);
+    background:transparent;
+    color:var(--paper-cream);
+    cursor:pointer;
+    transition:.15s;
+  }
+  .action-btn.primary{
+    background:var(--teal);
+    border-color:var(--teal);
+    color:#f2fbf8;
+    font-weight:700;
+  }
+  .action-btn:hover{ filter:brightness(1.15); }
+  .action-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .qr-wrap{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#fff;
+    padding:12px;
+    border-radius:12px;
+    min-height:170px;
+  }
+  .share-hint{
+    font-size:11px;
+    line-height:1.5;
+    opacity:.7;
+    text-align:center;
+    margin:12px 0 0;
+  }
+  .share-actions{ flex-direction:column; }
+  .share-actions .settings-save,
+  .share-actions .settings-cancel{
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .footer-note{
+    margin-top:36px;
+    font-size:10px;
+    letter-spacing:2px;
+    opacity:.45;
+    text-transform:uppercase;
+    text-align:center;
+  }
+
+  @media (max-width: 640px){
+    .studio{ flex-direction:column; align-items:center; }
+    .strip-area{ width:min(260px, 100%); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .flash.pop{ animation:none; }
+    #stripCanvas.printing{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="marquee">
+    <button class="settings-btn" id="settingsBtn" title="Pengaturan nama photobox" aria-label="Pengaturan nama photobox">⚙</button>
+    <button class="settings-btn ldr-btn" id="ldrBtn" title="Mode LDR — gabung kamera 2 HP" aria-label="Mode LDR">💞</button>
+    <h1 id="photoboxTitle">PHOTO BOX</h1>
+    <p id="heroSubtitle">4 Pose · 1 Strip · Kenangan Instan</p>
+  </div>
+
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-modal">
+      <h2>Pengaturan</h2>
+      <label for="photoboxNameInput">Nama Photobox</label>
+      <input type="text" id="photoboxNameInput" maxlength="28" placeholder="cth. PHOTO BOX">
+      <p class="settings-hint">Nama ini akan tampil di judul halaman dan di atas tanggal pada hasil strip foto.</p>
+      <div class="settings-actions">
+        <button class="settings-cancel" id="settingsCancel" type="button">Batal</button>
+        <button class="settings-save" id="settingsSave" type="button">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-overlay" id="shareOverlay">
+    <div class="settings-modal share-modal">
+      <h2>Bagikan Photo Box</h2>
+      <div class="qr-wrap" id="qrWrap">
+        <canvas id="qrCanvas" width="170" height="170"></canvas>
+      </div>
+      <p class="share-hint" id="shareHint">Scan pakai kamera HP buat lihat preview kecilnya. Kualitas penuh tetap lewat tombol Unduh.</p>
+      <div class="settings-actions share-actions">
+        <button class="settings-save" id="shareNativeBtn" type="button" style="display:none;">Bagikan via Aplikasi</button>
+        <button class="settings-cancel" id="shareCloseBtn" type="button">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-overlay" id="ldrOverlay">
+    <div class="settings-modal ldr-modal">
+      <h2>Mode LDR 💞</h2>
+      <p class="settings-hint" id="ldrIntro">Gabungkan kamera dari 2 HP jadi satu foto split-screen. Host yang pegang tombol jepret, tamu tinggal pasang gaya.</p>
+
+      <div class="ldr-role-choice" id="ldrRoleChoice">
+        <button class="ldr-role-btn" id="ldrHostBtn" type="button">
+          <span class="ldr-role-icon">🏠</span>
+          <span>Jadi Host<br><small>Bikin kode &amp; kontrol jepretan</small></span>
+        </button>
+        <button class="ldr-role-btn" id="ldrGuestBtn" type="button">
+          <span class="ldr-role-icon">📱</span>
+          <span>Gabung ke Host<br><small>Punya kode dari host</small></span>
+        </button>
+      </div>
+
+      <div class="ldr-panel" id="ldrHostPanel" style="display:none;">
+        <label>Kode Room — bagikan ke HP kedua</label>
+        <div class="ldr-code-display" id="ldrCodeDisplay">-----</div>
+        <button class="settings-cancel" id="ldrCopyCodeBtn" type="button" style="width:100%; margin-top:8px; box-sizing:border-box;">Salin Kode</button>
+        <p class="ldr-status" id="ldrHostStatus"></p>
+      </div>
+
+      <div class="ldr-panel" id="ldrGuestPanel" style="display:none;">
+        <label for="ldrCodeInput">Masukin kode dari host</label>
+        <input type="text" id="ldrCodeInput" maxlength="5" placeholder="cth. AB12C" style="text-transform:uppercase; letter-spacing:5px; text-align:center; font-size:18px;">
+        <button class="settings-save" id="ldrJoinBtn" type="button" style="width:100%; margin-top:10px; box-sizing:border-box;">Gabung</button>
+        <p class="ldr-status" id="ldrGuestStatus"></p>
+      </div>
+
+      <div class="settings-actions" id="ldrActions">
+        <button class="settings-cancel" id="ldrBackBtn" type="button" style="display:none;">Kembali</button>
+        <button class="settings-cancel" id="ldrDisconnectBtn" type="button" style="display:none;">Putuskan LDR</button>
+        <button class="settings-save" id="ldrCloseBtn" type="button">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="studio">
+
+    <div class="camera-unit">
+      <div class="viewfinder normal" id="viewfinder">
+        <video id="video" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline muted></video>
+        <canvas id="aiCanvas"></canvas>
+        <canvas id="arCanvas"></canvas>
+        <div class="ldr-seam" id="ldrSeam"></div>
+        <div class="tint" id="tint"></div>
+        <div class="idle-msg" id="idleMsg"><div class="spinner"></div>Menyalakan kamera…<br>Izinkan akses kamera di browser kamu.</div>
+        <div class="error-msg" id="errorMsg" style="display:none;"></div>
+        <div class="countdown" id="countdown">3</div>
+        <div class="flash" id="flash"></div>
+        <div class="shot-counter" id="shotCounter" style="display:none;">POSE 0/4</div>
+        <div class="ai-badge" id="aiBadge"><span class="dot"></span>AI Aktif</div>
+        <div class="ar-badge" id="arBadge"><span class="dot"></span>AR Aktif</div>
+        <div class="ldr-badge" id="ldrBadge"><span class="dot"></span><span id="ldrBadgeText">LDR Aktif</span></div>
+      </div>
+
+      <div class="controls">
+        <div class="filters" id="filters">
+          <button class="filter-btn active" data-filter="normal">Normal</button>
+          <button class="filter-btn" data-filter="bw">B&amp;W</button>
+          <button class="filter-btn" data-filter="sepia">Sephia</button>
+          <button class="filter-btn" data-filter="vintage">Vintage</button>
+          <button class="filter-btn" data-filter="cool">Cool</button>
+          <button class="filter-btn" data-filter="warm">Warm</button>
+          <button class="filter-btn" data-filter="noir">Noir</button>
+        </div>
+        <div class="shutter-wrap">
+          <button class="shutter" id="shutterBtn" title="Mulai sesi foto"></button>
+          <span class="shutter-label">Jepret</span>
+        </div>
+        <button class="flip-btn" id="flipBtn" title="Ganti kamera depan/belakang">⟲</button>
+      </div>
+
+      <div class="ai-panel">
+        <div class="ai-panel-head">
+          <span class="ai-panel-title">✨ Latar Belakang AI</span>
+          <button class="ai-switch" id="aiSwitch" type="button" aria-label="Aktifkan latar belakang AI"></button>
+        </div>
+        <div class="ai-presets" id="aiPresets">
+          <button class="ai-preset-btn active" data-preset="blur" style="background:linear-gradient(135deg,#555,#1a1a1a);" title="Blur">◐</button>
+          <button class="ai-preset-btn" data-preset="studio-abu" style="background:linear-gradient(180deg,#6b6b6b,#242424);" title="Studio Abu"></button>
+          <button class="ai-preset-btn" data-preset="studio-pink" style="background:linear-gradient(135deg,#ffd6ec,#c9a7ff);" title="Studio Pink"></button>
+          <button class="ai-preset-btn" data-preset="studio-hijau" style="background:linear-gradient(180deg,#3ad19f,#0c6b50);" title="Studio Hijau"></button>
+          <button class="ai-preset-btn" data-preset="galaxy" style="background:radial-gradient(circle,#6a2c91,#0a0316);" title="Galaxy">✦</button>
+          <button class="ai-preset-btn" data-preset="custom" id="aiCustomBtn" style="background:rgba(244,232,213,.12);" title="Unggah gambar sendiri">＋</button>
+        </div>
+        <input type="file" id="aiCustomFile" accept="image/*" style="display:none;">
+        <div class="ai-status-text" id="aiStatusText"></div>
+      </div>
+
+      <div class="ai-panel">
+        <div class="ai-panel-head">
+          <span class="ai-panel-title">🎭 Filter Wajah AR</span>
+          <button class="ai-switch" id="arSwitch" type="button" aria-label="Aktifkan filter wajah AR"></button>
+        </div>
+        <div class="ai-presets" id="arPresets">
+          <button class="ar-preset-btn active" data-preset="cat" style="background:linear-gradient(135deg,#e8a3b8,#2b2622);" title="Kucing">🐱</button>
+          <button class="ar-preset-btn" data-preset="glasses" style="background:linear-gradient(135deg,#a0dcff,#2b2622);" title="Kacamata">🕶️</button>
+          <button class="ar-preset-btn" data-preset="crown" style="background:linear-gradient(135deg,#ff9ecb,#8fd6a0);" title="Mahkota Bunga">💐</button>
+          <button class="ar-preset-btn" data-preset="mustache" style="background:linear-gradient(135deg,#c8443a,#1a1816);" title="Gentleman">🎩</button>
+        </div>
+        <div class="ai-status-text" id="arStatusText"></div>
+      </div>
+    </div>
+
+    <div class="strip-area">
+      <div class="frame-picker">
+        <div class="frame-picker-label">Pilih Grid</div>
+        <div class="frames" id="layouts">
+          <button class="layout-btn" data-layout="strip3" title="3 pose, strip vertikal">
+            <span class="layout-icon" style="grid-template-columns:1fr;grid-template-rows:repeat(3,1fr);"><i></i><i></i><i></i></span>3 Strip
+          </button>
+          <button class="layout-btn active" data-layout="strip4" title="4 pose, strip vertikal">
+            <span class="layout-icon" style="grid-template-columns:1fr;grid-template-rows:repeat(4,1fr);"><i></i><i></i><i></i><i></i></span>4 Strip
+          </button>
+          <button class="layout-btn" data-layout="strip6" title="6 pose, strip vertikal">
+            <span class="layout-icon" style="grid-template-columns:1fr;grid-template-rows:repeat(6,1fr);"><i></i><i></i><i></i><i></i><i></i><i></i></span>6 Strip
+          </button>
+          <button class="layout-btn" data-layout="grid2x2" title="4 pose, grid 2 kolom">
+            <span class="layout-icon" style="grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);"><i></i><i></i><i></i><i></i></span>Grid 2×2
+          </button>
+          <button class="layout-btn" data-layout="grid2x3" title="6 pose, grid 2 kolom">
+            <span class="layout-icon" style="grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,1fr);"><i></i><i></i><i></i><i></i><i></i><i></i></span>Grid 2×3
+          </button>
+        </div>
+      </div>
+      <div class="frame-picker">
+        <div class="frame-picker-label">Pilih Bingkai</div>
+        <div class="frames" id="frames">
+          <button class="frame-btn active" data-frame="plain"><span class="swatch" style="background:#1a1816;"></span>Klasik</button>
+          <button class="frame-btn" data-frame="film"><span class="swatch" style="background:#100e0c;"></span>Film</button>
+          <button class="frame-btn" data-frame="polaroid"><span class="swatch" style="background:#ffffff;"></span>Polaroid</button>
+          <button class="frame-btn" data-frame="pesta"><span class="swatch" style="background:#e8bb3c;"></span>Pesta</button>
+          <button class="frame-btn" data-frame="love"><span class="swatch" style="background:#c8546b;"></span>Love</button>
+          <button class="frame-btn" data-frame="neon"><span class="swatch" style="background:#00eaff;"></span>Neon</button>
+          <button class="frame-btn" data-frame="birthday"><span class="swatch" style="background:#e8443a;"></span>Ultah</button>
+          <button class="frame-btn" data-frame="pastel"><span class="swatch" style="background:linear-gradient(135deg,#ffd6ec,#d6e8ff);"></span>Pastel</button>
+          <button class="frame-btn" data-frame="sunset"><span class="swatch" style="background:linear-gradient(135deg,#ffb347,#ff6f9d,#7b2d6b);"></span>Sunset</button>
+          <button class="frame-btn" data-frame="kawaii"><span class="swatch" style="background:linear-gradient(135deg,#ffc2e2,#d9c2ff);"></span>Kawaii</button>
+          <button class="frame-btn" data-frame="airmail"><span class="swatch" style="background:linear-gradient(135deg,#b23a30 20%,#f2e8d5 20%,#f2e8d5 40%,#1f3a63 40%,#1f3a63 60%,#f2e8d5 60%);"></span>Pos Udara</button>
+          <button class="frame-btn" data-frame="reels"><span class="swatch" style="background:#0c0c0c;"></span>Rol Film</button>
+          <button class="frame-btn" data-frame="scrapbook"><span class="swatch" style="background:linear-gradient(135deg,#1f3a63 30%,#b23a30 30%,#b23a30 45%,#f2e8d5 45%,#f2e8d5 60%,#b23a30 60%);"></span>Scrapbook</button>
+        </div>
+      </div>
+      <div class="frame-picker" id="scrapbookCalib" style="display:none;">
+        <div class="frame-picker-label">Atur Posisi Strip (Scrapbook)</div>
+        <div class="calib-row">
+          <label>Geser X <span id="calibXVal"></span></label>
+          <input type="range" id="calibX" min="0" max="1" step="0.005">
+        </div>
+        <div class="calib-row">
+          <label>Geser Y <span id="calibYVal"></span></label>
+          <input type="range" id="calibY" min="0" max="1" step="0.005">
+        </div>
+        <div class="calib-row">
+          <label>Lebar Strip <span id="calibWVal"></span></label>
+          <input type="range" id="calibW" min="0.08" max="0.45" step="0.005">
+        </div>
+        <div class="calib-row">
+          <label>Tinggi Strip <span id="calibHVal"></span></label>
+          <input type="range" id="calibH" min="0.3" max="0.95" step="0.005">
+        </div>
+        <div class="calib-row">
+          <label>Rotasi <span id="calibRVal"></span></label>
+          <input type="range" id="calibR" min="-30" max="30" step="0.5">
+        </div>
+        <div class="calib-row">
+          <label>Margin Antar Foto <span id="calibMVal"></span></label>
+          <input type="range" id="calibM" min="0" max="0.2" step="0.005">
+        </div>
+        <button type="button" id="calibReset" class="settings-cancel" style="margin-top:8px;">Reset ke Default</button>
+        <p class="settings-hint">Geser slider sampai kotak foto pas menutupi 3 bingkai putih di gambar. Nilai tersimpan otomatis selama sesi ini.</p>
+      </div>
+      <div class="strip-slot">
+        <div class="strip-canvas-wrap" id="stripWrap">
+          <canvas id="stripCanvas" width="380" height="1160"></canvas>
+          <div class="sticker-overlay" id="stickerOverlay"></div>
+        </div>
+      </div>
+      <div class="strip-caption" id="stripCaption">Strip kamu akan tercetak di sini</div>
+      <div class="paper-picker">
+        <div class="frame-picker-label">Warna Kertas</div>
+        <div class="paper-swatches" id="paperSwatches">
+          <button class="paper-swatch active" data-paper="cream" style="background:#f2e8d5;" title="Krem"></button>
+          <button class="paper-swatch" data-paper="pink" style="background:#f7dbe4;" title="Pink"></button>
+          <button class="paper-swatch" data-paper="mint" style="background:#dff2e7;" title="Mint"></button>
+          <button class="paper-swatch" data-paper="black" style="background:#141212;" title="Hitam"></button>
+        </div>
+      </div>
+      <div class="sticker-picker">
+        <div class="frame-picker-label">Stiker Lucu</div>
+        <div class="sticker-picker-hint">Seret ke atas strip foto</div>
+        <div class="sticker-palette" id="stickerPalette">
+          <button class="sticker-chip" data-emoji="🌸">🌸</button>
+          <button class="sticker-chip" data-emoji="✨">✨</button>
+          <button class="sticker-chip" data-emoji="💖">💖</button>
+          <button class="sticker-chip" data-emoji="⭐">⭐</button>
+          <button class="sticker-chip" data-emoji="🎀">🎀</button>
+          <button class="sticker-chip" data-emoji="🦋">🦋</button>
+          <button class="sticker-chip" data-emoji="☁️">☁️</button>
+          <button class="sticker-chip" data-emoji="🍓">🍓</button>
+          <button class="sticker-chip" data-emoji="🌈">🌈</button>
+          <button class="sticker-chip" data-emoji="😎">😎</button>
+          <button class="sticker-chip" data-emoji="🔥">🔥</button>
+          <button class="sticker-chip" data-emoji="🎈">🎈</button>
+          <div class="sticker-divider">✨ So Sweet ✨</div>
+          <button class="sticker-chip sticker-chip-custom" data-custom="bow" title="Pita"></button>
+          <button class="sticker-chip sticker-chip-custom" data-custom="teddy" title="Beruang"></button>
+          <button class="sticker-chip sticker-chip-custom" data-custom="bunny" title="Kelinci"></button>
+          <button class="sticker-chip sticker-chip-custom" data-custom="loveletter" title="Surat Cinta"></button>
+          <button class="sticker-chip sticker-chip-custom" data-custom="kiss" title="Kiss Mark"></button>
+          <button class="sticker-chip sticker-chip-custom" data-custom="heartsparkle" title="Hati Kilau"></button>
+        </div>
+        <button class="sticker-clear-btn" id="clearStickersBtn">Bersihkan Stiker</button>
+      </div>
+      <div class="strip-actions">
+        <button class="action-btn" id="undoDeleteBtn" disabled title="Kembalikan foto yang dihapus">Undo</button>
+        <button class="action-btn" id="retakeBtn" disabled>Ulangi</button>
+        <button class="action-btn" id="gifBtn" disabled title="Unduh sebagai GIF bergerak">GIF</button>
+        <button class="action-btn" id="shareBtn" disabled title="Bagikan lewat QR / aplikasi">Bagikan</button>
+        <button class="action-btn primary" id="downloadBtn" disabled>Unduh</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">Semua foto diproses di perangkatmu — tidak diunggah ke mana pun</div>
+
+<script>
+(function(){
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  const settingsCancel = document.getElementById('settingsCancel');
+  const settingsSave = document.getElementById('settingsSave');
+  const photoboxNameInput = document.getElementById('photoboxNameInput');
+  const photoboxTitleEl = document.getElementById('photoboxTitle');
+  const DEFAULT_PHOTOBOX_NAME = 'PHOTO BOX';
+  let photoboxName = localStorage.getItem('photoboxName') || DEFAULT_PHOTOBOX_NAME;
+
+  function applyPhoteboxName(){
+    photoboxTitleEl.textContent = photoboxName;
+    document.title = `${photoboxName} — Studio Foto Instan`;
+    renderStrip();
+  }
+
+  settingsBtn.addEventListener('click', ()=>{
+    photoboxNameInput.value = photoboxName;
+    settingsOverlay.classList.add('open');
+    setTimeout(()=>photoboxNameInput.focus(), 50);
+  });
+  function closeSettings(){ settingsOverlay.classList.remove('open'); }
+  settingsCancel.addEventListener('click', closeSettings);
+  settingsOverlay.addEventListener('click', (e)=>{ if(e.target === settingsOverlay) closeSettings(); });
+  settingsSave.addEventListener('click', ()=>{
+    const val = photoboxNameInput.value.trim();
+    photoboxName = val || DEFAULT_PHOTOBOX_NAME;
+    localStorage.setItem('photoboxName', photoboxName);
+    applyPhoteboxName();
+    closeSettings();
+  });
+  photoboxNameInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') settingsSave.click();
+    if(e.key === 'Escape') closeSettings();
+  });
+  photoboxTitleEl.textContent = photoboxName;
+  document.title = `${photoboxName} — Studio Foto Instan`;
+
+  const video = document.getElementById('video');
+  const viewfinder = document.getElementById('viewfinder');
+  const tintEl = document.getElementById('tint');
+  const idleMsg = document.getElementById('idleMsg');
+  const errorMsg = document.getElementById('errorMsg');
+  const countdownEl = document.getElementById('countdown');
+  const flashEl = document.getElementById('flash');
+  const shotCounter = document.getElementById('shotCounter');
+  const shutterBtn = document.getElementById('shutterBtn');
+  const flipBtn = document.getElementById('flipBtn');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const stripCanvas = document.getElementById('stripCanvas');
+  const ctx = stripCanvas.getContext('2d');
+
+  // "Scrapbook" frame: real background artwork loaded from the same folder as this HTML file.
+  const scrapbookImg = new Image();
+  let scrapbookImgReady = false;
+  scrapbookImg.onload = ()=>{ scrapbookImgReady = true; renderStrip(); };
+  scrapbookImg.src = 'scrapbook-bg.png';
+
+  const SCRAPBOOK_DEFAULT_CALIB = { cx:0.535, cy:0.545, w:0.20, h:0.635, angle:-8, margin:0.06 };
+  let scrapbookCalib = { ...SCRAPBOOK_DEFAULT_CALIB };
+  const retakeBtn = document.getElementById('retakeBtn');
+  const undoDeleteBtn = document.getElementById('undoDeleteBtn');
+  let deleteHistory = []; // stack of {type:'single', index, frame} | {type:'clearAll', frames}
+  const downloadBtn = document.getElementById('downloadBtn');
+  const gifBtn = document.getElementById('gifBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const shareOverlay = document.getElementById('shareOverlay');
+  const shareCloseBtn = document.getElementById('shareCloseBtn');
+  const shareNativeBtn = document.getElementById('shareNativeBtn');
+  const shareHint = document.getElementById('shareHint');
+  const qrWrap = document.getElementById('qrWrap');
+  const qrCanvas = document.getElementById('qrCanvas');
+  const shutterLabel = document.querySelector('.shutter-label');
+  const stripCaption = document.getElementById('stripCaption');
+  const paperBtns = document.querySelectorAll('.paper-swatch');
+  const stripWrap = document.getElementById('stripWrap');
+  const stickerOverlay = document.getElementById('stickerOverlay');
+  let selectedDeleteSlot = null; // index of the photo currently tapped to reveal its delete button
+  stickerOverlay.addEventListener('click', ()=>{
+    // Any click on the overlay that isn't caught (stopped) by a photo tap-area
+    // or the delete button itself means the user tapped elsewhere — hide the option.
+    if(selectedDeleteSlot !== null){
+      selectedDeleteSlot = null;
+      syncStickerOverlay();
+    }
+  });
+  const stickerPalette = document.getElementById('stickerPalette');
+  const clearStickersBtn = document.getElementById('clearStickersBtn');
+  const aiCanvas = document.getElementById('aiCanvas');
+  const aiBadge = document.getElementById('aiBadge');
+  const aiSwitch = document.getElementById('aiSwitch');
+  const aiPresets = document.getElementById('aiPresets');
+  const aiPresetBtns = document.querySelectorAll('.ai-preset-btn');
+  const aiCustomBtn = document.getElementById('aiCustomBtn');
+  const aiCustomFile = document.getElementById('aiCustomFile');
+  const aiStatusText = document.getElementById('aiStatusText');
+  const arCanvas = document.getElementById('arCanvas');
+  const arBadge = document.getElementById('arBadge');
+  const arSwitch = document.getElementById('arSwitch');
+  const arPresets = document.getElementById('arPresets');
+  const arPresetBtns = document.querySelectorAll('.ar-preset-btn');
+  const arStatusText = document.getElementById('arStatusText');
+
+  const frameBtns = document.querySelectorAll('.frame-btn');
+  const layoutBtns = document.querySelectorAll('.layout-btn');
+  const heroSubtitle = document.getElementById('heroSubtitle');
+
+  const LAYOUTS = {
+    strip3:  { shots: 3, cols: 1 },
+    strip4:  { shots: 4, cols: 1 },
+    strip6:  { shots: 6, cols: 1 },
+    grid2x2: { shots: 4, cols: 2 },
+    grid2x3: { shots: 6, cols: 2 }
+  };
+
+  let currentLayout = 'strip4';
+  let TOTAL_SHOTS = LAYOUTS[currentLayout].shots;
+  let GRID_COLS = LAYOUTS[currentLayout].cols;
+  let currentFilter = 'normal';
+  let currentFrame = 'plain';
+  let currentPaper = 'cream';
+  let capturedFrames = [];
+  let busy = false;
+  let currentFacing = 'user';
+  let currentStream = null;
+  let stickers = [];
+  let stickerIdSeq = 1;
+
+  // ---------- custom "so sweet" stickers (hand-drawn shapes, not keyboard emoji) ----------
+  // Each entry is a small set of vector shapes on a 0-100 box. The same shape
+  // data feeds both the canvas render (drawCustomSticker) and the SVG markup
+  // used for the palette chip icon + the draggable overlay preview, so there
+  // is a single source of truth for what each sticker looks like.
+  const CUSTOM_STICKERS = {
+    bow: { label:'Pita', shapes:[
+      {type:'path', d:'M50 50 C 32 28, 10 28, 8 46 C 6 60, 26 66, 50 50 Z', fill:'#f6a8c6', stroke:'#c96e93', lw:2.5},
+      {type:'path', d:'M50 50 C 68 28, 90 28, 92 46 C 94 60, 74 66, 50 50 Z', fill:'#f6a8c6', stroke:'#c96e93', lw:2.5},
+      {type:'path', d:'M46 55 L38 70 L48 65 Z', fill:'#e2769e'},
+      {type:'path', d:'M54 55 L62 70 L52 65 Z', fill:'#e2769e'},
+      {type:'circle', cx:50, cy:50, r:9, fill:'#e2769e', stroke:'#c96e93', lw:2}
+    ]},
+    teddy: { label:'Beruang', shapes:[
+      {type:'circle', cx:26, cy:24, r:13, fill:'#c98a53', stroke:'#a8703f', lw:2},
+      {type:'circle', cx:74, cy:24, r:13, fill:'#c98a53', stroke:'#a8703f', lw:2},
+      {type:'circle', cx:26, cy:24, r:6, fill:'#e8c9a0'},
+      {type:'circle', cx:74, cy:24, r:6, fill:'#e8c9a0'},
+      {type:'circle', cx:50, cy:56, r:32, fill:'#c98a53', stroke:'#a8703f', lw:2},
+      {type:'ellipse', cx:50, cy:64, rx:15, ry:11, fill:'#e8c9a0'},
+      {type:'circle', cx:50, cy:58, r:4, fill:'#5a3c22'},
+      {type:'circle', cx:39, cy:50, r:3.2, fill:'#3a2818'},
+      {type:'circle', cx:61, cy:50, r:3.2, fill:'#3a2818'}
+    ]},
+    bunny: { label:'Kelinci', shapes:[
+      {type:'ellipse', cx:36, cy:18, rx:9, ry:22, rotate:-18, fill:'#fdf1f5', stroke:'#e7b9cd', lw:2},
+      {type:'ellipse', cx:36, cy:20, rx:4.5, ry:15, rotate:-18, fill:'#f3b8cf'},
+      {type:'ellipse', cx:64, cy:18, rx:9, ry:22, rotate:18, fill:'#fdf1f5', stroke:'#e7b9cd', lw:2},
+      {type:'ellipse', cx:64, cy:20, rx:4.5, ry:15, rotate:18, fill:'#f3b8cf'},
+      {type:'circle', cx:50, cy:58, r:30, fill:'#fdf1f5', stroke:'#e7b9cd', lw:2},
+      {type:'circle', cx:38, cy:64, r:5, fill:'#f6b9cf', opacity:.8},
+      {type:'circle', cx:62, cy:64, r:5, fill:'#f6b9cf', opacity:.8},
+      {type:'circle', cx:41, cy:52, r:3, fill:'#3a2818'},
+      {type:'circle', cx:59, cy:52, r:3, fill:'#3a2818'},
+      {type:'path', d:'M50 58 L46 62 L54 62 Z', fill:'#e2769e'}
+    ]},
+    loveletter: { label:'Surat Cinta', shapes:[
+      {type:'rect', x:15, y:32, w:70, h:48, rx:4, fill:'#fdf6ec', stroke:'#d8c7a6', lw:2},
+      {type:'path', d:'M15 34 L50 62 L85 34', fill:'none', stroke:'#d8c7a6', lw:2},
+      {type:'path', d:'M42 74 C42 66 46 62 50 62 C54 62 58 66 58 74 C58 80 50 86 50 86 C50 86 42 80 42 74 Z', fill:'#e2607e'}
+    ]},
+    kiss: { label:'Kiss Mark', shapes:[
+      {type:'path', d:'M30 40 C24 32 12 34 12 44 C12 52 22 56 30 50 C34 58 30 66 22 68 C34 72 46 66 46 54 C46 46 40 40 30 40 Z', fill:'#e2607e'},
+      {type:'path', d:'M70 40 C76 32 88 34 88 44 C88 52 78 56 70 50 C66 58 70 66 78 68 C66 72 54 66 54 54 C54 46 60 40 70 40 Z', fill:'#e2607e'}
+    ]},
+    heartsparkle: { label:'Hati Kilau', shapes:[
+      {type:'path', d:'M50 34 C42 20 20 24 20 42 C20 58 50 78 50 78 C50 78 80 58 80 42 C80 24 58 20 50 34 Z', fill:'#f28fab', stroke:'#d9668c', lw:2},
+      {type:'path', d:'M78 18 L81 25 L88 27 L81 29 L78 36 L75 29 L68 27 L75 25 Z', fill:'#f4c95d'},
+      {type:'path', d:'M18 60 L20 65 L25 67 L20 69 L18 74 L16 69 L11 67 L16 65 Z', fill:'#f4c95d'}
+    ]}
+  };
+
+  function shapesToSvgMarkup(shapes){
+    return shapes.map(sh=>{
+      const op = sh.opacity!=null ? ` opacity="${sh.opacity}"` : '';
+      const strokeAttr = sh.stroke ? ` stroke="${sh.stroke}" stroke-width="${sh.lw||2}"` : '';
+      if(sh.type === 'path'){
+        return `<path d="${sh.d}" fill="${sh.fill||'none'}"${strokeAttr}${op}/>`;
+      }
+      if(sh.type === 'circle'){
+        return `<circle cx="${sh.cx}" cy="${sh.cy}" r="${sh.r}" fill="${sh.fill||'none'}"${strokeAttr}${op}/>`;
+      }
+      if(sh.type === 'ellipse'){
+        const t = sh.rotate ? ` transform="rotate(${sh.rotate} ${sh.cx} ${sh.cy})"` : '';
+        return `<ellipse cx="${sh.cx}" cy="${sh.cy}" rx="${sh.rx}" ry="${sh.ry}" fill="${sh.fill||'none'}"${strokeAttr}${op}${t}/>`;
+      }
+      if(sh.type === 'rect'){
+        return `<rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" rx="${sh.rx||0}" fill="${sh.fill||'none'}"${strokeAttr}${op}/>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  function customStickerSVG(id, sizePx){
+    const def = CUSTOM_STICKERS[id];
+    if(!def) return '';
+    return `<svg viewBox="0 0 100 100" width="${sizePx}" height="${sizePx}">${shapesToSvgMarkup(def.shapes)}</svg>`;
+  }
+
+  // Draws a custom sticker into `ctx`, assuming ctx is already translated to
+  // the sticker's center and rotated. Scales the 0-100 shape box to `size`.
+  function drawCustomSticker(ctx, id, size){
+    const def = CUSTOM_STICKERS[id];
+    if(!def) return;
+    ctx.save();
+    const scale = size/100;
+    ctx.scale(scale, scale);
+    ctx.translate(-50, -50);
+    def.shapes.forEach(sh=>{
+      ctx.save();
+      if(sh.opacity != null) ctx.globalAlpha = sh.opacity;
+      if(sh.type === 'path'){
+        const p = new Path2D(sh.d);
+        if(sh.fill && sh.fill !== 'none'){ ctx.fillStyle = sh.fill; ctx.fill(p); }
+        if(sh.stroke){ ctx.strokeStyle = sh.stroke; ctx.lineWidth = sh.lw||2; ctx.stroke(p); }
+      } else if(sh.type === 'circle'){
+        ctx.beginPath();
+        ctx.arc(sh.cx, sh.cy, sh.r, 0, Math.PI*2);
+        if(sh.fill && sh.fill !== 'none'){ ctx.fillStyle = sh.fill; ctx.fill(); }
+        if(sh.stroke){ ctx.strokeStyle = sh.stroke; ctx.lineWidth = sh.lw||2; ctx.stroke(); }
+      } else if(sh.type === 'ellipse'){
+        ctx.beginPath();
+        ctx.ellipse(sh.cx, sh.cy, sh.rx, sh.ry, (sh.rotate||0)*Math.PI/180, 0, Math.PI*2);
+        if(sh.fill && sh.fill !== 'none'){ ctx.fillStyle = sh.fill; ctx.fill(); }
+        if(sh.stroke){ ctx.strokeStyle = sh.stroke; ctx.lineWidth = sh.lw||2; ctx.stroke(); }
+      } else if(sh.type === 'rect'){
+        const r = sh.rx||0;
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(sh.x, sh.y, sh.w, sh.h, r) : ctx.rect(sh.x, sh.y, sh.w, sh.h);
+        if(sh.fill && sh.fill !== 'none'){ ctx.fillStyle = sh.fill; ctx.fill(); }
+        if(sh.stroke){ ctx.strokeStyle = sh.stroke; ctx.lineWidth = sh.lw||2; ctx.stroke(); }
+      }
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  // Populate the "So Sweet" custom sticker chip icons from the shared shape data.
+  document.querySelectorAll('.sticker-chip-custom[data-custom]').forEach(chip=>{
+    chip.innerHTML = customStickerSVG(chip.dataset.custom, 22);
+  });
+  let restoringSession = true; // true until a saved session (if any) finishes loading on startup
+  let aiBgEnabled = false;
+  let aiBgPreset = 'blur';
+  let bodyPixModel = null;
+  let bodyPixLoadPromise = null;
+  let aiRafId = null;
+  let lastMask = null;
+  let maskBusy = false;
+  let customBgImage = null;
+  const personCanvas = document.createElement('canvas');
+  let arEnabled = false;
+  let arPreset = 'cat';
+  let faceApiLoadPromise = null;
+  let faceApiReady = false;
+  let arRafId = null;
+  let arBusy = false;
+  let smoothFace = null;
+
+  const PAPERS = {
+    cream: { bg:'#f2e8d5', text:'#2b2622', sub:'#6b5f4f' },
+    pink:  { bg:'#f7dbe4', text:'#5a2233', sub:'#8a4d5f' },
+    mint:  { bg:'#dff2e7', text:'#1f4636', sub:'#3f6b54' },
+    black: { bg:'#141212', text:'#f2e8d5', sub:'#a89f8f' }
+  };
+
+  const FILTERS = {
+    normal:  { css:'none' },
+    bw:      { css:'grayscale(1) contrast(1.15)' },
+    sepia:   { css:'sepia(.75) contrast(1.05) saturate(1.2)' },
+    vintage: { css:'contrast(1.1) saturate(1.35) hue-rotate(-6deg) brightness(1.02)' },
+    cool:    { css:'contrast(1.08) saturate(1.1) brightness(1.03)', tint:'#3f7fd1', tintAlpha:.18, blend:'soft-light' },
+    warm:    { css:'contrast(1.05) saturate(1.2) brightness(1.05)', tint:'#e8a34e', tintAlpha:.18, blend:'soft-light' },
+    noir:    { css:'grayscale(1) contrast(1.55) brightness(.92)' }
+  };
+
+  function applyFilter(name){
+    const f = FILTERS[name] || FILTERS.normal;
+    video.style.filter = f.css;
+    remoteVideoEl.style.filter = f.css;
+    if(f.tint){
+      tintEl.style.background = f.tint;
+      tintEl.style.mixBlendMode = f.blend || 'soft-light';
+      tintEl.style.opacity = f.tintAlpha;
+    } else {
+      tintEl.style.opacity = 0;
+    }
+  }
+
+  function cameraErrorText(err){
+    if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:'){
+      return 'Kamera butuh koneksi HTTPS. Buka halaman ini lewat https:// atau localhost.';
+    }
+    if(err && err.name === 'NotAllowedError'){
+      return 'Izin kamera ditolak. Klik ikon kamera di address bar browser lalu izinkan akses, atau cek pengaturan privasi perangkat.';
+    }
+    if(err && err.name === 'NotFoundError'){
+      return 'Kamera tidak ditemukan di perangkat ini.';
+    }
+    if(err && err.name === 'NotReadableError'){
+      return 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi tersebut lalu coba lagi.';
+    }
+    if(err && err.name === 'OverconstrainedError'){
+      return 'Kamera yang diminta tidak tersedia di perangkat ini.';
+    }
+    return 'Kamera tidak bisa diakses. Cek izin kamera lalu coba lagi.';
+  }
+
+  function showCameraError(msg){
+    idleMsg.style.display = 'none';
+    errorMsg.style.display = 'flex';
+    errorMsg.innerHTML = msg + '<br><button class="retry-btn" id="retryCamBtn">Coba Lagi</button>';
+    shutterBtn.disabled = true;
+    const retryBtn = document.getElementById('retryCamBtn');
+    if(retryBtn) retryBtn.addEventListener('click', initCamera);
+  }
+
+  function stopCurrentStream(){
+    if(currentStream){
+      currentStream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+    }
+  }
+
+  async function initCamera(){
+    idleMsg.style.display = 'flex';
+    errorMsg.style.display = 'none';
+    shutterBtn.disabled = true;
+
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showCameraError('Browser ini tidak mendukung akses kamera, atau halaman tidak dibuka lewat HTTPS/localhost.');
+      return;
+    }
+
+    stopCurrentStream();
+
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacing, width:{ideal:1280}, height:{ideal:960} },
+        audio:false
+      });
+      currentStream = stream;
+      video.srcObject = stream;
+      video.muted = true;
+      video.classList.toggle('mirror-off', currentFacing === 'environment');
+      aiCanvas.classList.toggle('mirror-off', currentFacing === 'environment');
+      arCanvas.classList.toggle('mirror-off', currentFacing === 'environment');
+
+      const reveal = () => {
+        idleMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+        shutterBtn.disabled = false;
+      };
+
+      video.onloadedmetadata = () => {
+        const playPromise = video.play();
+        if(playPromise && playPromise.catch){ playPromise.catch(()=>{}); }
+      };
+      video.onplaying = reveal;
+      // fallback in case 'playing' never fires on some browsers
+      setTimeout(()=>{ if(video.readyState >= 2) reveal(); }, 800);
+    }catch(err){
+      showCameraError(cameraErrorText(err));
+    }
+  }
+  initCamera();
+
+  flipBtn.addEventListener('click', ()=>{
+    if(busy || ldrActive) return;
+    currentFacing = currentFacing === 'user' ? 'environment' : 'user';
+    initCamera();
+  });
+
+  // ============================================================
+  // ---------- LDR mode: gabungkan kamera 2 HP via WebRTC ----------
+  // ============================================================
+  const ldrBtn = document.getElementById('ldrBtn');
+  const ldrOverlay = document.getElementById('ldrOverlay');
+  const ldrRoleChoice = document.getElementById('ldrRoleChoice');
+  const ldrHostBtn = document.getElementById('ldrHostBtn');
+  const ldrGuestBtn = document.getElementById('ldrGuestBtn');
+  const ldrHostPanel = document.getElementById('ldrHostPanel');
+  const ldrGuestPanel = document.getElementById('ldrGuestPanel');
+  const ldrCodeDisplay = document.getElementById('ldrCodeDisplay');
+  const ldrCopyCodeBtn = document.getElementById('ldrCopyCodeBtn');
+  const ldrHostStatus = document.getElementById('ldrHostStatus');
+  const ldrCodeInput = document.getElementById('ldrCodeInput');
+  const ldrJoinBtn = document.getElementById('ldrJoinBtn');
+  const ldrGuestStatus = document.getElementById('ldrGuestStatus');
+  const ldrBackBtn = document.getElementById('ldrBackBtn');
+  const ldrDisconnectBtn = document.getElementById('ldrDisconnectBtn');
+  const ldrCloseBtn = document.getElementById('ldrCloseBtn');
+  const remoteVideoEl = document.getElementById('remoteVideo');
+  const ldrBadgeEl = document.getElementById('ldrBadge');
+  const ldrBadgeTextEl = document.getElementById('ldrBadgeText');
+
+  let ldrPeer = null;
+  let ldrRole = null;           // 'host' | 'guest' | null
+  let ldrConn = null;           // PeerJS DataConnection
+  let ldrCall = null;           // PeerJS MediaConnection
+  let ldrRemoteStream = null;
+  let ldrActive = false;        // true once host<->guest are actually connected
+  let ldrRoomCode = '';
+  let ldrGuestFacing = 'user';
+
+  // ICE server config: STUN alone (PeerJS default) only works when a direct
+  // P2P path can be found, which usually fails once host & guest are on
+  // different networks (different WiFi, or WiFi vs. seluler/4G — common
+  // with carrier-grade NAT). Adding public TURN relays gives a fallback
+  // path so the connection still goes through even when a direct route
+  // is blocked.
+  const LDR_ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    ]
+  };
+
+  // Attaching a stream via srcObject alone doesn't reliably autoplay on
+  // every mobile browser once the <video> has gone through a display:none
+  // -> display:block toggle (which is what happens when we enter split
+  // view). Mirror the same explicit-play pattern used for the local
+  // camera so the remote feed doesn't end up stuck on a black frame.
+  function ldrPlayRemoteStream(stream){
+    remoteVideoEl.srcObject = stream;
+    const tryPlay = () => {
+      const p = remoteVideoEl.play();
+      if(p && p.catch) p.catch(()=>{});
+    };
+    if(remoteVideoEl.readyState >= 1){
+      tryPlay();
+    } else {
+      remoteVideoEl.onloadedmetadata = tryPlay;
+    }
+    // Fallback in case loadedmetadata already fired before we attached
+    // the handler, or never fires on some browsers.
+    setTimeout(tryPlay, 300);
+  }
+
+  // Cap the outgoing video bitrate on the WebRTC sender. Without this, the
+  // encoder tries to push full-resolution video down whatever path it has —
+  // fine on a local network, but over a relayed (TURN) path across two
+  // different networks the available bandwidth is often much lower, so
+  // packets get dropped, a full keyframe never arrives, and the remote
+  // <video> just sits on a black frame forever. Capping the bitrate makes
+  // the encoder degrade quality/framerate instead of losing the stream.
+  function ldrCapVideoBandwidth(pc){
+    if(!pc || !pc.getSenders) return;
+    const trySet = ()=>{
+      const sender = pc.getSenders().find(s=>s.track && s.track.kind === 'video');
+      if(!sender) return false;
+      try{
+        const params = sender.getParameters();
+        if(!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+        params.encodings[0].maxBitrate = 300000; // ~300kbps — light enough to survive a relayed path
+        params.degradationPreference = 'maintain-framerate';
+        const p = sender.setParameters(params);
+        if(p && p.catch) p.catch(()=>{});
+      }catch(e){}
+      return true;
+    };
+    if(!trySet()){
+      let tries = 0;
+      const iv = setInterval(()=>{
+        tries++;
+        if(trySet() || tries > 15) clearInterval(iv);
+      }, 300);
+    }
+  }
+
+  // If we're "connected" but no actual video frames ever arrive (common
+  // symptom of a relay path that's too congested/blocked for media even
+  // though the data channel got through), tell the person instead of
+  // leaving them staring at a black square with no explanation.
+  function ldrWatchForBlackVideo(statusEl){
+    const roleAtStart = ldrRole;
+    setTimeout(()=>{
+      if(!ldrActive || ldrRole !== roleAtStart) return;
+      if(remoteVideoEl.videoWidth > 0) return;
+      statusEl.textContent = 'Tersambung, tapi video partner belum muncul. Ini biasanya karena jaringan salah satu HP kurang stabil buat kirim video (walau datanya konek). Coba pindah ke WiFi yang lebih stabil, atau putuskan & coba lagi.';
+      statusEl.className = 'ldr-status error';
+    }, 7000);
+  }
+
+  function ldrRandomCode(){
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXY3456789'; // no 0/O/1/I/L to avoid mix-ups
+    let s = '';
+    for(let i=0;i<5;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  function ensurePeerJs(){
+    if(window.Peer) return Promise.resolve();
+    return loadScriptOnce('https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js');
+  }
+
+  function ldrSendToPeer(obj){
+    if(ldrConn && ldrConn.open){
+      try{ ldrConn.send(obj); }catch(e){}
+    }
+  }
+
+  function resetLdrModalToChoice(){
+    ldrRoleChoice.style.display = 'flex';
+    ldrHostPanel.style.display = 'none';
+    ldrGuestPanel.style.display = 'none';
+    ldrBackBtn.style.display = 'none';
+    ldrDisconnectBtn.style.display = 'none';
+    ldrCodeInput.value = '';
+    ldrGuestStatus.textContent = '';
+    ldrGuestStatus.className = 'ldr-status';
+    ldrHostStatus.textContent = '';
+    ldrHostStatus.className = 'ldr-status';
+    ldrCodeDisplay.textContent = '-----';
+  }
+
+  function showLdrHostPanel(){
+    ldrRoleChoice.style.display = 'none';
+    ldrGuestPanel.style.display = 'none';
+    ldrHostPanel.style.display = 'block';
+    ldrBackBtn.style.display = ldrActive ? 'none' : 'inline-block';
+    ldrDisconnectBtn.style.display = ldrActive ? 'inline-block' : 'none';
+  }
+
+  function showLdrGuestPanel(){
+    ldrRoleChoice.style.display = 'none';
+    ldrHostPanel.style.display = 'none';
+    ldrGuestPanel.style.display = 'block';
+    ldrBackBtn.style.display = ldrActive ? 'none' : 'inline-block';
+    ldrDisconnectBtn.style.display = ldrActive ? 'inline-block' : 'none';
+    setTimeout(()=>ldrCodeInput.focus(), 50);
+  }
+
+  function openLdrModal(){
+    ldrOverlay.classList.add('open');
+    if(!ldrActive){
+      resetLdrModalToChoice();
+    } else if(ldrRole === 'host'){
+      showLdrHostPanel();
+    } else if(ldrRole === 'guest'){
+      showLdrGuestPanel();
+    }
+  }
+  function closeLdrModal(){ ldrOverlay.classList.remove('open'); }
+
+  function ldrEnterSplit(){
+    viewfinder.classList.add('ldr-split');
+    ldrBadgeEl.style.display = 'flex';
+    ldrBadgeTextEl.textContent = 'LDR • Live';
+    flipBtn.disabled = true;
+    if(aiBgEnabled) aiSwitch.click();
+    if(arEnabled) arSwitch.click();
+    aiSwitch.disabled = true;
+    arSwitch.disabled = true;
+    ldrBtn.classList.add('active');
+    applyFilter(currentFilter);
+  }
+
+  function ldrExitSplit(){
+    viewfinder.classList.remove('ldr-split');
+    ldrBadgeEl.style.display = 'none';
+    remoteVideoEl.srcObject = null;
+    ldrRemoteStream = null;
+    flipBtn.disabled = false;
+    aiSwitch.disabled = false;
+    arSwitch.disabled = false;
+    ldrBtn.classList.remove('active');
+  }
+
+  function guestEnterConnectedUI(){
+    ldrBadgeEl.style.display = 'flex';
+    ldrBadgeTextEl.textContent = 'LDR • Tersambung ke Host';
+    flipBtn.disabled = true;
+    ldrBtn.classList.add('active');
+    updateCaptureUI();
+  }
+
+  function guestExitConnectedUI(){
+    ldrBadgeEl.style.display = 'none';
+    viewfinder.classList.remove('ldr-split', 'ldr-guest-view');
+    remoteVideoEl.srcObject = null;
+    ldrRemoteStream = null;
+    flipBtn.disabled = false;
+    ldrBtn.classList.remove('active');
+    updateCaptureUI();
+  }
+
+  function ldrHandlePartnerLeft(msg){
+    if(ldrCall){ try{ ldrCall.close(); }catch(e){} ldrCall = null; }
+    if(ldrConn){ try{ ldrConn.close(); }catch(e){} ldrConn = null; }
+    if(ldrPeer){ try{ ldrPeer.destroy(); }catch(e){} ldrPeer = null; }
+    const wasHost = ldrRole === 'host';
+    ldrActive = false;
+    ldrRole = null;
+    ldrRoomCode = '';
+    if(wasHost){
+      ldrExitSplit();
+      ldrHostStatus.textContent = msg;
+      ldrHostStatus.className = 'ldr-status';
+    } else {
+      guestExitConnectedUI();
+      ldrGuestStatus.textContent = msg;
+      ldrGuestStatus.className = 'ldr-status';
+    }
+  }
+
+  function ldrHandleData(data){
+    if(!data || typeof data !== 'object') return;
+    if(ldrRole === 'host'){
+      if(data.type === 'facing'){
+        ldrGuestFacing = data.facing === 'environment' ? 'environment' : 'user';
+        remoteVideoEl.classList.toggle('mirror-off', ldrGuestFacing === 'environment');
+      }
+      return;
+    }
+    if(ldrRole === 'guest'){
+      if(data.type === 'countdown'){
+        countdownEl.style.display = 'flex';
+        countdownEl.textContent = data.n;
+      } else if(data.type === 'countdown-hide'){
+        countdownEl.style.display = 'none';
+      } else if(data.type === 'flash'){
+        doFlash();
+      } else if(data.type === 'progress'){
+        shotCounter.style.display = 'block';
+        shotCounter.textContent = `POSE ${data.k}/${data.total}`;
+      } else if(data.type === 'session-end'){
+        shotCounter.textContent = `SELESAI · ${data.total}/${data.total}`;
+        setTimeout(()=>{ if(ldrActive) shotCounter.style.display = 'none'; }, 1500);
+      }
+    }
+  }
+
+  function ldrAttemptHostPeer(attemptsLeft){
+    if(attemptsLeft === undefined) attemptsLeft = 3;
+    const code = ldrRandomCode();
+    const peerId = 'pboothldr-' + code;
+    let p;
+    try{
+      p = new Peer(peerId, { debug: 0, config: LDR_ICE_CONFIG });
+    }catch(e){
+      ldrHostStatus.textContent = 'Gagal membuat koneksi. Coba lagi.';
+      ldrHostStatus.className = 'ldr-status error';
+      return;
+    }
+    ldrPeer = p;
+    ldrRoomCode = code;
+    ldrCodeDisplay.textContent = code;
+    ldrHostStatus.textContent = 'Menunggu tamu bergabung…';
+    ldrHostStatus.className = 'ldr-status';
+
+    // Kalau host & tamu beda jaringan, koneksi bisa butuh waktu lebih lama
+    // karena harus lewat server relay (TURN). Kasih tahu biar nggak dikira macet.
+    const waitHintTimer = setTimeout(()=>{
+      if(!ldrActive && ldrPeer === p){
+        ldrHostStatus.textContent = 'Masih nunggu… kalau beda jaringan (WiFi/data) prosesnya emang agak lebih lama.';
+        ldrHostStatus.className = 'ldr-status';
+      }
+    }, 12000);
+
+    p.on('error', (err)=>{
+      clearTimeout(waitHintTimer);
+      if(err && err.type === 'unavailable-id' && attemptsLeft > 0){
+        try{ p.destroy(); }catch(e){}
+        ldrAttemptHostPeer(attemptsLeft - 1);
+        return;
+      }
+      ldrHostStatus.textContent = 'Gagal konek (' + (err && err.type ? err.type : 'error') + '). Coba lagi.';
+      ldrHostStatus.className = 'ldr-status error';
+    });
+    p.on('connection', (conn)=>{
+      ldrConn = conn;
+      conn.on('data', ldrHandleData);
+      conn.on('close', ()=>{ if(ldrRole === 'host') ldrHandlePartnerLeft('Tamu terputus.'); });
+    });
+    p.on('call', (call)=>{
+      ldrCall = call;
+      const doAnswer = ()=>{
+        call.answer(currentStream || undefined);
+        ldrCapVideoBandwidth(call.peerConnection);
+      };
+      if(currentStream){
+        doAnswer();
+      } else {
+        // Camera not ready yet on the host's side — wait briefly instead
+        // of answering with no video track, which would leave the guest
+        // staring at a permanently black screen with nothing to receive.
+        ldrHostStatus.textContent = 'Kamera kamu belum siap, tunggu sebentar…';
+        ldrHostStatus.className = 'ldr-status';
+        let waited = 0;
+        const camWait = setInterval(()=>{
+          waited += 200;
+          if(currentStream){
+            clearInterval(camWait);
+            doAnswer();
+          } else if(waited > 8000){
+            clearInterval(camWait);
+            doAnswer(); // give up waiting, answer anyway so the call doesn't hang
+          }
+        }, 200);
+      }
+      call.on('stream', (remoteStream)=>{
+        clearTimeout(waitHintTimer);
+        ldrRemoteStream = remoteStream;
+        ldrPlayRemoteStream(remoteStream);
+        ldrActive = true;
+        ldrHostStatus.textContent = '✅ Tersambung! Kamu bisa mulai jepret.';
+        ldrHostStatus.className = 'ldr-status connected';
+        ldrBackBtn.style.display = 'none';
+        ldrDisconnectBtn.style.display = 'inline-block';
+        ldrEnterSplit();
+        ldrWatchForBlackVideo(ldrHostStatus);
+      });
+      call.on('close', ()=>{ if(ldrRole === 'host') ldrHandlePartnerLeft('Tamu terputus.'); });
+    });
+  }
+
+  async function ldrStartHost(){
+    ldrHostStatus.textContent = 'Menyiapkan koneksi…';
+    ldrHostStatus.className = 'ldr-status';
+    try{
+      await ensurePeerJs();
+    }catch(e){
+      ldrHostStatus.textContent = 'Gagal memuat modul LDR. Cek koneksi internet kamu.';
+      ldrHostStatus.className = 'ldr-status error';
+      return;
+    }
+    ldrRole = 'host';
+    ldrAttemptHostPeer();
+  }
+
+  async function ldrJoinGuest(rawCode){
+    const code = (rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(code.length < 4){
+      ldrGuestStatus.textContent = 'Masukin kode yang bener dulu ya.';
+      ldrGuestStatus.className = 'ldr-status error';
+      return;
+    }
+    ldrGuestStatus.textContent = 'Menyambungkan…';
+    ldrGuestStatus.className = 'ldr-status';
+    try{
+      await ensurePeerJs();
+    }catch(e){
+      ldrGuestStatus.textContent = 'Gagal memuat modul LDR. Cek koneksi internet kamu.';
+      ldrGuestStatus.className = 'ldr-status error';
+      return;
+    }
+    if(!currentStream){
+      ldrGuestStatus.textContent = 'Kamera belum siap. Tunggu sebentar lalu coba lagi.';
+      ldrGuestStatus.className = 'ldr-status error';
+      return;
+    }
+    ldrRole = 'guest';
+    const hostId = 'pboothldr-' + code;
+    let p;
+    try{
+      p = new Peer(undefined, { debug: 0, config: LDR_ICE_CONFIG });
+    }catch(e){
+      ldrGuestStatus.textContent = 'Gagal membuat koneksi. Coba lagi.';
+      ldrGuestStatus.className = 'ldr-status error';
+      ldrRole = null;
+      return;
+    }
+    ldrPeer = p;
+
+    // Kalau host & tamu beda jaringan, koneksi bisa butuh waktu lebih lama
+    // karena harus lewat server relay (TURN). Kasih tahu biar nggak dikira macet.
+    const waitHintTimer = setTimeout(()=>{
+      if(!ldrActive && ldrPeer === p){
+        ldrGuestStatus.textContent = 'Masih nyambung… kalau beda jaringan (WiFi/data) prosesnya emang agak lebih lama.';
+        ldrGuestStatus.className = 'ldr-status';
+      }
+    }, 12000);
+
+    p.on('open', ()=>{
+      const conn = p.connect(hostId, { reliable:true });
+      ldrConn = conn;
+      conn.on('open', ()=>{
+        clearTimeout(waitHintTimer);
+        ldrActive = true;
+        ldrGuestStatus.textContent = '✅ Tersambung ke host! Nunggu host motret ya.';
+        ldrGuestStatus.className = 'ldr-status connected';
+        ldrBackBtn.style.display = 'none';
+        ldrDisconnectBtn.style.display = 'inline-block';
+        ldrSendToPeer({ type:'facing', facing: currentFacing });
+        guestEnterConnectedUI();
+      });
+      conn.on('data', ldrHandleData);
+      conn.on('close', ()=>{ if(ldrRole === 'guest') ldrHandlePartnerLeft('Koneksi ke host terputus.'); });
+      const call = p.call(hostId, currentStream);
+      ldrCall = call;
+      ldrCapVideoBandwidth(call.peerConnection);
+      call.on('stream', (remoteStream)=>{
+        ldrRemoteStream = remoteStream;
+        ldrPlayRemoteStream(remoteStream);
+        viewfinder.classList.add('ldr-split', 'ldr-guest-view');
+        ldrWatchForBlackVideo(ldrGuestStatus);
+      });
+      call.on('close', ()=>{ if(ldrRole === 'guest') ldrHandlePartnerLeft('Koneksi ke host terputus.'); });
+    });
+    p.on('error', (err)=>{
+      clearTimeout(waitHintTimer);
+      if(err && err.type === 'peer-unavailable'){
+        ldrGuestStatus.textContent = 'Kode tidak ditemukan. Cek lagi kodenya.';
+      } else {
+        ldrGuestStatus.textContent = 'Gagal konek (' + (err && err.type ? err.type : 'error') + ').';
+      }
+      ldrGuestStatus.className = 'ldr-status error';
+    });
+  }
+
+  ldrBtn.addEventListener('click', openLdrModal);
+  ldrCloseBtn.addEventListener('click', closeLdrModal);
+  ldrOverlay.addEventListener('click', (e)=>{ if(e.target === ldrOverlay) closeLdrModal(); });
+  ldrHostBtn.addEventListener('click', ()=>{ showLdrHostPanel(); ldrStartHost(); });
+  ldrGuestBtn.addEventListener('click', showLdrGuestPanel);
+  ldrBackBtn.addEventListener('click', ()=>{
+    if(ldrPeer && !ldrActive){ try{ ldrPeer.destroy(); }catch(e){} ldrPeer = null; }
+    ldrRole = null;
+    resetLdrModalToChoice();
+  });
+  ldrJoinBtn.addEventListener('click', ()=> ldrJoinGuest(ldrCodeInput.value));
+  ldrCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') ldrJoinBtn.click(); });
+  ldrCodeInput.addEventListener('input', ()=>{
+    ldrCodeInput.value = ldrCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  });
+  ldrCopyCodeBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(ldrRoomCode);
+      ldrCopyCodeBtn.textContent = 'Tersalin!';
+      setTimeout(()=>{ ldrCopyCodeBtn.textContent = 'Salin Kode'; }, 1500);
+    }catch(e){}
+  });
+  ldrDisconnectBtn.addEventListener('click', ()=>{
+    ldrHandlePartnerLeft(ldrRole === 'host' ? 'LDR dihentikan.' : 'Kamu keluar dari LDR.');
+    resetLdrModalToChoice();
+  });
+
+  function ldrCoverDrawToCanvas(srcEl, dw, dh, mirror){
+    const vw = srcEl.videoWidth || 640, vh = srcEl.videoHeight || 480;
+    const targetRatio = dw/dh;
+    let sw = vw, sh = vh, sx = 0, sy = 0;
+    if(vw/vh > targetRatio){ sw = vh*targetRatio; sx = (vw-sw)/2; }
+    else { sh = vw/targetRatio; sy = (vh-sh)/2; }
+    const tmp = document.createElement('canvas');
+    tmp.width = dw; tmp.height = dh;
+    const tctx = tmp.getContext('2d');
+    tctx.save();
+    if(mirror){ tctx.translate(dw, 0); tctx.scale(-1,1); }
+    tctx.drawImage(srcEl, sx, sy, sw, sh, 0, 0, dw, dh);
+    tctx.restore();
+    return tmp;
+  }
+
+  function captureLdrSplitFrame(){
+    const c = document.createElement('canvas');
+    // Matches the same HD-ish target as the regular capture — local half
+    // still uses full local camera detail; the remote half is limited by
+    // whatever video quality actually made it across the network.
+    c.width = 1600; c.height = 1200;
+    const cctx = c.getContext('2d');
+    const f = FILTERS[currentFilter] || FILTERS.normal;
+    const halfW = c.width/2;
+    const localMirror = currentFacing !== 'environment';
+    const remoteMirror = ldrGuestFacing !== 'environment';
+    const localTile = ldrCoverDrawToCanvas(video, halfW, c.height, localMirror);
+    const remoteTile = ldrCoverDrawToCanvas(remoteVideoEl, halfW, c.height, remoteMirror);
+    cctx.filter = f.css;
+    cctx.drawImage(localTile, 0, 0);
+    cctx.drawImage(remoteTile, halfW, 0);
+    cctx.filter = 'none';
+    if(f.tint){
+      cctx.save();
+      cctx.globalCompositeOperation = f.blend || 'soft-light';
+      cctx.globalAlpha = f.tintAlpha;
+      cctx.fillStyle = f.tint;
+      cctx.fillRect(0, 0, c.width, c.height);
+      cctx.restore();
+    }
+    cctx.save();
+    cctx.strokeStyle = 'rgba(244,232,213,.85)';
+    cctx.lineWidth = 3;
+    cctx.setLineDash([10,8]);
+    cctx.beginPath();
+    cctx.moveTo(halfW, 0);
+    cctx.lineTo(halfW, c.height);
+    cctx.stroke();
+    cctx.restore();
+    drawHeart(cctx, halfW, c.height/2, 22, '#ff9ecb');
+    return c;
+  }
+
+  filterBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      filterBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      applyFilter(currentFilter);
+    });
+  });
+
+  paperBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      paperBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPaper = btn.dataset.paper;
+      renderStrip();
+    });
+  });
+
+  frameBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      frameBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFrame = btn.dataset.frame;
+      if(currentFrame === 'scrapbook' && currentLayout !== 'strip3'){
+        currentLayout = 'strip3';
+        TOTAL_SHOTS = LAYOUTS.strip3.shots;
+        GRID_COLS = LAYOUTS.strip3.cols;
+        layoutBtns.forEach(b=>b.classList.remove('active'));
+        const strip3Btn = document.querySelector('.layout-btn[data-layout="strip3"]');
+        if(strip3Btn) strip3Btn.classList.add('active');
+        updateHeroSubtitle();
+        updateCaptureUI();
+      }
+      if(scrapbookCalibPanel){
+        scrapbookCalibPanel.style.display = (currentFrame === 'scrapbook') ? 'block' : 'none';
+      }
+      renderStrip();
+    });
+  });
+
+  // --- Scrapbook calibration panel: lets the person nudge the 3 photo slots
+  // (position, size, rotation) live so they line up exactly with the white
+  // photo-strip artwork in scrapbook-bg.png, since every template's artwork differs.
+  const scrapbookCalibPanel = document.getElementById('scrapbookCalib');
+  const calibInputs = {
+    cx: document.getElementById('calibX'),
+    cy: document.getElementById('calibY'),
+    w: document.getElementById('calibW'),
+    h: document.getElementById('calibH'),
+    angle: document.getElementById('calibR'),
+    margin: document.getElementById('calibM')
+  };
+  const calibLabels = {
+    cx: document.getElementById('calibXVal'),
+    cy: document.getElementById('calibYVal'),
+    w: document.getElementById('calibWVal'),
+    h: document.getElementById('calibHVal'),
+    angle: document.getElementById('calibRVal'),
+    margin: document.getElementById('calibMVal')
+  };
+  function syncCalibUI(){
+    Object.keys(calibInputs).forEach(key=>{
+      const input = calibInputs[key];
+      if(!input) return;
+      input.value = scrapbookCalib[key];
+      const label = calibLabels[key];
+      if(label){
+        label.textContent = key === 'angle' ? `${scrapbookCalib[key]}\u00b0` : scrapbookCalib[key].toFixed(3);
+      }
+    });
+  }
+  Object.keys(calibInputs).forEach(key=>{
+    const input = calibInputs[key];
+    if(!input) return;
+    input.addEventListener('input', ()=>{
+      scrapbookCalib[key] = parseFloat(input.value);
+      const label = calibLabels[key];
+      if(label){
+        label.textContent = key === 'angle' ? `${scrapbookCalib[key]}\u00b0` : scrapbookCalib[key].toFixed(3);
+      }
+      renderStrip();
+    });
+  });
+  const calibResetBtn = document.getElementById('calibReset');
+  if(calibResetBtn){
+    calibResetBtn.addEventListener('click', ()=>{
+      scrapbookCalib = { ...SCRAPBOOK_DEFAULT_CALIB };
+      syncCalibUI();
+      renderStrip();
+    });
+  }
+  syncCalibUI();
+
+  function updateHeroSubtitle(){
+    if(!heroSubtitle) return;
+    const kind = GRID_COLS > 1 ? `Grid ${GRID_COLS}\u00d7${Math.ceil(TOTAL_SHOTS/GRID_COLS)}` : 'Strip';
+    heroSubtitle.textContent = `${TOTAL_SHOTS} Pose \u00b7 1 ${kind} \u00b7 Kenangan Instan`;
+  }
+
+  // Keeps shot counter, shutter/retake/download buttons, and the hint text in sync
+  // with how many of the current grid's slots are actually filled with photos.
+  function updateCaptureUI(){
+    if(busy) return;
+    const filled = capturedFrames.slice(0, TOTAL_SHOTS).filter(Boolean).length;
+
+    if(filled > 0){
+      shotCounter.style.display = 'block';
+      shotCounter.textContent = `${filled}/${TOTAL_SHOTS} TERISI`;
+    } else {
+      shotCounter.style.display = 'none';
+    }
+
+    shutterBtn.disabled = filled >= TOTAL_SHOTS;
+    retakeBtn.disabled = filled === 0;
+    downloadBtn.disabled = filled < TOTAL_SHOTS;
+    gifBtn.disabled = filled < TOTAL_SHOTS;
+    shareBtn.disabled = filled < TOTAL_SHOTS;
+
+    if(shutterLabel){
+      shutterLabel.textContent = filled === 0 ? 'Jepret' : (filled < TOTAL_SHOTS ? 'Lanjut' : 'Penuh');
+    }
+    if(ldrActive && ldrRole === 'guest'){
+      shutterBtn.disabled = true;
+      if(shutterLabel) shutterLabel.textContent = 'Nunggu Host';
+    }
+    if(stripCaption){
+      if(filled === 0){
+        stripCaption.textContent = 'Strip kamu akan tercetak di sini';
+      } else if(filled < TOTAL_SHOTS){
+        stripCaption.textContent = `Lanjutkan jepret untuk isi ${TOTAL_SHOTS - filled} slot lagi \u00b7 seret foto untuk ubah posisi`;
+      } else {
+        stripCaption.textContent = 'Seret foto di atas untuk ubah posisi/urutan';
+      }
+    }
+  }
+
+  function applyLayout(key){
+    if(!LAYOUTS[key] || key === currentLayout) return;
+    currentLayout = key;
+    TOTAL_SHOTS = LAYOUTS[key].shots;
+    GRID_COLS = LAYOUTS[key].cols;
+    // Photos beyond the current grid's slot count are kept (not deleted) so
+    // switching back to a bigger layout brings them back instead of losing them.
+    selectedDeleteSlot = null;
+    updateHeroSubtitle();
+    renderStrip();
+    updateCaptureUI();
+  }
+
+  layoutBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      layoutBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyLayout(btn.dataset.layout);
+    });
+  });
+
+  // ---------- sticker drag & drop ----------
+  function syncStickerOverlay(){
+    stickerOverlay.innerHTML = '';
+    const rect = stripCanvas.getBoundingClientRect();
+    if(rect.width === 0 || rect.height === 0) return;
+    const scaleX = rect.width / stripCanvas.width;
+    const scaleY = rect.height / stripCanvas.height;
+    stickers.forEach(s=>{
+      const el = document.createElement('div');
+      el.className = 'sticker-item';
+      el.style.left = (s.x*scaleX) + 'px';
+      el.style.top = (s.y*scaleY) + 'px';
+      el.style.transform = `translate(-50%,-50%) rotate(${s.rotation||0}deg)`;
+      if(s.kind === 'custom'){
+        el.innerHTML = customStickerSVG(s.custom, s.size*scaleX);
+      } else {
+        el.style.fontSize = (s.size*scaleX) + 'px';
+        el.textContent = s.emoji;
+      }
+
+      const rm = document.createElement('span');
+      rm.className = 'sticker-remove';
+      rm.textContent = '×';
+      rm.title = 'Hapus stiker';
+      rm.addEventListener('pointerdown', ev=>ev.stopPropagation());
+      rm.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        stickers = stickers.filter(st=>st.id !== s.id);
+        redrawCanvas();
+      });
+      el.appendChild(rm);
+
+      const resizeHandle = document.createElement('span');
+      resizeHandle.className = 'sticker-resize-handle';
+      resizeHandle.title = 'Seret untuk ubah ukuran';
+      resizeHandle.addEventListener('pointerdown', ev=>startStickerResize(ev, s.id, el));
+      el.appendChild(resizeHandle);
+
+      const rotateHandle = document.createElement('span');
+      rotateHandle.className = 'sticker-rotate-handle';
+      rotateHandle.title = 'Seret untuk memutar';
+      rotateHandle.addEventListener('pointerdown', ev=>startStickerRotate(ev, s.id, el));
+      el.appendChild(rotateHandle);
+
+      el.addEventListener('pointerdown', ev=>startStickerDrag(ev, s.id, el));
+      stickerOverlay.appendChild(el);
+    });
+
+    // Per-photo tap-to-delete: tapping a filled photo reveals that slot's
+    // delete button (with a highlight), instead of always showing an ×.
+    // Tapping the photo again, or anywhere else, hides it.
+    if(!busy){
+      const layout = computeGridLayout(TOTAL_SHOTS);
+      layout.positions.forEach((p, i)=>{
+        if(!capturedFrames[i]) return;
+
+        const hit = document.createElement('div');
+        hit.className = 'photo-hit-area' + (selectedDeleteSlot === i ? ' selected' : '');
+        hit.title = `Foto ${i+1}`;
+        hit.style.left = (p.x * scaleX) + 'px';
+        hit.style.top = (p.y * scaleY) + 'px';
+        hit.style.width = (p.w * scaleX) + 'px';
+        hit.style.height = (p.h * scaleY) + 'px';
+        hit.addEventListener('pointerdown', ev=>ev.stopPropagation());
+        hit.addEventListener('click', ev=>{
+          ev.stopPropagation();
+          selectedDeleteSlot = (selectedDeleteSlot === i) ? null : i;
+          syncStickerOverlay();
+        });
+        stickerOverlay.appendChild(hit);
+
+        if(selectedDeleteSlot === i){
+          const btn = document.createElement('div');
+          btn.className = 'photo-delete-btn';
+          btn.textContent = '×';
+          btn.title = `Hapus foto ${i+1}`;
+          btn.style.left = ((p.x + p.w) * scaleX) + 'px';
+          btn.style.top = (p.y * scaleY) + 'px';
+          btn.addEventListener('pointerdown', ev=>ev.stopPropagation());
+          btn.addEventListener('click', ev=>{
+            ev.stopPropagation();
+            deleteHistory.push({ type:'single', index: i, frame: capturedFrames[i] });
+            capturedFrames[i] = null;
+            selectedDeleteSlot = null;
+            updateUndoBtn();
+            renderStrip();
+            updateCaptureUI();
+          });
+          stickerOverlay.appendChild(btn);
+        }
+      });
+    }
+  }
+
+  function redrawCanvas(){
+    renderStrip();
+  }
+
+  function startStickerDrag(ev, id, el){
+    if(busy) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    el.classList.add('dragging');
+
+    function onMove(ev2){
+      const rect = stripCanvas.getBoundingClientRect();
+      let nx = ev2.clientX - rect.left;
+      let ny = ev2.clientY - rect.top;
+      nx = Math.max(0, Math.min(rect.width, nx));
+      ny = Math.max(0, Math.min(rect.height, ny));
+      el.style.left = nx + 'px';
+      el.style.top = ny + 'px';
+    }
+    function onUp(ev2){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      el.classList.remove('dragging');
+      const rect = stripCanvas.getBoundingClientRect();
+      const scaleX = stripCanvas.width / rect.width;
+      const scaleY = stripCanvas.height / rect.height;
+      let nx = ev2.clientX - rect.left;
+      let ny = ev2.clientY - rect.top;
+      nx = Math.max(0, Math.min(rect.width, nx));
+      ny = Math.max(0, Math.min(rect.height, ny));
+      const sticker = stickers.find(st=>st.id === id);
+      if(sticker){
+        sticker.x = nx*scaleX;
+        sticker.y = ny*scaleY;
+      }
+      redrawCanvas();
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  // Drag the teal handle at the bottom-right corner to scale a sticker up/down,
+  // based on distance from the sticker's center to the pointer.
+  function startStickerResize(ev, id, el){
+    if(busy) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const sticker = stickers.find(st=>st.id === id);
+    if(!sticker) return;
+    el.classList.add('dragging');
+
+    const rect = stripCanvas.getBoundingClientRect();
+    const scaleX = rect.width / stripCanvas.width;
+    const scaleY = rect.height / stripCanvas.height;
+    const centerX = rect.left + sticker.x*scaleX;
+    const centerY = rect.top + sticker.y*scaleY;
+    const startDist = Math.hypot(ev.clientX-centerX, ev.clientY-centerY) || 1;
+    const startSize = sticker.size;
+    let pendingSize = startSize;
+
+    function onMove(ev2){
+      const dist = Math.hypot(ev2.clientX-centerX, ev2.clientY-centerY);
+      pendingSize = Math.max(16, Math.min(140, startSize * (dist/startDist)));
+      if(sticker.kind === 'custom'){
+        const svg = el.querySelector('svg');
+        if(svg){
+          svg.setAttribute('width', pendingSize*scaleX);
+          svg.setAttribute('height', pendingSize*scaleX);
+        }
+      } else {
+        el.style.fontSize = (pendingSize*scaleX) + 'px';
+      }
+    }
+    function onUp(){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      el.classList.remove('dragging');
+      sticker.size = pendingSize;
+      redrawCanvas();
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  // Drag the amber handle above the sticker to spin it around its own center,
+  // tracking the angle from the sticker's center to the pointer.
+  function startStickerRotate(ev, id, el){
+    if(busy) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const sticker = stickers.find(st=>st.id === id);
+    if(!sticker) return;
+    el.classList.add('dragging');
+
+    const rect = stripCanvas.getBoundingClientRect();
+    const scaleX = rect.width / stripCanvas.width;
+    const scaleY = rect.height / stripCanvas.height;
+    const centerX = rect.left + sticker.x*scaleX;
+    const centerY = rect.top + sticker.y*scaleY;
+    const startAngle = Math.atan2(ev.clientY-centerY, ev.clientX-centerX) * 180/Math.PI;
+    const startRotation = sticker.rotation || 0;
+    let pendingRotation = startRotation;
+
+    function onMove(ev2){
+      const angle = Math.atan2(ev2.clientY-centerY, ev2.clientX-centerX) * 180/Math.PI;
+      pendingRotation = startRotation + (angle - startAngle);
+      el.style.transform = `translate(-50%,-50%) rotate(${pendingRotation}deg)`;
+    }
+    function onUp(){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      el.classList.remove('dragging');
+      sticker.rotation = pendingRotation;
+      redrawCanvas();
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  function addSticker(spec, x, y){
+    if(typeof spec === 'string'){
+      stickers.push({ id: stickerIdSeq++, kind:'emoji', emoji: spec, x, y, size: 34, rotation: 0 });
+    } else {
+      stickers.push({ id: stickerIdSeq++, kind:'custom', custom: spec.custom, x, y, size: 34, rotation: 0 });
+    }
+    redrawCanvas();
+  }
+
+  // ---------- photo reordering (drag a filled slot onto another slot) ----------
+  function slotIndexAtClientPoint(clientX, clientY, layout){
+    const rect = stripCanvas.getBoundingClientRect();
+    if(rect.width === 0 || rect.height === 0) return -1;
+    if(clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return -1;
+    const scaleX = stripCanvas.width / rect.width;
+    const scaleY = stripCanvas.height / rect.height;
+    const cx = (clientX - rect.left) * scaleX;
+    const cy = (clientY - rect.top) * scaleY;
+    return layout.positions.findIndex(p => cx >= p.x && cx <= p.x + p.w && cy >= p.y && cy <= p.y + p.h);
+  }
+
+  function startPhotoDrag(ev, srcIndex){
+    ev.preventDefault();
+    const frameCanvas = capturedFrames[srcIndex];
+    if(!frameCanvas) return;
+
+    const ghost = document.createElement('img');
+    ghost.className = 'photo-ghost';
+    ghost.src = frameCanvas.toDataURL('image/png');
+    document.body.appendChild(ghost);
+    const placeGhost = (clientX, clientY) => {
+      ghost.style.left = clientX + 'px';
+      ghost.style.top = clientY + 'px';
+    };
+    placeGhost(ev.clientX, ev.clientY);
+
+    function onMove(ev2){
+      placeGhost(ev2.clientX, ev2.clientY);
+    }
+    function onUp(ev2){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      ghost.remove();
+      const layout = computeGridLayout(TOTAL_SHOTS);
+      const targetIndex = slotIndexAtClientPoint(ev2.clientX, ev2.clientY, layout);
+      if(targetIndex !== -1 && targetIndex !== srcIndex){
+        const tmp = capturedFrames[targetIndex];
+        capturedFrames[targetIndex] = capturedFrames[srcIndex];
+        capturedFrames[srcIndex] = tmp;
+        renderStrip();
+        updateCaptureUI();
+      }
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  // Pointerdown on the overlay background (i.e. not on a sticker, which stops
+  // propagation) means the user grabbed a photo slot to reorder it.
+  stickerOverlay.addEventListener('pointerdown', ev=>{
+    if(busy) return;
+    const layout = computeGridLayout(TOTAL_SHOTS);
+    const srcIndex = slotIndexAtClientPoint(ev.clientX, ev.clientY, layout);
+    if(srcIndex === -1 || !capturedFrames[srcIndex]) return;
+    startPhotoDrag(ev, srcIndex);
+  });
+
+  function moveGhost(ghost, clientX, clientY){
+    ghost.style.left = clientX + 'px';
+    ghost.style.top = clientY + 'px';
+  }
+
+  function startPaletteDrag(spec, startX, startY){
+    if(busy) return;
+    const ghost = document.createElement('div');
+    ghost.className = 'sticker-ghost';
+    if(typeof spec === 'string'){
+      ghost.textContent = spec;
+    } else {
+      ghost.innerHTML = customStickerSVG(spec.custom, 28);
+    }
+    document.body.appendChild(ghost);
+    moveGhost(ghost, startX, startY);
+
+    function onMove(ev){
+      moveGhost(ghost, ev.clientX, ev.clientY);
+    }
+    function onUp(ev){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      ghost.remove();
+      const rect = stripCanvas.getBoundingClientRect();
+      if(ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom){
+        const scaleX = stripCanvas.width / rect.width;
+        const scaleY = stripCanvas.height / rect.height;
+        const x = (ev.clientX - rect.left) * scaleX;
+        const y = (ev.clientY - rect.top) * scaleY;
+        addSticker(spec, x, y);
+      }
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  stickerPalette.querySelectorAll('.sticker-chip').forEach(chip=>{
+    chip.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
+      if(chip.dataset.custom){
+        startPaletteDrag({ custom: chip.dataset.custom }, ev.clientX, ev.clientY);
+      } else {
+        startPaletteDrag(chip.dataset.emoji, ev.clientX, ev.clientY);
+      }
+    });
+  });
+
+  clearStickersBtn.addEventListener('click', ()=>{
+    if(busy || stickers.length === 0) return;
+    stickers = [];
+    redrawCanvas();
+  });
+
+  window.addEventListener('resize', ()=>{ syncStickerOverlay(); });
+
+  // ---------- AI Background Replacement (TensorFlow.js + BodyPix, runs fully on-device) ----------
+  function loadScriptOnce(src){
+    return new Promise((resolve, reject)=>{
+      const existing = document.querySelector('script[src="'+src+'"]');
+      if(existing){
+        if(existing.dataset.loaded === '1'){ resolve(); return; }
+        existing.addEventListener('load', ()=>resolve());
+        existing.addEventListener('error', ()=>reject(new Error('Gagal memuat skrip AI')));
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = ()=>{ s.dataset.loaded = '1'; resolve(); };
+      s.onerror = ()=>reject(new Error('Gagal memuat skrip AI'));
+      document.head.appendChild(s);
+    });
+  }
+
+  function ensureBodyPix(){
+    if(bodyPixModel) return Promise.resolve(bodyPixModel);
+    if(bodyPixLoadPromise) return bodyPixLoadPromise;
+    aiStatusText.textContent = 'Mengunduh model AI (±5 MB, sekali saja)…';
+    bodyPixLoadPromise = (async ()=>{
+      try{
+        if(!window.tf){
+          await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+        }
+        if(!window.bodyPix){
+          await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js');
+        }
+        aiStatusText.textContent = 'Menyiapkan model…';
+        bodyPixModel = await bodyPix.load({ architecture:'MobileNetV1', outputStride:16, multiplier:0.5, quantBytes:2 });
+        aiStatusText.textContent = '';
+        return bodyPixModel;
+      }catch(err){
+        aiStatusText.textContent = 'AI gagal dimuat. Cek koneksi internet lalu coba lagi.';
+        bodyPixLoadPromise = null;
+        throw err;
+      }
+    })();
+    return bodyPixLoadPromise;
+  }
+
+  function drawAiBackground(actx, w, h, filterCss){
+    if(aiBgPreset === 'blur'){
+      actx.save();
+      actx.filter = (filterCss && filterCss !== 'none' ? filterCss + ' ' : '') + 'blur(22px) brightness(.94)';
+      actx.drawImage(video, 0, 0, w, h);
+      actx.restore();
+    } else if(aiBgPreset === 'studio-abu'){
+      const g = actx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,'#6b6b6b'); g.addColorStop(1,'#242424');
+      actx.fillStyle = g; actx.fillRect(0,0,w,h);
+    } else if(aiBgPreset === 'studio-pink'){
+      const g = actx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,'#ffd6ec'); g.addColorStop(1,'#c9a7ff');
+      actx.fillStyle = g; actx.fillRect(0,0,w,h);
+    } else if(aiBgPreset === 'studio-hijau'){
+      const g = actx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,'#3ad19f'); g.addColorStop(1,'#0c6b50');
+      actx.fillStyle = g; actx.fillRect(0,0,w,h);
+    } else if(aiBgPreset === 'galaxy'){
+      const g = actx.createRadialGradient(w/2,h*0.4,10,w/2,h*0.4,Math.max(w,h)*0.9);
+      g.addColorStop(0,'#4a2586'); g.addColorStop(.55,'#33146b'); g.addColorStop(1,'#0a0316');
+      actx.fillStyle = g; actx.fillRect(0,0,w,h);
+      const rand = seededRand(88);
+      actx.save();
+      for(let i=0; i<70; i++){
+        const x = rand()*w, y = rand()*h, r = rand()*1.5;
+        actx.globalAlpha = 0.3 + rand()*0.6;
+        actx.fillStyle = '#ffffff';
+        actx.beginPath(); actx.arc(x,y,r,0,Math.PI*2); actx.fill();
+      }
+      actx.restore();
+    } else if(aiBgPreset === 'custom' && customBgImage){
+      actx.drawImage(customBgImage, 0, 0, w, h);
+    } else {
+      actx.fillStyle = '#1a1816'; actx.fillRect(0,0,w,h);
+    }
+  }
+
+  function drawAiCanvas(){
+    const w = video.videoWidth || 0, h = video.videoHeight || 0;
+    if(!w || !h) return;
+    if(aiCanvas.width !== w) aiCanvas.width = w;
+    if(aiCanvas.height !== h) aiCanvas.height = h;
+    const actx = aiCanvas.getContext('2d');
+    const filterCss = (FILTERS[currentFilter] || FILTERS.normal).css;
+    actx.clearRect(0,0,w,h);
+    drawAiBackground(actx, w, h, filterCss);
+
+    if(lastMask && lastMask.data && lastMask.width === w && lastMask.height === h){
+      if(personCanvas.width !== w) personCanvas.width = w;
+      if(personCanvas.height !== h) personCanvas.height = h;
+      const pctx = personCanvas.getContext('2d');
+      pctx.clearRect(0,0,w,h);
+      pctx.filter = filterCss;
+      pctx.drawImage(video, 0, 0, w, h);
+      pctx.filter = 'none';
+      const imgData = pctx.getImageData(0,0,w,h);
+      const data = imgData.data;
+      const maskData = lastMask.data;
+      for(let i=0; i<maskData.length; i++){
+        if(maskData[i] === 0){ data[i*4+3] = 0; }
+      }
+      pctx.putImageData(imgData, 0, 0);
+      actx.drawImage(personCanvas, 0, 0, w, h);
+    } else {
+      actx.save();
+      actx.filter = filterCss;
+      actx.drawImage(video, 0, 0, w, h);
+      actx.restore();
+    }
+  }
+
+  function aiLoop(){
+    if(!aiBgEnabled) return;
+    if(!maskBusy && bodyPixModel && video.readyState >= 2 && video.videoWidth){
+      maskBusy = true;
+      bodyPixModel.segmentPerson(video, {
+        internalResolution: 'low',
+        segmentationThreshold: 0.65,
+        maxDetections: 1
+      }).then(mask=>{
+        lastMask = mask;
+        maskBusy = false;
+      }).catch(()=>{ maskBusy = false; });
+    }
+    drawAiCanvas();
+    aiRafId = requestAnimationFrame(aiLoop);
+  }
+
+  function startAiLoop(){
+    aiCanvas.style.display = 'block';
+    video.style.visibility = 'hidden';
+    if(aiRafId) cancelAnimationFrame(aiRafId);
+    aiLoop();
+  }
+
+  function stopAiLoop(){
+    if(aiRafId) cancelAnimationFrame(aiRafId);
+    aiRafId = null;
+    lastMask = null;
+    aiCanvas.style.display = 'none';
+    video.style.visibility = 'visible';
+  }
+
+  aiSwitch.addEventListener('click', async ()=>{
+    if(busy) return;
+    if(!aiBgEnabled){
+      aiBgEnabled = true;
+      aiSwitch.classList.add('on');
+      aiPresets.style.display = 'flex';
+      aiBadge.style.display = 'flex';
+      try{
+        await ensureBodyPix();
+        if(aiBgEnabled) startAiLoop();
+      }catch(err){
+        aiBgEnabled = false;
+        aiSwitch.classList.remove('on');
+        aiBadge.style.display = 'none';
+      }
+    } else {
+      aiBgEnabled = false;
+      aiSwitch.classList.remove('on');
+      aiBadge.style.display = 'none';
+      stopAiLoop();
+    }
+  });
+
+  aiPresetBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      if(btn.dataset.preset === 'custom'){
+        aiCustomFile.click();
+        return;
+      }
+      aiPresetBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      aiBgPreset = btn.dataset.preset;
+    });
+  });
+
+  aiCustomFile.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = ()=>{
+      customBgImage = img;
+      aiBgPreset = 'custom';
+      aiPresetBtns.forEach(b=>b.classList.remove('active'));
+      aiCustomBtn.classList.add('active');
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // ---------- AR Face Filter (face-api.js landmark tracking, runs fully on-device) ----------
+  function ensureFaceApi(){
+    if(faceApiReady) return Promise.resolve();
+    if(faceApiLoadPromise) return faceApiLoadPromise;
+    arStatusText.textContent = 'Mengunduh model deteksi wajah…';
+    faceApiLoadPromise = (async ()=>{
+      try{
+        if(!window.faceapi){
+          await loadScriptOnce('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js');
+        }
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+        faceApiReady = true;
+        arStatusText.textContent = '';
+      }catch(err){
+        arStatusText.textContent = 'Filter wajah gagal dimuat. Cek koneksi internet.';
+        faceApiLoadPromise = null;
+        throw err;
+      }
+    })();
+    return faceApiLoadPromise;
+  }
+
+  function avgPoint(pts){
+    let x=0, y=0;
+    pts.forEach(p=>{ x+=p.x; y+=p.y; });
+    return { x:x/pts.length, y:y/pts.length };
+  }
+
+  function updateSmoothFace(result){
+    const lm = result.landmarks;
+    const box = result.detection.box;
+    const leftEye = avgPoint(lm.getLeftEye());
+    const rightEye = avgPoint(lm.getRightEye());
+    const nose = lm.getNose();
+    const noseTip = nose[nose.length-1];
+    const jaw = lm.getJawOutline();
+    const chin = jaw[8];
+    const angle = Math.atan2(rightEye.y-leftEye.y, rightEye.x-leftEye.x);
+    const target = { leftEye, rightEye, noseTip, chin, boxTop:box.y, boxLeft:box.x, boxWidth:box.width, boxHeight:box.height, angle };
+    if(!smoothFace){ smoothFace = target; return; }
+    const k = 0.4;
+    const lerp = (a,b)=> a+(b-a)*k;
+    const lerpPt = (a,b)=> ({ x:lerp(a.x,b.x), y:lerp(a.y,b.y) });
+    smoothFace = {
+      leftEye: lerpPt(smoothFace.leftEye, target.leftEye),
+      rightEye: lerpPt(smoothFace.rightEye, target.rightEye),
+      noseTip: lerpPt(smoothFace.noseTip, target.noseTip),
+      chin: lerpPt(smoothFace.chin, target.chin),
+      boxTop: lerp(smoothFace.boxTop, target.boxTop),
+      boxLeft: lerp(smoothFace.boxLeft, target.boxLeft),
+      boxWidth: lerp(smoothFace.boxWidth, target.boxWidth),
+      boxHeight: lerp(smoothFace.boxHeight, target.boxHeight),
+      angle: lerp(smoothFace.angle, target.angle)
+    };
+  }
+
+  function drawFlower(c, x, y, r, color){
+    c.save();
+    c.translate(x, y);
+    c.fillStyle = color;
+    for(let i=0; i<5; i++){
+      c.save();
+      c.rotate((Math.PI*2/5)*i);
+      c.beginPath();
+      c.ellipse(0, -r*0.62, r*0.42, r*0.62, 0, 0, Math.PI*2);
+      c.fill();
+      c.restore();
+    }
+    c.fillStyle = '#ffd166';
+    c.beginPath();
+    c.arc(0, 0, r*0.32, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+  }
+
+  function drawCatFilter(c, face, eyeDist, midEye){
+    const foreheadY = face.boxTop - eyeDist*0.15;
+    c.save();
+    c.translate(midEye.x, foreheadY);
+    c.rotate(face.angle);
+    const earW = eyeDist*0.62, earH = eyeDist*0.85, spread = eyeDist*0.95;
+    [-1,1].forEach(side=>{
+      c.save();
+      c.translate(side*spread, -earH*0.35);
+      c.rotate(side*0.12);
+      c.fillStyle = '#2b2622';
+      c.beginPath();
+      c.moveTo(0, earH*0.35);
+      c.lineTo(-earW/2, -earH*0.65);
+      c.lineTo(earW/2, -earH*0.65);
+      c.closePath();
+      c.fill();
+      c.fillStyle = '#e8a3b8';
+      c.beginPath();
+      c.moveTo(0, earH*0.15);
+      c.lineTo(-earW*0.27, -earH*0.42);
+      c.lineTo(earW*0.27, -earH*0.42);
+      c.closePath();
+      c.fill();
+      c.restore();
+    });
+    c.restore();
+
+    c.save();
+    c.translate(face.noseTip.x, face.noseTip.y);
+    c.rotate(face.angle);
+    c.fillStyle = '#e0708c';
+    c.beginPath();
+    c.moveTo(0, -eyeDist*0.05);
+    c.lineTo(-eyeDist*0.06, eyeDist*0.04);
+    c.lineTo(eyeDist*0.06, eyeDist*0.04);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.85)';
+    c.lineWidth = Math.max(1.4, eyeDist*0.02);
+    [-1,1].forEach(side=>{
+      for(let i=0; i<3; i++){
+        const yOff = (i-1)*eyeDist*0.09;
+        c.beginPath();
+        c.moveTo(side*eyeDist*0.08, yOff*0.4);
+        c.quadraticCurveTo(side*eyeDist*0.5, yOff, side*eyeDist*0.85, yOff*1.4);
+        c.stroke();
+      }
+    });
+    c.restore();
+  }
+
+  function drawGlassesFilter(c, face, eyeDist, midEye){
+    c.save();
+    c.translate(midEye.x, midEye.y);
+    c.rotate(face.angle);
+    const r = eyeDist*0.38;
+    const offset = eyeDist*0.52;
+    c.strokeStyle = '#2b2622';
+    c.lineWidth = Math.max(2, eyeDist*0.05);
+    c.fillStyle = 'rgba(160,220,255,.18)';
+    [-1,1].forEach(side=>{
+      c.beginPath();
+      c.ellipse(side*offset, 0, r, r*0.86, 0, 0, Math.PI*2);
+      c.fill();
+      c.stroke();
+    });
+    c.beginPath();
+    c.moveTo(-offset+r*0.7, 0);
+    c.lineTo(offset-r*0.7, 0);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(-offset-r, 0);
+    c.lineTo(-offset-r-eyeDist*0.28, -eyeDist*0.06);
+    c.moveTo(offset+r, 0);
+    c.lineTo(offset+r+eyeDist*0.28, -eyeDist*0.06);
+    c.stroke();
+    c.restore();
+  }
+
+  function drawCrownFilter(c, face, eyeDist, midEye){
+    const foreheadY = face.boxTop - eyeDist*0.05;
+    const colors = ['#ff9ecb','#ffd166','#c9a7ff','#8fd6a0','#ff9ecb'];
+    c.save();
+    c.translate(midEye.x, foreheadY);
+    c.rotate(face.angle);
+    const spread = eyeDist*1.15;
+    for(let i=0; i<5; i++){
+      const t = (i/4)*2-1;
+      const x = t*spread;
+      const y = -Math.pow(t,2)*eyeDist*0.25 - eyeDist*0.05;
+      drawFlower(c, x, y, eyeDist*0.14, colors[i]);
+    }
+    c.restore();
+  }
+
+  function drawMustacheFilter(c, face, eyeDist, midEye){
+    c.save();
+    c.translate(face.noseTip.x, face.noseTip.y + eyeDist*0.16);
+    c.rotate(face.angle);
+    c.fillStyle = '#2b2622';
+    const w = eyeDist*0.55;
+    [-1,1].forEach(side=>{
+      c.save();
+      c.scale(side,1);
+      c.beginPath();
+      c.moveTo(0,0);
+      c.bezierCurveTo(w*0.25, -eyeDist*0.05, w*0.55, eyeDist*0.02, w*0.75, -eyeDist*0.02);
+      c.bezierCurveTo(w*0.55, eyeDist*0.08, w*0.25, eyeDist*0.1, 0, eyeDist*0.04);
+      c.closePath();
+      c.fill();
+      c.restore();
+    });
+    c.restore();
+
+    const hatY = face.boxTop - eyeDist*0.15;
+    c.save();
+    c.translate(midEye.x, hatY);
+    c.rotate(face.angle);
+    c.fillStyle = '#1a1816';
+    const hatW = eyeDist*1.5;
+    roundRect(c, -hatW/2, -eyeDist*0.1, hatW, eyeDist*0.16, 6);
+    c.fill();
+    c.fillRect(-hatW*0.32, -eyeDist*0.75, hatW*0.64, eyeDist*0.68);
+    c.fillStyle = '#c8443a';
+    c.fillRect(-hatW*0.32, -eyeDist*0.25, hatW*0.64, eyeDist*0.12);
+    c.restore();
+  }
+
+  function drawArCanvas(){
+    const w = video.videoWidth || 0, h = video.videoHeight || 0;
+    if(!w || !h) return;
+    if(arCanvas.width !== w) arCanvas.width = w;
+    if(arCanvas.height !== h) arCanvas.height = h;
+    const actx = arCanvas.getContext('2d');
+    actx.clearRect(0,0,w,h);
+    if(!smoothFace) return;
+    const eyeDist = Math.hypot(smoothFace.rightEye.x-smoothFace.leftEye.x, smoothFace.rightEye.y-smoothFace.leftEye.y);
+    const midEye = { x:(smoothFace.leftEye.x+smoothFace.rightEye.x)/2, y:(smoothFace.leftEye.y+smoothFace.rightEye.y)/2 };
+    if(arPreset === 'cat') drawCatFilter(actx, smoothFace, eyeDist, midEye);
+    else if(arPreset === 'glasses') drawGlassesFilter(actx, smoothFace, eyeDist, midEye);
+    else if(arPreset === 'crown') drawCrownFilter(actx, smoothFace, eyeDist, midEye);
+    else if(arPreset === 'mustache') drawMustacheFilter(actx, smoothFace, eyeDist, midEye);
+  }
+
+  async function arLoop(){
+    if(!arEnabled) return;
+    if(!arBusy && faceApiReady && video.readyState >= 2 && video.videoWidth){
+      arBusy = true;
+      try{
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+        const result = await faceapi.detectSingleFace(video, opts).withFaceLandmarks(true);
+        if(result){ updateSmoothFace(result); } else { smoothFace = null; }
+      }catch(e){}
+      arBusy = false;
+    }
+    drawArCanvas();
+    arRafId = requestAnimationFrame(arLoop);
+  }
+
+  function startArLoop(){
+    if(arRafId) cancelAnimationFrame(arRafId);
+    arLoop();
+  }
+
+  function stopArLoop(){
+    if(arRafId) cancelAnimationFrame(arRafId);
+    arRafId = null;
+    smoothFace = null;
+    const actx = arCanvas.getContext('2d');
+    actx.clearRect(0,0,arCanvas.width,arCanvas.height);
+  }
+
+  arSwitch.addEventListener('click', async ()=>{
+    if(busy) return;
+    if(!arEnabled){
+      arEnabled = true;
+      arSwitch.classList.add('on');
+      arPresets.style.display = 'flex';
+      arBadge.style.display = 'flex';
+      try{
+        await ensureFaceApi();
+        if(arEnabled) startArLoop();
+      }catch(err){
+        arEnabled = false;
+        arSwitch.classList.remove('on');
+        arBadge.style.display = 'none';
+      }
+    } else {
+      arEnabled = false;
+      arSwitch.classList.remove('on');
+      arBadge.style.display = 'none';
+      stopArLoop();
+    }
+  });
+
+  arPresetBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(busy) return;
+      arPresetBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      arPreset = btn.dataset.preset;
+    });
+  });
+
+  function wait(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+  async function runCountdown(){
+    countdownEl.style.display = 'flex';
+    for(const n of [3,2,1]){
+      countdownEl.textContent = n;
+      if(ldrActive && ldrRole === 'host') ldrSendToPeer({ type:'countdown', n });
+      await wait(650);
+    }
+    countdownEl.style.display = 'none';
+    if(ldrActive && ldrRole === 'host') ldrSendToPeer({ type:'countdown-hide' });
+  }
+
+  function doFlash(){
+    flashEl.classList.remove('pop');
+    void flashEl.offsetWidth;
+    flashEl.classList.add('pop');
+    if(ldrActive && ldrRole === 'host') ldrSendToPeer({ type:'flash' });
+  }
+
+  function captureFrame(){
+    if(ldrActive && ldrRole === 'host' && ldrRemoteStream && remoteVideoEl.readyState >= 2){
+      return captureLdrSplitFrame();
+    }
+    const c = document.createElement('canvas');
+    const useAi = aiBgEnabled && aiCanvas.style.display !== 'none' && aiCanvas.width > 0 && aiCanvas.height > 0;
+    const source = useAi ? aiCanvas : video;
+    const vw = useAi ? aiCanvas.width : (video.videoWidth || 640);
+    const vh = useAi ? aiCanvas.height : (video.videoHeight || 480);
+    const targetRatio = 4/3;
+    let sw = vw, sh = vh, sx = 0, sy = 0;
+    if (vw/vh > targetRatio){
+      sw = vh * targetRatio; sx = (vw - sw)/2;
+    } else {
+      sh = vw / targetRatio; sy = (vh - sh)/2;
+    }
+    // Output resolution is fixed regardless of the camera's native capture
+    // size — this only controls how big/sharp the final saved photo is,
+    // not what the camera captures. If the source is smaller (e.g. a
+    // 1280x960 camera), the crop gets scaled up into this canvas; if it's
+    // bigger, it gets scaled down. Either way the result is a consistent,
+    // print-quality HD output.
+    const OUT_W = 1600, OUT_H = 1200;
+    c.width = OUT_W; c.height = OUT_H;
+    const cctx = c.getContext('2d');
+    const f = FILTERS[currentFilter] || FILTERS.normal;
+    cctx.filter = useAi ? 'none' : f.css;
+    cctx.save();
+    if(currentFacing !== 'environment'){
+      cctx.translate(c.width, 0);
+      cctx.scale(-1,1);
+    }
+    cctx.drawImage(source, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    if(arEnabled && arCanvas.width > 0){
+      cctx.drawImage(arCanvas, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    }
+    cctx.restore();
+    cctx.filter = 'none';
+    if(!useAi && f.tint){
+      cctx.save();
+      cctx.globalCompositeOperation = f.blend || 'soft-light';
+      cctx.globalAlpha = f.tintAlpha;
+      cctx.fillStyle = f.tint;
+      cctx.fillRect(0, 0, c.width, c.height);
+      cctx.restore();
+    }
+    return c;
+  }
+
+  // ---------- small shape helpers ----------
+  function roundRect(c, x, y, w, h, r){
+    c.beginPath();
+    c.moveTo(x+r, y);
+    c.arcTo(x+w, y, x+w, y+h, r);
+    c.arcTo(x+w, y+h, x, y+h, r);
+    c.arcTo(x, y+h, x, y, r);
+    c.arcTo(x, y, x+w, y, r);
+    c.closePath();
+  }
+
+  function drawHeart(c, x, y, size, color){
+    c.save();
+    c.fillStyle = color;
+    c.beginPath();
+    const top = size*0.3;
+    c.moveTo(x, y+top);
+    c.bezierCurveTo(x, y, x-size/2, y, x-size/2, y+top);
+    c.bezierCurveTo(x-size/2, y+(size+top)/2, x, y+(size+top)/2, x, y+size);
+    c.bezierCurveTo(x, y+(size+top)/2, x+size/2, y+(size+top)/2, x+size/2, y+top);
+    c.bezierCurveTo(x+size/2, y, x, y, x, y+top);
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+
+  function drawStar(c, x, y, r, color){
+    c.save();
+    c.fillStyle = color;
+    c.beginPath();
+    for(let i=0; i<10; i++){
+      const ang = (Math.PI/5)*i - Math.PI/2;
+      const rad = i%2===0 ? r : r*0.42;
+      const px = x + Math.cos(ang)*rad;
+      const py = y + Math.sin(ang)*rad;
+      i===0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    }
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+
+  function drawBow(c, x, y, size, color, knotColor){
+    c.save();
+    c.translate(x, y);
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(0,0);
+    c.quadraticCurveTo(-size*0.15, -size*0.75, -size*1.05, -size*0.55);
+    c.quadraticCurveTo(-size*1.35, 0, -size*1.05, size*0.55);
+    c.quadraticCurveTo(-size*0.15, size*0.75, 0,0);
+    c.fill();
+    c.beginPath();
+    c.moveTo(0,0);
+    c.quadraticCurveTo(size*0.15, -size*0.75, size*1.05, -size*0.55);
+    c.quadraticCurveTo(size*1.35, 0, size*1.05, size*0.55);
+    c.quadraticCurveTo(size*0.15, size*0.75, 0,0);
+    c.fill();
+    c.fillStyle = knotColor || 'rgba(255,255,255,.55)';
+    c.beginPath();
+    c.arc(0, 0, size*0.32, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+  }
+
+  function drawSparkle(c, x, y, size, color){
+    c.save();
+    c.translate(x, y);
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(0,-size);
+    c.quadraticCurveTo(size*0.18, -size*0.18, size, 0);
+    c.quadraticCurveTo(size*0.18, size*0.18, 0, size);
+    c.quadraticCurveTo(-size*0.18, size*0.18, -size, 0);
+    c.quadraticCurveTo(-size*0.18, -size*0.18, 0, -size);
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+
+  function decorateDottedBorder(c, p, color, pad, dotR, gap){
+    pad = pad || 8; dotR = dotR || 2.6; gap = gap || 11;
+    c.save();
+    c.fillStyle = color;
+    const x0 = p.x - pad, y0 = p.y - pad, x1 = p.x + p.w + pad, y1 = p.y + p.h + pad;
+    for(let x = x0 + dotR; x <= x1 - dotR; x += gap){
+      c.beginPath(); c.arc(x, y0, dotR, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(x, y1, dotR, 0, Math.PI*2); c.fill();
+    }
+    for(let y = y0 + dotR; y <= y1 - dotR; y += gap){
+      c.beginPath(); c.arc(x0, y, dotR, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(x1, y, dotR, 0, Math.PI*2); c.fill();
+    }
+    c.restore();
+  }
+
+  // seeded pseudo-random so confetti layout stays stable across re-renders
+  function seededRand(seed){
+    let s = seed;
+    return function(){
+      s = (s*9301+49297) % 233280;
+      return s/233280;
+    };
+  }
+
+  // ---------- frame decorations ----------
+  function decorateFilm(c, W, H, pad, regionTop, regionBottom){
+    c.fillStyle = '#100e0c';
+    c.fillRect(0, regionTop-10, W, (regionBottom-regionTop)+20);
+    const holeW = 10, holeH = 14, spacing = 22;
+    c.fillStyle = '#f2e8d5';
+    for(let y = regionTop; y <= regionBottom; y += spacing){
+      roundRect(c, pad/2 - holeW/2, y, holeW, holeH, 3); c.fill();
+      roundRect(c, W - pad/2 - holeW/2, y, holeW, holeH, 3); c.fill();
+    }
+  }
+
+  function decoratePolaroid(c, p){
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,.35)';
+    c.shadowBlur = 10;
+    c.shadowOffsetY = 4;
+    c.fillStyle = '#ffffff';
+    c.fillRect(p.x-12, p.y-12, p.w+24, p.h+34);
+    c.restore();
+  }
+
+  function decorateWashiTape(c, p, color){
+    c.save();
+    c.translate(p.x + p.w/2, p.y-10);
+    c.rotate(-0.06);
+    c.fillStyle = color;
+    c.globalAlpha = .8;
+    c.fillRect(-34, -9, 68, 18);
+    c.restore();
+  }
+
+  function decorateConfetti(c, W, H, topPad, bottomLimit, rand){
+    const colors = ['#e8bb3c','#c8443a','#3f6b64','#e58a5f','#f2e8d5'];
+    for(let i=0; i<46; i++){
+      const x = rand()*W;
+      const y = topPad - 18 + rand()*(bottomLimit - topPad + 30);
+      const s = 3 + rand()*5;
+      const col = colors[Math.floor(rand()*colors.length)];
+      c.save();
+      c.translate(x, y);
+      c.rotate(rand()*Math.PI);
+      c.fillStyle = col;
+      if(rand() > .5){ c.fillRect(-s/2, -s/2, s, s*1.6); }
+      else { c.beginPath(); c.arc(0,0,s*0.6,0,Math.PI*2); c.fill(); }
+      c.restore();
+    }
+  }
+
+  function decorateHearts(c, positions, W, topPad, rand){
+    const pink = '#c8546b';
+    const rose = '#e58a9a';
+    const lilac = '#c98bd9';
+    const gold = '#e8bb3c';
+    rand = rand || seededRand(21);
+    positions.forEach((p, i)=>{
+      decorateDottedBorder(c, p, i % 2 === 0 ? pink : lilac, 7, 2.2, 9);
+      drawHeart(c, p.x+8, p.y+8, 11, pink);
+      drawHeart(c, p.x+p.w-8, p.y+8, 9, rose);
+      drawSparkle(c, p.x+p.w-10, p.y+p.h-10, 6, gold);
+    });
+    drawBow(c, W/2, topPad*0.42, 15, pink, '#fff0f3');
+    drawHeart(c, W/2 - 34, topPad*0.62, 11, rose);
+    drawHeart(c, W/2 + 34, topPad*0.62, 11, lilac);
+    for(let i=0; i<10; i++){
+      const x = rand()*W;
+      const y = 14 + rand()*(topPad-24);
+      const size = 3 + rand()*3;
+      const col = [pink, rose, lilac, gold][Math.floor(rand()*4)];
+      if(rand() > .5) drawSparkle(c, x, y, size, col);
+      else drawHeart(c, x, y, size, col);
+    }
+  }
+
+  function decorateNeon(c, W, H, positions, regionTop, regionBottom){
+    c.fillStyle = '#0d0221';
+    c.fillRect(0, regionTop-16, W, (regionBottom-regionTop)+32);
+    positions.forEach(p=>{
+      c.save();
+      c.shadowColor = '#00eaff';
+      c.shadowBlur = 16;
+      c.strokeStyle = '#00eaff';
+      c.lineWidth = 3;
+      roundRect(c, p.x-7, p.y-7, p.w+14, p.h+14, 9);
+      c.stroke();
+      c.restore();
+      c.save();
+      c.shadowColor = '#ff3fd8';
+      c.shadowBlur = 10;
+      c.strokeStyle = '#ff3fd8';
+      c.lineWidth = 1.5;
+      roundRect(c, p.x-3, p.y-3, p.w+6, p.h+6, 6);
+      c.stroke();
+      c.restore();
+    });
+  }
+
+  function drawBalloon(c, x, y, size, color){
+    c.save();
+    c.fillStyle = color;
+    c.beginPath();
+    c.ellipse(x, y, size*0.62, size*0.78, 0, 0, Math.PI*2);
+    c.fill();
+    c.strokeStyle = 'rgba(0,0,0,.2)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(x, y+size*0.78);
+    c.quadraticCurveTo(x+5, y+size*0.78+18, x, y+size*0.78+30);
+    c.stroke();
+    c.restore();
+  }
+
+  function decorateBirthday(c, W, topPad, positions, regionBottom){
+    const colors = ['#e8443a','#3f9dd1','#e8bb3c','#5fbf6a','#c8546b'];
+    const flagY = topPad*0.42;
+    const n = 9;
+    for(let i=0; i<n; i++){
+      const x = (W/(n-1))*i;
+      c.save();
+      c.fillStyle = colors[i % colors.length];
+      c.beginPath();
+      c.moveTo(x-9, 6);
+      c.lineTo(x+9, 6);
+      c.lineTo(x, flagY);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+    drawBalloon(c, 26, regionBottom+16, 20, colors[1]);
+    drawBalloon(c, W-26, regionBottom+16, 18, colors[3]);
+  }
+
+  function decoratePastelBg(c, W, top, bottom){
+    const grad = c.createLinearGradient(0, top, W, bottom);
+    grad.addColorStop(0, '#ffe3f1');
+    grad.addColorStop(0.5, '#eaf0ff');
+    grad.addColorStop(1, '#eaffe6');
+    c.fillStyle = grad;
+    c.fillRect(0, top, W, bottom-top);
+  }
+
+  function decoratePastelBlobs(c, W, top, bottom, rand){
+    const colors = ['#ffd6ec','#d6e8ff','#d6ffe4','#fff3c4','#e6d6ff'];
+    for(let i=0; i<14; i++){
+      const x = rand()*W;
+      const y = top + rand()*(bottom-top);
+      const r = 10 + rand()*22;
+      c.save();
+      c.globalAlpha = 0.32;
+      c.fillStyle = colors[Math.floor(rand()*colors.length)];
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI*2);
+      c.fill();
+      c.restore();
+    }
+    for(let i=0; i<7; i++){
+      const x = rand()*W;
+      const y = top + rand()*(bottom-top);
+      drawSparkle(c, x, y, 4 + rand()*4, colors[Math.floor(rand()*colors.length)]);
+    }
+  }
+
+  function decoratePastelSticker(c, p, i){
+    c.save();
+    c.shadowColor = 'rgba(120,120,170,.28)';
+    c.shadowBlur = 12;
+    c.shadowOffsetY = 5;
+    c.fillStyle = '#ffffff';
+    roundRect(c, p.x-7, p.y-7, p.w+14, p.h+14, 14);
+    c.fill();
+    c.restore();
+    const bowColors = ['#ffb0da','#b6a4ff','#a6d8ff','#ffd28a'];
+    drawBow(c, p.x+p.w-14, p.y-7, 9, bowColors[i % bowColors.length], '#ffffff');
+  }
+
+  function decorateSunsetBg(c, W, top, bottom){
+    const grad = c.createLinearGradient(0, top, 0, bottom);
+    grad.addColorStop(0, '#2b1055');
+    grad.addColorStop(0.35, '#7b2d6b');
+    grad.addColorStop(0.7, '#ff6f61');
+    grad.addColorStop(1, '#ffb347');
+    c.fillStyle = grad;
+    c.fillRect(0, top, W, bottom-top);
+  }
+
+  function decorateSunsetSun(c, W, topPad){
+    const cx = W/2, cy = topPad*0.42, r = 30;
+    c.save();
+    const grad = c.createRadialGradient(cx, cy, 2, cx, cy, r);
+    grad.addColorStop(0, '#fff6c8');
+    grad.addColorStop(0.5, '#ffb347');
+    grad.addColorStop(1, '#ff6f61');
+    c.fillStyle = grad;
+    c.beginPath();
+    c.arc(cx, cy, r, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+    c.save();
+    c.strokeStyle = 'rgba(255,255,255,.55)';
+    c.lineWidth = 2;
+    for(let i=0; i<4; i++){
+      const ly = cy + r*0.55 + i*7;
+      c.globalAlpha = 0.5 - i*0.1;
+      c.beginPath();
+      c.moveTo(cx - r*1.6 + i*3, ly);
+      c.lineTo(cx + r*1.6 - i*3, ly);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  function decorateSunsetBorder(c, p, i){
+    const pairs = [['#ffd56b','#ff6f9d'], ['#ff9a56','#c9599c']];
+    const cols = pairs[i % pairs.length];
+    c.save();
+    const g = c.createLinearGradient(p.x, p.y, p.x+p.w, p.y+p.h);
+    g.addColorStop(0, cols[0]);
+    g.addColorStop(1, cols[1]);
+    c.strokeStyle = g;
+    c.lineWidth = 4;
+    roundRect(c, p.x-4, p.y-4, p.w+8, p.h+8, 8);
+    c.stroke();
+    c.restore();
+  }
+
+  function decorateKawaiiBg(c, W, top, bottom){
+    const grad = c.createLinearGradient(0, top, W, bottom);
+    grad.addColorStop(0, '#ffd7ef');
+    grad.addColorStop(0.5, '#f1e2ff');
+    grad.addColorStop(1, '#d7ecff');
+    c.fillStyle = grad;
+    c.fillRect(0, top, W, bottom-top);
+  }
+
+  function decorateKawaiiSprinkles(c, W, top, bottom, rand){
+    const colors = ['#ffffff', '#ffe1f3', '#e8d9ff', '#fff3c9'];
+    for(let i=0; i<26; i++){
+      const x = rand()*W;
+      const y = top + rand()*(bottom-top);
+      const r = 1.5 + rand()*2.5;
+      c.save();
+      c.globalAlpha = 0.55;
+      c.fillStyle = colors[Math.floor(rand()*colors.length)];
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI*2);
+      c.fill();
+      c.restore();
+    }
+    for(let i=0; i<8; i++){
+      const x = rand()*W;
+      const y = top + rand()*(bottom-top);
+      drawSparkle(c, x, y, 4 + rand()*4, colors[Math.floor(rand()*2)+1]);
+    }
+  }
+
+  function decorateKawaiiPhoto(c, p, i){
+    const palette = [
+      ['#ff9ecb','#ffe3f1'],
+      ['#b79bff','#ece3ff'],
+      ['#7fc8ff','#e3f3ff'],
+      ['#ffc36b','#fff2df']
+    ];
+    const [accent, soft] = palette[i % palette.length];
+    c.save();
+    c.shadowColor = 'rgba(160,120,180,.35)';
+    c.shadowBlur = 10;
+    c.shadowOffsetY = 4;
+    c.fillStyle = '#ffffff';
+    roundRect(c, p.x-9, p.y-9, p.w+18, p.h+18, 16);
+    c.fill();
+    c.restore();
+
+    c.save();
+    c.strokeStyle = soft;
+    c.lineWidth = 3;
+    roundRect(c, p.x-9, p.y-9, p.w+18, p.h+18, 16);
+    c.stroke();
+    c.restore();
+
+    decorateDottedBorder(c, p, accent, 13, 2.2, 10);
+
+    // blush cheeks at bottom corners
+    c.save();
+    c.globalAlpha = 0.5;
+    c.fillStyle = '#ff9ecb';
+    c.beginPath(); c.ellipse(p.x+14, p.y+p.h+2, 7, 4.5, 0, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(p.x+p.w-14, p.y+p.h+2, 7, 4.5, 0, 0, Math.PI*2); c.fill();
+    c.restore();
+
+    drawBow(c, p.x+p.w/2, p.y-9, 12, accent, '#ffffff');
+    drawSparkle(c, p.x+p.w-4, p.y+4, 6, accent);
+    drawSparkle(c, p.x+4, p.y+p.h-4, 5, soft === '#fff2df' ? '#ffc36b' : accent);
+  }
+
+  // ---------- airmail (postal) frame ----------
+  function decorateAirmailBg(c, W, H, pad){
+    // cream envelope body
+    c.fillStyle = '#ece1c8';
+    c.fillRect(0, 0, W, H);
+    // red/navy diagonal stripe borders, left and right edges
+    const stripeW = Math.max(16, pad * 0.85);
+    [0, W - stripeW].forEach(sx=>{
+      c.save();
+      c.beginPath();
+      c.rect(sx, 0, stripeW, H);
+      c.clip();
+      const step = 26;
+      c.translate(sx, 0);
+      for(let y = -step*2; y < H + step*2; y += step*2){
+        c.fillStyle = '#b23a30';
+        c.beginPath();
+        c.moveTo(-step, y); c.lineTo(stripeW+step, y-stripeW-step); c.lineTo(stripeW+step, y-stripeW); c.lineTo(-step, y+step); c.closePath();
+        c.fill();
+        c.fillStyle = '#1f3a63';
+        c.beginPath();
+        c.moveTo(-step, y+step); c.lineTo(stripeW+step, y-stripeW); c.lineTo(stripeW+step, y-stripeW+step); c.lineTo(-step, y+step*2); c.closePath();
+        c.fill();
+      }
+      c.restore();
+    });
+    // little perforated dots framing the stripes
+    c.save();
+    c.fillStyle = 'rgba(43,38,34,.25)';
+    [stripeW*0.5, W - stripeW*0.5].forEach(x=>{
+      for(let y=6; y<H-6; y+=13){
+        c.beginPath(); c.arc(x, y, 1.6, 0, Math.PI*2); c.fill();
+      }
+    });
+    c.restore();
+  }
+
+  function decorateAirmailPhoto(c, p){
+    // cream mat card
+    c.save();
+    c.shadowColor = 'rgba(43,38,34,.3)';
+    c.shadowBlur = 8;
+    c.shadowOffsetY = 3;
+    c.fillStyle = '#faf6ea';
+    roundRect(c, p.x-10, p.y-10, p.w+20, p.h+20, 3);
+    c.fill();
+    c.restore();
+    // stamp-style dotted perforation just inside the mat edge
+    decorateDottedBorder(c, p, '#cabf9e', 6, 2, 8.5);
+  }
+
+  function decorateAirmailStamp(c, W, H, bottomCaption){
+    const cx = 46, cy = H - bottomCaption*0.36;
+    c.save();
+    c.strokeStyle = 'rgba(43,38,34,.55)';
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.arc(cx, cy, 22, 0, Math.PI*2);
+    c.stroke();
+    c.beginPath();
+    c.arc(cx, cy, 17, 0, Math.PI*2);
+    c.stroke();
+    c.font = "700 7px 'Space Mono', monospace";
+    c.fillStyle = 'rgba(43,38,34,.55)';
+    c.textAlign = 'center';
+    c.save();
+    c.translate(cx, cy);
+    const txt = 'LUCKY IN LOVE * ';
+    for(let i=0; i<txt.length; i++){
+      const ang = (i / txt.length) * Math.PI*2 - Math.PI/2;
+      c.save();
+      c.rotate(ang);
+      c.translate(0, -19.5);
+      c.fillText(txt[i], 0, 0);
+      c.restore();
+    }
+    c.restore();
+    c.font = "700 8px 'Space Mono', monospace";
+    c.fillText('✈', cx, cy+3);
+    c.restore();
+
+    // small dashed airmail line + plane wave next to the caption
+    c.save();
+    c.strokeStyle = 'rgba(43,38,34,.35)';
+    c.lineWidth = 1.4;
+    c.setLineDash([4,4]);
+    c.beginPath();
+    c.moveTo(W-120, H - bottomCaption*0.78);
+    c.quadraticCurveTo(W-70, H - bottomCaption*0.9, W-30, H - bottomCaption*0.7);
+    c.stroke();
+    c.setLineDash([]);
+    c.restore();
+  }
+
+  // ---------- reels (double filmstrip) frame ----------
+  function decorateReels(c, W, pad, regionTop, regionBottom, cols, gap, photoW){
+    c.fillStyle = '#0c0c0c';
+    c.fillRect(0, regionTop-14, W, (regionBottom-regionTop)+28);
+    const holeW = 9, holeH = 13, spacing = 20;
+    c.fillStyle = '#f2ede2';
+    const centers = [pad/2];
+    for(let col=1; col<cols; col++){
+      centers.push(pad + col*(photoW+gap) - gap/2);
+    }
+    centers.push(W - pad/2);
+    centers.forEach(x=>{
+      for(let y = regionTop; y <= regionBottom; y += spacing){
+        roundRect(c, x-holeW/2, y, holeW, holeH, 3); c.fill();
+      }
+    });
+  }
+
+  function decorateReelsWatermark(c, W, regionBottom){
+    c.save();
+    c.font = "700 9px 'Space Mono', monospace";
+    c.fillStyle = 'rgba(242,237,226,.55)';
+    c.textAlign = 'right';
+    c.fillText('35mm · B&W', W - 40, regionBottom + 4);
+    c.restore();
+  }
+
+  function clampStickers(){
+    const W = stripCanvas.width, H = stripCanvas.height;
+    stickers.forEach(s=>{
+      const margin = Math.max(12, (s.size||34)/2);
+      s.x = Math.min(Math.max(s.x, margin), W-margin);
+      s.y = Math.min(Math.max(s.y, margin), H-margin);
+    });
+  }
+
+  function drawStickers(){
+    stickers.forEach(s=>{
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      if(s.rotation) ctx.rotate(s.rotation * Math.PI/180);
+      if(s.kind === 'custom'){
+        drawCustomSticker(ctx, s.custom, s.size);
+      } else {
+        ctx.font = `${s.size}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.emoji, 0, 0);
+      }
+      ctx.restore();
+    });
+  }
+
+  // Computes photo positions/dimensions for the current grid layout (GRID_COLS)
+  // given n photos, based on the active frame's padding/gap rules.
+  // Custom fixed layout for the "Scrapbook" frame: 3 tilted photo slots positioned
+  // to match the real photo-strip artwork in scrapbook-bg.png, instead of the
+  // generic evenly-spaced grid used by the other frames.
+  function computeScrapbookLayout(){
+    const W = stripCanvas.width;
+    const imgAR = 5120/2880; // scrapbook-bg.png aspect ratio (portrait)
+    const imageH = W*imgAR;
+    const bottomCaption = 66;
+    const H = Math.round(imageH + bottomCaption);
+    const cal = scrapbookCalib;
+    const stripCx = cal.cx*W, stripCy = cal.cy*imageH;
+    const stripW = cal.w*W, stripH = cal.h*imageH;
+    const angle = cal.angle*Math.PI/180;
+    const boxFracs = [[0.03,0.265],[0.285,0.52],[0.54,0.885]];
+    const positions = boxFracs.map(([fs,fe])=>{
+      const localY = ((fs+fe)/2)*stripH - stripH/2;
+      const height = (fe-fs)*stripH;
+      const width = (1 - 2*cal.margin)*stripW;
+      const dx = -localY*Math.sin(angle);
+      const dy = localY*Math.cos(angle);
+      const cx = stripCx+dx, cy = stripCy+dy;
+      return { x: cx-width/2, y: cy-height/2, w: width, h: height, rot: angle };
+    });
+    return {
+      cols: 1, rows: 3, W, pad: stripCx-stripW/2, gap: 0,
+      photoW: positions[0].w, photoH: positions[0].h,
+      topPad: 0, bottomCaption, H, positions,
+      regionTop: 0, regionBottom: imageH, imageH
+    };
+  }
+
+  function computeGridLayout(n){
+    if(currentFrame === 'scrapbook' && n === 3){
+      return computeScrapbookLayout();
+    }
+    const cols = Math.max(1, Math.min(GRID_COLS, Math.max(n, 1)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const W = stripCanvas.width;
+    const pad = currentFrame === 'film' ? 36 : (currentFrame === 'reels' ? 34 : (currentFrame === 'neon' ? 30 : ((currentFrame === 'pastel' || currentFrame === 'sunset' || currentFrame === 'kawaii' || currentFrame === 'airmail') ? 26 : 22)));
+    const gap = currentFrame === 'polaroid' ? 30 : (currentFrame === 'reels' ? 34 : ((currentFrame === 'pastel' || currentFrame === 'kawaii') ? 24 : (currentFrame === 'airmail' ? 18 : 16)));
+    const photoW = (W - pad*2 - gap*(cols-1)) / cols;
+    const photoH = photoW * 0.75;
+    const topPad = (currentFrame === 'love' || currentFrame === 'birthday' || currentFrame === 'kawaii') ? 42 : (currentFrame === 'sunset' ? 46 : (currentFrame === 'pastel' ? 30 : (currentFrame === 'airmail' ? 40 : (currentFrame === 'reels' ? 30 : 26))));
+    const bottomCaption = currentFrame === 'airmail' ? 128 : (currentFrame === 'reels' ? 82 : 92);
+    const H = topPad + rows*photoH + (rows-1)*gap + bottomCaption;
+    const positions = [];
+    for(let i=0; i<n; i++){
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      positions.push({ x: pad + col*(photoW+gap), y: topPad + row*(photoH+gap), w: photoW, h: photoH });
+    }
+    const regionTop = topPad;
+    const regionBottom = topPad + rows*photoH + (rows-1)*gap;
+    return { cols, rows, W, pad, gap, photoW, photoH, topPad, bottomCaption, H, positions, regionTop, regionBottom };
+  }
+
+  renderStrip();
+  updateCaptureUI();
+
+  // Draws a dashed placeholder box for a pose slot that hasn't been captured yet,
+  // so the user can see exactly where each photo will land before shooting.
+  function drawEmptySlot(c, p, index, accentColor){
+    c.save();
+    c.beginPath();
+    roundRect(c, p.x, p.y, p.w, p.h, 8);
+    c.clip();
+    c.fillStyle = 'rgba(0,0,0,.16)';
+    c.fillRect(p.x, p.y, p.w, p.h);
+    c.restore();
+
+    c.save();
+    c.setLineDash([7,6]);
+    c.lineWidth = 2;
+    c.strokeStyle = accentColor || 'rgba(255,255,255,.5)';
+    c.globalAlpha = .85;
+    roundRect(c, p.x+1.5, p.y+1.5, p.w-3, p.h-3, 7);
+    c.stroke();
+    c.setLineDash([]);
+    c.restore();
+
+    c.save();
+    c.globalAlpha = .8;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    const iconSize = Math.max(14, Math.min(p.w, p.h) * 0.3);
+    c.font = `${iconSize}px sans-serif`;
+    c.fillText('📷', p.x + p.w/2, p.y + p.h/2 - iconSize*0.22);
+    c.font = `700 ${Math.max(9, iconSize*0.34)}px 'Space Mono', monospace`;
+    c.fillStyle = accentColor || 'rgba(255,255,255,.75)';
+    c.fillText(`POSE ${index+1}`, p.x + p.w/2, p.y + p.h/2 + iconSize*0.62);
+    c.restore();
+  }
+
+  function renderStrip(){
+    const paper = PAPERS[currentPaper] || PAPERS.cream;
+    const L = computeGridLayout(TOTAL_SHOTS);
+    const W = L.W, pad = L.pad, photoW = L.photoW, photoH = L.photoH, gap = L.gap, topPad = L.topPad, bottomCaption = L.bottomCaption, H = L.H, cols = L.cols;
+    stripCanvas.height = H;
+
+    const isScrapbook = (currentFrame === 'scrapbook' && TOTAL_SHOTS === 3);
+    if(isScrapbook && scrapbookImgReady){
+      ctx.drawImage(scrapbookImg, 0, 0, W, L.imageH);
+      ctx.fillStyle = '#f2e8d5';
+      ctx.fillRect(0, H - L.bottomCaption, W, L.bottomCaption);
+    } else {
+      ctx.fillStyle = paper.bg;
+      ctx.fillRect(0,0,W,H);
+    }
+
+    const positions = L.positions;
+    const regionTop = L.regionTop;
+    const regionBottom = L.regionBottom;
+    const captionColors = {
+      plain: paper.text, film: paper.text, polaroid: paper.text,
+      pesta: '#3f6b64', love: '#c8546b', neon: '#00eaff', birthday: '#e8443a',
+      pastel: '#9b7bc4', sunset: '#e8574a', kawaii: '#c1529c',
+      airmail: '#1f3a63', reels: '#f2ede2', scrapbook: '#b23a30'
+    };
+
+    if(currentFrame === 'film'){
+      decorateFilm(ctx, W, H, pad, regionTop, regionBottom);
+    }
+    if(currentFrame === 'neon'){
+      ctx.fillStyle = '#0d0221';
+      ctx.fillRect(0, regionTop-16, W, (regionBottom-regionTop)+32);
+    }
+    if(currentFrame === 'pastel'){
+      decoratePastelBg(ctx, W, regionTop-14, regionBottom+14);
+      decoratePastelBlobs(ctx, W, regionTop-14, regionBottom+14, seededRand(7));
+    }
+    if(currentFrame === 'sunset'){
+      decorateSunsetBg(ctx, W, regionTop-20, regionBottom+20);
+      decorateSunsetSun(ctx, W, topPad);
+    }
+    if(currentFrame === 'kawaii'){
+      decorateKawaiiBg(ctx, W, regionTop-18, regionBottom+18);
+      decorateKawaiiSprinkles(ctx, W, regionTop-18, regionBottom+18, seededRand(13));
+    }
+    if(currentFrame === 'airmail'){
+      decorateAirmailBg(ctx, W, H, pad);
+    }
+    if(currentFrame === 'reels'){
+      decorateReels(ctx, W, pad, regionTop, regionBottom, cols, gap, photoW);
+    }
+
+    positions.forEach((p, i)=>{
+      if(isScrapbook){
+        ctx.save();
+        const cx = p.x + p.w/2, cy = p.y + p.h/2;
+        ctx.translate(cx, cy);
+        ctx.rotate(p.rot);
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,.35)';
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = '#fffdf8';
+        roundRect(ctx, -p.w/2-5, -p.h/2-5, p.w+10, p.h+10, 3);
+        ctx.fill();
+        ctx.restore();
+        if(capturedFrames[i]){
+          ctx.save();
+          roundRect(ctx, -p.w/2, -p.h/2, p.w, p.h, 2);
+          ctx.clip();
+          ctx.drawImage(capturedFrames[i], -p.w/2, -p.h/2, p.w, p.h);
+          ctx.restore();
+        } else {
+          drawEmptySlot(ctx, { x: -p.w/2, y: -p.h/2, w: p.w, h: p.h }, i, '#b23a30');
+        }
+        ctx.restore();
+        return;
+      }
+      if(currentFrame === 'polaroid'){
+        decoratePolaroid(ctx, p);
+        const tapeColors = ['#e8bb3c','#c8443a','#3f6b64','#e58a5f'];
+        decorateWashiTape(ctx, p, tapeColors[i % tapeColors.length]);
+      } else if(currentFrame === 'pastel'){
+        decoratePastelSticker(ctx, p, i);
+      } else if(currentFrame === 'kawaii'){
+        decorateKawaiiPhoto(ctx, p, i);
+      } else if(currentFrame === 'airmail'){
+        decorateAirmailPhoto(ctx, p);
+      } else if(currentFrame === 'reels'){
+        ctx.fillStyle = '#0c0c0c';
+        ctx.fillRect(p.x-5, p.y-5, p.w+10, p.h+10);
+      } else if(currentFrame !== 'sunset'){
+        ctx.fillStyle = '#1a1816';
+        ctx.fillRect(p.x-4, p.y-4, p.w+8, p.h+8);
+      }
+      if(capturedFrames[i]){
+        ctx.drawImage(capturedFrames[i], p.x, p.y, p.w, p.h);
+      } else {
+        drawEmptySlot(ctx, p, i, '#f4b942');
+      }
+      if(currentFrame === 'sunset'){
+        decorateSunsetBorder(ctx, p, i);
+      }
+    });
+
+    if(currentFrame === 'pesta'){
+      const rand = seededRand(42);
+      decorateConfetti(ctx, W, H, regionTop, regionBottom, rand);
+    }
+    if(currentFrame === 'love'){
+      decorateHearts(ctx, positions, W, topPad, seededRand(21));
+    }
+    if(currentFrame === 'neon'){
+      decorateNeon(ctx, W, H, positions, regionTop, regionBottom);
+    }
+    if(currentFrame === 'birthday'){
+      decorateBirthday(ctx, W, topPad, positions, regionBottom);
+    }
+    if(currentFrame === 'airmail'){
+      decorateAirmailStamp(ctx, W, H, bottomCaption);
+    }
+    if(currentFrame === 'reels'){
+      decorateReelsWatermark(ctx, W, regionBottom);
+    }
+
+    const capY = H - bottomCaption + 34;
+    ctx.fillStyle = captionColors[currentFrame] || paper.text;
+    ctx.textAlign = 'center';
+    ctx.font = "22px 'Anton', sans-serif";
+    ctx.fillText(photoboxName, W/2, capY);
+    ctx.font = "12px 'Space Mono', monospace";
+    ctx.fillStyle = paper.sub;
+    const dateStr = new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+    ctx.fillText(dateStr, W/2, capY + 22);
+
+    clampStickers();
+    drawStickers();
+    syncStickerOverlay();
+    if(!restoringSession){
+      saveSessionToStorage();
+    }
+  }
+
+  async function startSession(){
+    if(busy || errorMsg.style.display === 'flex') return;
+    const emptySlots = [];
+    for(let i=0; i<TOTAL_SHOTS; i++){ if(!capturedFrames[i]) emptySlots.push(i); }
+    if(emptySlots.length === 0) return; // grid already full — use Ulangi to retake
+
+    busy = true;
+    selectedDeleteSlot = null;
+    shutterBtn.disabled = true;
+    flipBtn.disabled = true;
+    filterBtns.forEach(b=>b.disabled = true);
+    frameBtns.forEach(b=>b.disabled = true);
+    layoutBtns.forEach(b=>b.disabled = true);
+    paperBtns.forEach(b=>b.disabled = true);
+    stickerPalette.querySelectorAll('.sticker-chip').forEach(b=>b.disabled = true);
+    clearStickersBtn.disabled = true;
+    stickerOverlay.style.pointerEvents = 'none';
+    retakeBtn.disabled = true;
+    if(undoDeleteBtn) undoDeleteBtn.disabled = true;
+    downloadBtn.disabled = true;
+    gifBtn.disabled = true;
+    shareBtn.disabled = true;
+    shotCounter.style.display = 'block';
+    aiSwitch.disabled = true;
+    aiPresetBtns.forEach(b=>b.disabled = true);
+    arSwitch.disabled = true;
+    arPresetBtns.forEach(b=>b.disabled = true);
+
+    for(let k=0; k<emptySlots.length; k++){
+      const slot = emptySlots[k];
+      shotCounter.textContent = `POSE ${k+1}/${emptySlots.length}`;
+      if(ldrActive && ldrRole === 'host') ldrSendToPeer({ type:'progress', k: k+1, total: emptySlots.length });
+      await runCountdown();
+      doFlash();
+      await wait(120);
+      const frame = captureFrame();
+      capturedFrames[slot] = frame;
+      renderStrip();
+      await wait(400);
+    }
+
+    shotCounter.textContent = `SELESAI · ${TOTAL_SHOTS}/${TOTAL_SHOTS}`;
+    if(ldrActive && ldrRole === 'host') ldrSendToPeer({ type:'session-end', total: TOTAL_SHOTS });
+    stripCanvas.classList.remove('printing');
+    void stripCanvas.offsetWidth;
+    stripCanvas.classList.add('printing');
+
+    busy = false;
+    flipBtn.disabled = ldrActive;
+    filterBtns.forEach(b=>b.disabled = false);
+    frameBtns.forEach(b=>b.disabled = false);
+    layoutBtns.forEach(b=>b.disabled = false);
+    paperBtns.forEach(b=>b.disabled = false);
+    stickerPalette.querySelectorAll('.sticker-chip').forEach(b=>b.disabled = false);
+    clearStickersBtn.disabled = false;
+    stickerOverlay.style.pointerEvents = 'auto';
+    aiSwitch.disabled = (ldrActive && ldrRole === 'host');
+    aiPresetBtns.forEach(b=>b.disabled = false);
+    arSwitch.disabled = (ldrActive && ldrRole === 'host');
+    arPresetBtns.forEach(b=>b.disabled = false);
+    updateCaptureUI();
+    updateUndoBtn();
+  }
+
+  shutterBtn.addEventListener('click', startSession);
+
+  retakeBtn.addEventListener('click', ()=>{
+    if(busy) return;
+    if(capturedFrames.some(Boolean)){
+      deleteHistory.push({ type:'clearAll', frames: capturedFrames.slice() });
+      updateUndoBtn();
+    }
+    capturedFrames = [];
+    selectedDeleteSlot = null;
+    renderStrip();
+    updateCaptureUI();
+  });
+
+  function updateUndoBtn(){
+    if(undoDeleteBtn) undoDeleteBtn.disabled = busy || deleteHistory.length === 0;
+  }
+
+  function undoLastDelete(){
+    if(busy || deleteHistory.length === 0) return;
+    const last = deleteHistory.pop();
+    if(last.type === 'single'){
+      capturedFrames[last.index] = last.frame;
+    } else if(last.type === 'clearAll'){
+      capturedFrames = last.frames.slice();
+    }
+    selectedDeleteSlot = null;
+    updateUndoBtn();
+    renderStrip();
+    updateCaptureUI();
+  }
+
+  if(undoDeleteBtn){
+    undoDeleteBtn.addEventListener('click', undoLastDelete);
+  }
+  updateUndoBtn();
+
+  downloadBtn.addEventListener('click', ()=>{
+    if(capturedFrames.slice(0, TOTAL_SHOTS).filter(Boolean).length < TOTAL_SHOTS) return;
+    const link = document.createElement('a');
+    link.download = 'photo-box-strip.png';
+    link.href = stripCanvas.toDataURL('image/png');
+    link.click();
+  });
+
+  // ---------- GIF export (boomerang flipbook of each pose) ----------
+  // Builds a looping "forward then backward" GIF from the individual pose
+  // photos (not the whole grid strip), styled with the current paper color
+  // so it still feels on-brand. Uses a small median-cut quantizer plus the
+  // omggif encoder (loaded on demand) — no server, everything runs locally.
+  function medianCutPalette(samples, targetColors){
+    let buckets = [samples];
+    function rangeInfo(bucket){
+      let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+      for(const p of bucket){
+        if(p[0]<rMin)rMin=p[0]; if(p[0]>rMax)rMax=p[0];
+        if(p[1]<gMin)gMin=p[1]; if(p[1]>gMax)gMax=p[1];
+        if(p[2]<bMin)bMin=p[2]; if(p[2]>bMax)bMax=p[2];
+      }
+      const rr=rMax-rMin, gr=gMax-gMin, br=bMax-bMin;
+      let dim=0, max=rr;
+      if(gr>max){ max=gr; dim=1; }
+      if(br>max){ max=br; dim=2; }
+      return { max, dim };
+    }
+    while(buckets.length < targetColors){
+      let idx=-1, maxRange=-1, dim=0;
+      buckets.forEach((b,i)=>{
+        if(b.length < 2) return;
+        const info = rangeInfo(b);
+        if(info.max > maxRange){ maxRange = info.max; idx = i; dim = info.dim; }
+      });
+      if(idx === -1) break;
+      const bucket = buckets[idx];
+      bucket.sort((a,b)=>a[dim]-b[dim]);
+      const mid = bucket.length >> 1;
+      buckets.splice(idx, 1, bucket.slice(0, mid), bucket.slice(mid));
+    }
+    const palette = buckets.map(b=>{
+      let r=0,g=0,bl=0;
+      for(const p of b){ r+=p[0]; g+=p[1]; bl+=p[2]; }
+      const n = b.length || 1;
+      return [Math.round(r/n), Math.round(g/n), Math.round(bl/n)];
+    });
+    while(palette.length < targetColors) palette.push([0,0,0]);
+    return palette.map(c => (c[0]<<16)|(c[1]<<8)|c[2]);
+  }
+
+  function nearestIndex(r, g, b, palette, cache){
+    const key = (r<<16)|(g<<8)|b;
+    const hit = cache.get(key);
+    if(hit !== undefined) return hit;
+    let best = 0, bestDist = Infinity;
+    for(let i=0; i<palette.length; i++){
+      const pr=(palette[i]>>16)&255, pg=(palette[i]>>8)&255, pb=palette[i]&255;
+      const dr=r-pr, dg=g-pg, db=b-pb;
+      const dist = dr*dr+dg*dg+db*db;
+      if(dist < bestDist){ bestDist = dist; best = i; }
+    }
+    cache.set(key, best);
+    return best;
+  }
+
+  function renderGifPoseCanvas(photoCanvas){
+    // Draw the pose at its native captured resolution — no shrinking —
+    // so the GIF keeps as much of the original photo quality as possible.
+    const pad = 28, capH = 88;
+    const W = photoCanvas.width + pad*2;
+    const H = photoCanvas.height + pad + capH;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const gctx = c.getContext('2d');
+    const paper = PAPERS[currentPaper] || PAPERS.cream;
+    gctx.fillStyle = paper.bg;
+    gctx.fillRect(0, 0, W, H);
+    gctx.drawImage(photoCanvas, pad, pad, photoCanvas.width, photoCanvas.height);
+    gctx.fillStyle = paper.text;
+    gctx.textAlign = 'center';
+    gctx.font = "44px 'Anton', sans-serif";
+    gctx.fillText(photoboxName, W/2, H - 32);
+    return c;
+  }
+
+  async function buildBoomerangGif(){
+    const poses = capturedFrames.slice(0, TOTAL_SHOTS).filter(Boolean);
+    if(poses.length === 0) return null;
+    if(!window.GifWriter){
+      await loadScriptOnce('https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js');
+    }
+    const poseCanvases = poses.map(renderGifPoseCanvas);
+    const W = poseCanvases[0].width, H = poseCanvases[0].height;
+
+    // Sample pixels across all poses to build one shared palette, using
+    // the full 256-color budget a GIF allows (instead of a reduced
+    // palette) so colors stay as close to the original photos as possible.
+    const samples = [];
+    poseCanvases.forEach(pc=>{
+      const d = pc.getContext('2d').getImageData(0, 0, W, H).data;
+      for(let i=0; i<d.length; i += 4*11){
+        samples.push([d[i], d[i+1], d[i+2]]);
+      }
+    });
+    const palette = medianCutPalette(samples, 256);
+    const cache = new Map();
+
+    const indexedFrames = poseCanvases.map(pc=>{
+      const d = pc.getContext('2d').getImageData(0, 0, W, H).data;
+      const idx = new Uint8Array(W*H);
+      for(let i=0, p=0; i<d.length; i+=4, p++){
+        idx[p] = nearestIndex(d[i], d[i+1], d[i+2], palette, cache);
+      }
+      return idx;
+    });
+
+    // Boomerang sequence: forward through every pose, then back again.
+    const seq = indexedFrames.length > 1
+      ? indexedFrames.concat(indexedFrames.slice(1, -1).reverse())
+      : indexedFrames;
+
+    const buf = new Uint8Array(W*H*seq.length + seq.length*256 + 4096);
+    const writer = new GifWriter(buf, W, H, { loop: 0, palette });
+    seq.forEach(idx=>{
+      writer.addFrame(0, 0, W, H, idx, { delay: 55 });
+    });
+    const end = writer.end();
+    return new Blob([buf.slice(0, end)], { type: 'image/gif' });
+  }
+
+  gifBtn.addEventListener('click', async ()=>{
+    if(gifBtn.disabled || busy) return;
+    const originalLabel = gifBtn.textContent;
+    gifBtn.disabled = true;
+    gifBtn.textContent = '...';
+    try{
+      const blob = await buildBoomerangGif();
+      if(blob){
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'photo-box-boomerang.gif';
+        link.href = url;
+        link.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      }
+    }catch(err){
+      gifBtn.textContent = 'Gagal';
+      setTimeout(()=>{ gifBtn.textContent = originalLabel; }, 1800);
+      updateCaptureUI();
+      return;
+    }
+    gifBtn.textContent = originalLabel;
+    updateCaptureUI();
+  });
+
+  // ---------- Share modal (native share sheet + QR preview) ----------
+  // There's no server here, so the QR encodes a small, heavily-compressed
+  // thumbnail as a data URL (best-effort — some scanner apps won't open a
+  // data: URI, so the hint text is upfront about it being a quick preview,
+  // not a substitute for the real download).
+  function stripToFile(){
+    return new Promise(resolve=>{
+      stripCanvas.toBlob(blob=>{
+        resolve(new File([blob], 'photo-box-strip.png', { type: 'image/png' }));
+      }, 'image/png');
+    });
+  }
+
+  function tinyThumbnailDataUrl(maxW){
+    const ratio = stripCanvas.height / stripCanvas.width;
+    const w = maxW, h = Math.round(maxW*ratio);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(stripCanvas, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.35);
+  }
+
+  async function renderShareQr(){
+    qrWrap.innerHTML = '';
+    qrWrap.appendChild(qrCanvas);
+    if(!window.QRCode){
+      await loadScriptOnce('https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js');
+    }
+    let dataUrl = null;
+    for(const w of [72, 56, 42]){
+      const candidate = tinyThumbnailDataUrl(w);
+      if(candidate.length <= 2200){ dataUrl = candidate; break; }
+    }
+    if(!dataUrl){
+      qrWrap.innerHTML = '<div style="color:#8a6a55; font-size:11px; text-align:center; padding:20px;">Preview kegedean buat di-QR.<br>Pakai tombol Unduh ya.</div>';
+      return;
+    }
+    await new Promise(resolve=>{
+      QRCode.toCanvas(qrCanvas, dataUrl, { width: 170, margin: 1, color:{ dark:'#2b2622', light:'#ffffff' } }, ()=>resolve());
+    });
+  }
+
+  shareBtn.addEventListener('click', async ()=>{
+    if(shareBtn.disabled || busy) return;
+    shareOverlay.classList.add('open');
+    shareHint.textContent = 'Scan pakai kamera HP buat lihat preview kecilnya. Kualitas penuh tetap lewat tombol Unduh.';
+    qrWrap.innerHTML = 'Menyiapkan QR…';
+
+    const file = await stripToFile();
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      shareNativeBtn.style.display = 'block';
+      shareNativeBtn.onclick = async ()=>{
+        try{
+          await navigator.share({ files:[file], title: photoboxName, text: 'Hasil foto dari ' + photoboxName });
+        }catch(e){ /* user cancelled — ignore */ }
+      };
+    } else {
+      shareNativeBtn.style.display = 'none';
+    }
+
+    renderShareQr();
+  });
+
+  function closeShare(){ shareOverlay.classList.remove('open'); }
+  shareCloseBtn.addEventListener('click', closeShare);
+  shareOverlay.addEventListener('click', e=>{ if(e.target === shareOverlay) closeShare(); });
+
+  // ---------- session persistence (localStorage) ----------
+  // Keeps the current photos, stickers, and style choices in localStorage so
+  // refreshing or reopening the page doesn't wipe out an in-progress strip.
+  const SESSION_KEY = 'photoboxSession';
+
+  function saveSessionToStorage(){
+    try{
+      const session = {
+        v: 1,
+        layout: currentLayout,
+        frame: currentFrame,
+        paper: currentPaper,
+        filter: currentFilter,
+        photos: capturedFrames.map(f => f ? f.toDataURL('image/png') : null),
+        stickers: stickers.map(s => ({ id:s.id, kind:s.kind||'emoji', emoji:s.emoji, custom:s.custom, x:s.x, y:s.y, size:s.size, rotation:s.rotation||0 })),
+        stickerIdSeq
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }catch(e){
+      // Storage full, private-browsing mode, etc. — the session just won't persist.
+    }
+  }
+
+  function loadImageAsCanvas(dataUrl){
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const c = document.createElement('canvas');
+        // Use the image's own saved size instead of forcing it back down
+        // to 960x720 — otherwise a restored session (e.g. after a page
+        // refresh) would quietly throw away the HD resolution we just
+        // captured it at.
+        c.width = img.naturalWidth || 960; c.height = img.naturalHeight || 720;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c);
+      };
+      img.onerror = ()=> resolve(null);
+      img.src = dataUrl;
+    });
+  }
+
+  async function restoreSessionFromStorage(){
+    let session = null;
+    try{
+      const raw = localStorage.getItem(SESSION_KEY);
+      if(raw) session = JSON.parse(raw);
+    }catch(e){ session = null; }
+
+    if(session && typeof session === 'object'){
+      if(session.layout && LAYOUTS[session.layout]){
+        currentLayout = session.layout;
+        TOTAL_SHOTS = LAYOUTS[currentLayout].shots;
+        GRID_COLS = LAYOUTS[currentLayout].cols;
+        layoutBtns.forEach(b=>b.classList.toggle('active', b.dataset.layout === currentLayout));
+      }
+      if(session.frame){
+        currentFrame = session.frame;
+        frameBtns.forEach(b=>b.classList.toggle('active', b.dataset.frame === currentFrame));
+        if(scrapbookCalibPanel){
+          scrapbookCalibPanel.style.display = (currentFrame === 'scrapbook') ? 'block' : 'none';
+        }
+      }
+      if(session.paper && PAPERS[session.paper]){
+        currentPaper = session.paper;
+        paperBtns.forEach(b=>b.classList.toggle('active', b.dataset.paper === currentPaper));
+      }
+      if(session.filter && FILTERS[session.filter]){
+        currentFilter = session.filter;
+        filterBtns.forEach(b=>b.classList.toggle('active', b.dataset.filter === currentFilter));
+        applyFilter(currentFilter);
+      }
+      if(Array.isArray(session.stickers)){
+        stickers = session.stickers.map(s=>({
+          id: s.id, kind: s.kind || 'emoji', emoji: s.emoji, custom: s.custom, x: s.x, y: s.y, size: s.size || 34, rotation: s.rotation || 0
+        }));
+      }
+      if(typeof session.stickerIdSeq === 'number'){
+        stickerIdSeq = Math.max(stickerIdSeq, session.stickerIdSeq);
+      }
+      if(Array.isArray(session.photos) && session.photos.some(Boolean)){
+        capturedFrames = await Promise.all(session.photos.map(p => p ? loadImageAsCanvas(p) : Promise.resolve(null)));
+      }
+    }
+
+    restoringSession = false;
+    updateHeroSubtitle();
+    renderStrip();
+    updateCaptureUI();
+    updateUndoBtn();
+  }
+
+  restoreSessionFromStorage();
+
+})();
+</script>
+
+</body>
+</html>
