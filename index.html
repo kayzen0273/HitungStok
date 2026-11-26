@@ -104,7 +104,8 @@
             "Komunikasi": "bg-sky-600",
             "Keuangan": "bg-emerald-600",
             "Operasional": "bg-violet-600",
-            "Sistem": "bg-slate-600"
+            "Sistem": "bg-slate-600",
+            "Hiburan": "bg-pink-600"
         };
 
         const appMenus = [
@@ -136,10 +137,11 @@
             { id: 26, visible: false, title: "Tampilan",     subtitle: "Tema", category: "Sistem", icon: "palette", badge: null, desc: "Ubah warna aksen, kepadatan tata letak, dan mode gelap atau terang." },
             { id: 27, visible: false, title: "Pengaturan",   subtitle: "Akun", category: "Sistem", icon: "settings", badge: null, desc: "Atur profil organisasi, zona waktu, bahasa, dan langganan." },
             { id: 28, visible: true, title: "Stok Opname", subtitle: "Pencatatan barang", category: "Operasional", icon: "package-check", badge: null, url: "stok_opname.html", desc: "Catat hasil hitung fisik barang, bandingkan dengan stok sistem, dan ekspor selisihnya ke Excel." },
-            { id: 29, visible: true, title: "Kasir Apotek", subtitle: "Penjualan & stok", category: "Operasional", icon: "shopping-cart", badge: null, url: "kasir_apotek.html", desc: "Kasir apotek dengan mode offline dan sinkronisasi otomatis." }
+            { id: 29, visible: true, title: "Kasir Apotek", subtitle: "Penjualan & stok", category: "Operasional", icon: "shopping-cart", badge: null, url: "kasir_apotek.html", desc: "Kasir apotek dengan mode offline dan sinkronisasi otomatis." },
+            { id: 30, visible: true, title: "NebulaHeart", subtitle: "Galaksi cinta", category: "Hiburan", icon: "heart", badge: null, url: "galaxilove.html", desc: "Buat galaksi cinta interaktif berbentuk hati, lalu bagikan lewat tautan khusus ke orang tersayang." }
         ];
 
-        const categories = ["Semua", "Produktivitas", "Keuangan", "Komunikasi", "Operasional", "Sistem", "Dinonaktifkan"];
+        const categories = ["Semua", "Produktivitas", "Keuangan", "Komunikasi", "Operasional", "Sistem", "Hiburan", "Dinonaktifkan"];
         let activeCategory = "Semua";
         let searchQuery = "";
         let currentApp = null;
@@ -257,6 +259,7 @@
                 frame.title = app.title;
                 frame.dataset.module = app.id;
                 frame.className = "absolute inset-0 w-full h-full border-0 bg-white";
+                frame.allow = "camera; fullscreen; clipboard-write";
                 frame.src = app.url;
                 viewerFrames.appendChild(frame);
             }
